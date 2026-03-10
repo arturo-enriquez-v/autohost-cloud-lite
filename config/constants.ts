@@ -22,7 +22,15 @@ export const API_ENDPOINTS = {
   },
   ENROLLMENTS: {
     CREATE: "/v1/enrollments/generate",
-  }
+  },
+  NODE_COMMANDS: {
+    BY_NODE: (nodeId: string) => `/v1/node-commands/node/${nodeId}`,
+  },
+  JOBS: {
+    CREATE: "/v1/jobs",
+    DETAIL: (id: string) => `/v1/jobs/${id}`,
+    BY_NODE: (nodeId: string) => `/v1/jobs/node/${nodeId}`,
+  },
 
 } as const;
 

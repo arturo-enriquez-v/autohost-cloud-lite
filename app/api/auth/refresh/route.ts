@@ -1,45 +1,44 @@
 import { NextResponse } from "next/server";
-import { backendFetch, proxySetCookie } from "@/lib/api";
-import { clearAccessTokenCookie, clearRefreshTokenCookie, setAccessTokenCookie, getRefreshTokenFromCookie, setRefreshTokenCookie } from "@/lib/cookies";
+import { backendFetch } from "@/lib/api";
+import {
+  ACCESS_COOKIE,
+  ACCESS_COOKIE_OPTIONS,
+  REFRESH_COOKIE,
+  REFRESH_COOKIE_OPTIONS,
+  getRefreshTokenFromCookie,
+} from "@/lib/cookies";
 
 export async function POST() {
   const refreshToken = await getRefreshTokenFromCookie();
-  
+
   if (!refreshToken) {
-    console.log("[REFRESH] No refresh token found");
     return NextResponse.json({ error: "No refresh token" }, { status: 401 });
   }
 
-  console.log("[REFRESH] Refreshing with token:", refreshToken.substring(0, 20) + "...");
-
-  // Enviar el refresh_token al backend
   const res = await backendFetch("/v1/auth/refresh", {
     method: "POST",
     body: JSON.stringify({ refresh_token: refreshToken }),
   });
-  
+
   const data = await res.json().catch(() => ({}));
 
-  console.log("[REFRESH] Response status:", res.status);
-  console.log("[REFRESH] Has access_token:", !!data?.access_token);
-
-  if (res.ok && data?.access_token) {
-    console.log("[REFRESH] Setting new access token");
-    await setAccessTokenCookie(data.access_token);
-    
-    // Si viene un nuevo refresh_token, actualizarlo
-    if (data?.refresh_token) {
-      console.log("[REFRESH] Updating refresh token");
-      await setRefreshTokenCookie(data.refresh_token);
-    }
-  } else {
-    console.log("[REFRESH] Failed, clearing cookies");
-    await clearAccessTokenCookie();
-    await clearRefreshTokenCookie();
+  if (!res.ok || !data?.access_token) {
+    // Refresh falló — limpiar cookies y forzar re-login
+    const response = NextResponse.json(
+      { error: "Session expired" },
+      { status: 401 }
+    );
+    response.cookies.delete(ACCESS_COOKIE);
+    response.cookies.delete(REFRESH_COOKIE);
+    return response;
   }
 
-  const out = NextResponse.json(data, { status: res.status });
-  await proxySetCookie(res, out);
+  const response = NextResponse.json({ ok: true }, { status: 200 });
+  response.cookies.set(ACCESS_COOKIE, data.access_token, ACCESS_COOKIE_OPTIONS);
 
-  return out;
+  if (data.refresh_token) {
+    response.cookies.set(REFRESH_COOKIE, data.refresh_token, REFRESH_COOKIE_OPTIONS);
+  }
+
+  return response;
 }

@@ -1,19 +1,21 @@
-export async function proxySetCookie(from: Response, to: Response) {
-  const setCookie = from.headers.get("set-cookie");
-  if (setCookie) {
-    console.log("[proxySetCookie] Proxying cookie:", setCookie.substring(0, 50) + "...");
-    to.headers.set("set-cookie", setCookie);
-  }
-}
-
-// Helper para llamar al backend con Authorization (si tenemos access)
+/**
+ * backendFetch: llamada server-side al backend Go.
+ * Solo usar en Route Handlers y Server Components (nunca en el browser).
+ * Go es API pura: recibe Authorization header, devuelve JSON, nunca toca cookies.
+ */
 export async function backendFetch(
   input: string,
   init: RequestInit = {},
   accessToken?: string
-) {
-  const url =
-    (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080") + input;
+): Promise<Response> {
+  // En servidor usa la URL interna (Docker internal network)
+  // En cliente nunca debería llamarse directamente
+  const baseUrl =
+    typeof window === "undefined"
+      ? (process.env.INTERNAL_API_URL ?? "http://localhost:8090")
+      : "";
+
+  const url = baseUrl + input;
 
   const headers = new Headers(init.headers || {});
   if (accessToken) {
@@ -21,9 +23,6 @@ export async function backendFetch(
   }
   headers.set("Content-Type", headers.get("Content-Type") || "application/json");
 
-  return fetch(url, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
+  // Sin credentials:"include" — Go no usa cookies, no necesita este header
+  return fetch(url, { ...init, headers });
 }

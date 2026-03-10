@@ -26,12 +26,15 @@ async function refreshAccessToken(): Promise<boolean> {
         credentials: "include",
       });
 
+      console.log("[CLIENT] Refresh response status:", res.status);
+
       if (res.ok) {
         console.log("[CLIENT] Token refreshed successfully");
         return true;
       }
 
-      console.log("[CLIENT] Token refresh failed");
+      // 401 del refresh — sesión expirada
+      console.log("[CLIENT] Token refresh failed with status:", res.status);
       return false;
     } catch (error) {
       console.error("[CLIENT] Error refreshing token:", error);
@@ -71,6 +74,12 @@ export async function fetchWithAuth(
         ...options,
         credentials: "include",
       });
+
+      // Si sigue en 401 tras el refresh, forzar logout
+      if (response.status === 401) {
+        console.log("[CLIENT] Still 401 after refresh, redirecting to login");
+        window.location.href = "/login";
+      }
     } else {
       // Si el refresh falló, redirigir al login
       console.log("[CLIENT] Refresh failed, redirecting to login");

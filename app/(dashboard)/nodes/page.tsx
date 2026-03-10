@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +9,7 @@ import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import { Loader2 } from "lucide-react"
 
 export default function NodesPage() {
+  const router = useRouter()
   const { nodes, isLoading, error } = useNodes()
 
   if (isLoading) {
@@ -51,7 +53,7 @@ export default function NodesPage() {
             </TableHeader>
             <TableBody>
               {nodes.map((node) => (
-                <TableRow key={node.id}>
+                <TableRow key={node.id} className="cursor-pointer hover:bg-accent/50" onClick={() => router.push(`/node/${node.id}`)}>
                   <TableCell className="font-medium">{node.name}</TableCell>
                   <TableCell className="font-mono text-sm">{node.ipLocal || "N/A"}</TableCell>
                   <TableCell>{node.os || "N/A"}</TableCell>
