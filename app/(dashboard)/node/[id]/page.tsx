@@ -2,13 +2,24 @@
 
 import { Fragment, use, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   ArrowLeft,
+  Bell,
+  Box,
+  Check,
   Play,
+  RefreshCw,
+  RotateCcw,
+  ScrollText,
+  Send,
+  Square,
   Terminal,
   Loader2,
   CheckCircle2,
@@ -18,7 +29,9 @@ import {
 } from "lucide-react"
 import { useNodeCommands } from "@/lib/hooks/useNodeCommands"
 import { useNodeJobs, useJobDispatch } from "@/lib/hooks/useNodeJobs"
-import type { NodeCommand, Job, JobStatus } from "@/lib/types"
+import { useNodeAlerts } from "@/lib/hooks/useNodeAlerts"
+import { useContainers } from "@/lib/hooks/useContainers"
+import type { NodeCommand, Job, JobStatus, Container } from "@/lib/types"
 
 function StatusBadge({ status }: { status: JobStatus }) {
   const config: Record<JobStatus, { icon: React.ReactNode; label: string; className: string }> = {
@@ -41,6 +54,20 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleString()
 }
 
+function ContainerStateBadge({ state }: { state: string }) {
+  const cfg: Record<string, string> = {
+    running: "bg-green-500/15 text-green-600 border-green-500/30",
+    exited: "bg-muted text-muted-foreground",
+    paused: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
+    restarting: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  }
+  return (
+    <Badge variant="outline" className={cfg[state] ?? "bg-muted text-muted-foreground"}>
+      {state}
+    </Badge>
+  )
+}
+
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
@@ -49,8 +76,33 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
   const customCommands = commands.filter((c) => c.type === "custom")
   const { jobs, isLoading: jobsLoading, error: jobsError, refresh: refreshJobs } = useNodeJobs(nodeId)
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
+  const { config: alertConfig, isLoading: alertsLoading, isSaving: alertsSaving, saved: alertsSaved, error: alertsError, save: saveAlerts } = useNodeAlerts(nodeId)
+  const { containers, isRefreshing: containersRefreshing, lastRefreshed: containersRefreshedAt, refreshError: containersError, actionState: containerAction, refresh: refreshContainers, runAction: runContainerAction } = useContainers(nodeId)
 
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
+
+  // Local form state for the alerts section
+  const [alertForm, setAlertForm] = useState({
+    telegramBotToken: "",
+    telegramChatId: "",
+    cpuThreshold: "" as string,
+    ramThreshold: "" as string,
+    diskThreshold: "" as string,
+    alertOnOffline: false,
+  })
+  // Sync alert config into form once loaded
+  const [alertFormSynced, setAlertFormSynced] = useState(false)
+  if (!alertsLoading && !alertFormSynced) {
+    setAlertFormSynced(true)
+    setAlertForm({
+      telegramBotToken: alertConfig.telegramBotToken ?? "",
+      telegramChatId: alertConfig.telegramChatId ?? "",
+      cpuThreshold: alertConfig.cpuThreshold != null ? String(alertConfig.cpuThreshold) : "",
+      ramThreshold: alertConfig.ramThreshold != null ? String(alertConfig.ramThreshold) : "",
+      diskThreshold: alertConfig.diskThreshold != null ? String(alertConfig.diskThreshold) : "",
+      alertOnOffline: alertConfig.alertOnOffline ?? false,
+    })
+  }
 
   const handleExecute = async (cmd: NodeCommand) => {
     try {
@@ -62,6 +114,21 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
+  const handleSaveAlerts = async () => {
+    const parseThreshold = (v: string) => {
+      const n = parseFloat(v)
+      return isNaN(n) ? null : Math.min(100, Math.max(0, n))
+    }
+    await saveAlerts({
+      telegramBotToken: alertForm.telegramBotToken,
+      telegramChatId: alertForm.telegramChatId,
+      cpuThreshold: parseThreshold(alertForm.cpuThreshold),
+      ramThreshold: parseThreshold(alertForm.ramThreshold),
+      diskThreshold: parseThreshold(alertForm.diskThreshold),
+      alertOnOffline: alertForm.alertOnOffline,
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -69,11 +136,249 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h2 className="text-2xl font-bold text-foreground">Node Detail</h2>
           <p className="text-sm text-muted-foreground font-mono">{nodeId}</p>
         </div>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/logs`)} className="gap-2">
+          <ScrollText className="h-4 w-4" />
+          Live Logs
+        </Button>
       </div>
+
+      {/* Docker Containers */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <Box className="h-5 w-5 shrink-0" />
+              Containers
+            </CardTitle>
+            {containersRefreshedAt && (
+              <CardDescription className="mt-1">
+                Updated {containersRefreshedAt.toLocaleTimeString()}
+              </CardDescription>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshContainers}
+            disabled={containersRefreshing || containerAction !== null}
+            className="shrink-0 gap-2"
+          >
+            {containersRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {containersRefreshing ? "Loading…" : "Refresh"}
+            </span>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {containersError ? (
+            <p className="text-sm text-destructive">{containersError}</p>
+          ) : containersRefreshing && containers.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : containers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">
+              Click <strong>Refresh</strong> to load Docker containers from this node.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Image</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {containers.map((ctr: Container) => {
+                    const isActing = containerAction?.name === ctr.name
+                    const isRunning = ctr.state === "running"
+                    const isExited = ctr.state === "exited"
+                    const anyActing = containerAction !== null
+                    return (
+                      <TableRow key={ctr.id}>
+                        <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
+                          {ctr.image}
+                        </TableCell>
+                        <TableCell>
+                          <ContainerStateBadge state={ctr.state} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Start"
+                              disabled={anyActing || isRunning}
+                              onClick={() => runContainerAction(ctr.name, "start")}
+                            >
+                              {isActing && containerAction?.action === "start" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Stop"
+                              disabled={anyActing || isExited}
+                              onClick={() => runContainerAction(ctr.name, "stop")}
+                            >
+                              {isActing && containerAction?.action === "stop" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Restart"
+                              disabled={anyActing || isExited}
+                              onClick={() => runContainerAction(ctr.name, "restart")}
+                            >
+                              {isActing && containerAction?.action === "restart" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Alerts configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Alerts
+          </CardTitle>
+          <CardDescription>
+            Receive Telegram notifications when metrics exceed thresholds or the node goes offline.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {alertsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Telegram credentials */}
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-foreground">Telegram</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="tg-bot-token">Bot Token</Label>
+                    <Input
+                      id="tg-bot-token"
+                      type="password"
+                      placeholder="1234567890:AABBccDDeeFFggHHii..."
+                      value={alertForm.telegramBotToken}
+                      onChange={(e) => setAlertForm((f) => ({ ...f, telegramBotToken: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tg-chat-id">Chat ID</Label>
+                    <Input
+                      id="tg-chat-id"
+                      placeholder="-100123456789"
+                      value={alertForm.telegramChatId}
+                      onChange={(e) => setAlertForm((f) => ({ ...f, telegramChatId: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Metric thresholds */}
+              <div className="space-y-4">
+                <p className="text-sm font-medium text-foreground">
+                  Thresholds <span className="text-muted-foreground font-normal">(0–100 %, leave empty to disable)</span>
+                </p>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  {(
+                    [
+                      { id: "cpu", label: "CPU %", key: "cpuThreshold" },
+                      { id: "ram", label: "RAM %", key: "ramThreshold" },
+                      { id: "disk", label: "Disk %", key: "diskThreshold" },
+                    ] as const
+                  ).map(({ id, label, key }) => (
+                    <div key={id} className="space-y-2">
+                      <Label htmlFor={`threshold-${id}`}>{label}</Label>
+                      <Input
+                        id={`threshold-${id}`}
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        placeholder="e.g. 85"
+                        value={alertForm[key]}
+                        onChange={(e) => setAlertForm((f) => ({ ...f, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Offline alert toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="alert-offline" className="text-sm font-medium">Alert when node goes offline</Label>
+                  <p className="text-xs text-muted-foreground">
+                    A Telegram message is sent 30 s after the node loses its connection.
+                  </p>
+                </div>
+                <Switch
+                  id="alert-offline"
+                  checked={alertForm.alertOnOffline}
+                  onCheckedChange={(v) => setAlertForm((f) => ({ ...f, alertOnOffline: v }))}
+                />
+              </div>
+
+              {alertsError && (
+                <p className="text-sm text-destructive">{alertsError}</p>
+              )}
+
+              <div className="flex items-center gap-3">
+                <Button onClick={handleSaveAlerts} disabled={alertsSaving} className="gap-2">
+                  {alertsSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : alertsSaved ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  {alertsSaving ? "Saving…" : alertsSaved ? "Saved!" : "Save Alerts"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Commands card */}
       <Card>

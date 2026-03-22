@@ -31,6 +31,14 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/v1/jobs/${id}`,
     BY_NODE: (nodeId: string) => `/v1/jobs/node/${nodeId}`,
   },
+  NODE_ALERTS: {
+    BY_NODE: (nodeId: string) => `/v1/node-alerts/${nodeId}`,
+  },
+  SCHEDULED_TASKS: {
+    LIST: "/v1/scheduled-tasks",
+    DETAIL: (id: string) => `/v1/scheduled-tasks/${id}`,
+    TOGGLE: (id: string) => `/v1/scheduled-tasks/${id}/toggle`,
+  },
 
 } as const;
 
