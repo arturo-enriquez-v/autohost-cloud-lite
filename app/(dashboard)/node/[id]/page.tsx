@@ -12,10 +12,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   ArrowLeft,
   Bell,
+  Box,
   Check,
   Play,
+  RefreshCw,
+  RotateCcw,
   ScrollText,
   Send,
+  Square,
   Terminal,
   Loader2,
   CheckCircle2,
@@ -26,7 +30,8 @@ import {
 import { useNodeCommands } from "@/lib/hooks/useNodeCommands"
 import { useNodeJobs, useJobDispatch } from "@/lib/hooks/useNodeJobs"
 import { useNodeAlerts } from "@/lib/hooks/useNodeAlerts"
-import type { NodeCommand, Job, JobStatus } from "@/lib/types"
+import { useContainers } from "@/lib/hooks/useContainers"
+import type { NodeCommand, Job, JobStatus, Container } from "@/lib/types"
 
 function StatusBadge({ status }: { status: JobStatus }) {
   const config: Record<JobStatus, { icon: React.ReactNode; label: string; className: string }> = {
@@ -49,6 +54,20 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleString()
 }
 
+function ContainerStateBadge({ state }: { state: string }) {
+  const cfg: Record<string, string> = {
+    running: "bg-green-500/15 text-green-600 border-green-500/30",
+    exited: "bg-muted text-muted-foreground",
+    paused: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
+    restarting: "bg-blue-500/15 text-blue-600 border-blue-500/30",
+  }
+  return (
+    <Badge variant="outline" className={cfg[state] ?? "bg-muted text-muted-foreground"}>
+      {state}
+    </Badge>
+  )
+}
+
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
@@ -58,6 +77,7 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
   const { jobs, isLoading: jobsLoading, error: jobsError, refresh: refreshJobs } = useNodeJobs(nodeId)
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
   const { config: alertConfig, isLoading: alertsLoading, isSaving: alertsSaving, saved: alertsSaved, error: alertsError, save: saveAlerts } = useNodeAlerts(nodeId)
+  const { containers, isRefreshing: containersRefreshing, lastRefreshed: containersRefreshedAt, refreshError: containersError, actionState: containerAction, refresh: refreshContainers, runAction: runContainerAction } = useContainers(nodeId)
 
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
 
@@ -125,6 +145,130 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
           Live Logs
         </Button>
       </div>
+
+      {/* Docker Containers */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="min-w-0">
+            <CardTitle className="flex items-center gap-2">
+              <Box className="h-5 w-5 shrink-0" />
+              Containers
+            </CardTitle>
+            {containersRefreshedAt && (
+              <CardDescription className="mt-1">
+                Updated {containersRefreshedAt.toLocaleTimeString()}
+              </CardDescription>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshContainers}
+            disabled={containersRefreshing || containerAction !== null}
+            className="shrink-0 gap-2"
+          >
+            {containersRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {containersRefreshing ? "Loading…" : "Refresh"}
+            </span>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {containersError ? (
+            <p className="text-sm text-destructive">{containersError}</p>
+          ) : containersRefreshing && containers.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : containers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">
+              Click <strong>Refresh</strong> to load Docker containers from this node.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden md:table-cell">Image</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {containers.map((ctr: Container) => {
+                    const isActing = containerAction?.name === ctr.name
+                    const isRunning = ctr.state === "running"
+                    const isExited = ctr.state === "exited"
+                    const anyActing = containerAction !== null
+                    return (
+                      <TableRow key={ctr.id}>
+                        <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground text-sm max-w-[200px] truncate">
+                          {ctr.image}
+                        </TableCell>
+                        <TableCell>
+                          <ContainerStateBadge state={ctr.state} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Start"
+                              disabled={anyActing || isRunning}
+                              onClick={() => runContainerAction(ctr.name, "start")}
+                            >
+                              {isActing && containerAction?.action === "start" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Stop"
+                              disabled={anyActing || isExited}
+                              onClick={() => runContainerAction(ctr.name, "stop")}
+                            >
+                              {isActing && containerAction?.action === "stop" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Restart"
+                              disabled={anyActing || isExited}
+                              onClick={() => runContainerAction(ctr.name, "restart")}
+                            >
+                              {isActing && containerAction?.action === "restart" ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <RotateCcw className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Alerts configuration */}
       <Card>
