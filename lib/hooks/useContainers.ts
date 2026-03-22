@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
-import type { Container } from "@/lib/types"
+import type { DockerContainer } from "@/lib/types"
 
 export type ContainerAction = "start" | "stop" | "restart"
 
@@ -36,7 +36,7 @@ async function dispatchAndPoll(
 }
 
 export function useContainers(nodeId: string) {
-  const [containers, setContainers] = useState<Container[]>([])
+  const [containers, setContainers] = useState<DockerContainer[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [refreshError, setRefreshError] = useState<string | null>(null)
@@ -48,7 +48,7 @@ export function useContainers(nodeId: string) {
     try {
       const { output, error } = await dispatchAndPoll(nodeId, "container.list")
       if (error) throw new Error(error)
-      const parsed: Container[] = JSON.parse(output || "[]")
+      const parsed: DockerContainer[] = JSON.parse(output || "[]")
       setContainers(parsed)
       setLastRefreshed(new Date())
     } catch (e) {

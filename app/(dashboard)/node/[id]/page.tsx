@@ -31,7 +31,7 @@ import { useNodeCommands } from "@/lib/hooks/useNodeCommands"
 import { useNodeJobs, useJobDispatch } from "@/lib/hooks/useNodeJobs"
 import { useNodeAlerts } from "@/lib/hooks/useNodeAlerts"
 import { useContainers } from "@/lib/hooks/useContainers"
-import type { NodeCommand, Job, JobStatus, Container } from "@/lib/types"
+import type { NodeCommand, Job, JobStatus, DockerContainer } from "@/lib/types"
 
 function StatusBadge({ status }: { status: JobStatus }) {
   const config: Record<JobStatus, { icon: React.ReactNode; label: string; className: string }> = {
@@ -200,7 +200,7 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {containers.map((ctr: Container) => {
+                  {containers.map((ctr: DockerContainer) => {
                     const isActing = containerAction?.name === ctr.name
                     const isRunning = ctr.state === "running"
                     const isExited = ctr.state === "exited"
