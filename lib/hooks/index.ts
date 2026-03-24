@@ -1,4 +1,5 @@
 export * from "./useAuth";
+export * from "./useNode";
 export * from "./useNodes";
 export * from "./useEnrollments";
 export * from "./useNodeCommands";

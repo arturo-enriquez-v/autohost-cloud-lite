@@ -35,7 +35,7 @@ export function Header({ onMobileMenu }: HeaderProps) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button variant="ghost" size="icon" className="rounded-full" suppressHydrationWarning>
             <User className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
