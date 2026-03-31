@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
 import type { DockerContainer } from "@/lib/types"
 
-export type ContainerAction = "start" | "stop" | "restart"
+export type ContainerAction = "start" | "stop" | "restart" | "stats"
 
 /** Dispatch a job and block until it reaches a terminal status (max 30 s). */
 async function dispatchAndPoll(
@@ -35,14 +35,19 @@ async function dispatchAndPoll(
   throw new Error("Timeout: no response from node within 30 s")
 }
 
+const AUTO_REFRESH_MS = 10_000
+
 export function useContainers(nodeId: string) {
   const [containers, setContainers] = useState<DockerContainer[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [actionState, setActionState] = useState<{ name: string; action: ContainerAction } | null>(null)
+  const refreshingRef = useRef(false)
 
   const refresh = useCallback(async () => {
+    if (refreshingRef.current) return
+    refreshingRef.current = true
     setIsRefreshing(true)
     setRefreshError(null)
     try {
@@ -55,8 +60,15 @@ export function useContainers(nodeId: string) {
       setRefreshError(e instanceof Error ? e.message : "Failed to list containers")
     } finally {
       setIsRefreshing(false)
+      refreshingRef.current = false
     }
   }, [nodeId])
+
+  // Auto-refresh every 15 s
+  useEffect(() => {
+    const id = setInterval(refresh, AUTO_REFRESH_MS)
+    return () => clearInterval(id)
+  }, [refresh])
 
   const runAction = useCallback(
     async (name: string, action: ContainerAction) => {
