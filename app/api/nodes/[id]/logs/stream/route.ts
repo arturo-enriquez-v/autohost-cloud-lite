@@ -40,6 +40,9 @@ export async function GET(
       {
         // Tell fetch to not buffer the body.
         cache: "no-store",
+        // Propagate client-disconnect so the backend SSE is aborted and the
+        // agent stops journalctl when the browser navigates away.
+        signal: req.signal,
         // @ts-expect-error — Node.js fetch supports this signal: makes the
         // stream abort when the client disconnects.
         duplex: "half",

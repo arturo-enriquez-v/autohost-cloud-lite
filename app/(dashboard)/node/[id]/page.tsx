@@ -27,6 +27,7 @@ import {
   WifiOff,
   Network,
   Server,
+  Activity,
 } from "lucide-react"
 import { useNode } from "@/lib/hooks/useNode"
 import { useNodeCommands } from "@/lib/hooks/useNodeCommands"
@@ -194,10 +195,14 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                 {containers.length > 0 && (
                   <Badge variant="outline" className="text-xs">{containers.length}</Badge>
                 )}
+                <Badge variant="outline" className="text-xs gap-1 bg-green-500/10 text-green-600 border-green-500/30">
+                  <Activity className="h-3 w-3" />
+                  Live
+                </Badge>
               </CardTitle>
               {containersRefreshedAt && (
                 <CardDescription className="mt-1">
-                  Updated {containersRefreshedAt.toLocaleTimeString()}
+                  Updated {containersRefreshedAt.toLocaleTimeString()} · auto-refresh 10s
                 </CardDescription>
               )}
             </div>
@@ -237,6 +242,8 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead className="hidden sm:table-cell">CPU</TableHead>
+                      <TableHead className="hidden sm:table-cell">Memory</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -251,6 +258,19 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                           <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
                           <TableCell>
                             <ContainerStateBadge state={ctr.state} />
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
+                            {ctr.cpu ?? "—"}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
+                            {ctr.mem ? (
+                              <span className="flex flex-col gap-0.5">
+                                <span>{ctr.mem}</span>
+                                {ctr.memPerc && (
+                                  <span className="text-[10px] text-muted-foreground/60">{ctr.memPerc}</span>
+                                )}
+                              </span>
+                            ) : "—"}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center justify-end gap-1">
