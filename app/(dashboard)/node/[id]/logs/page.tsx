@@ -1,8 +1,8 @@
 "use client"
 
 import { use, useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, Circle, Eraser, Wifi, WifiOff } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ArrowLeft, Box, Circle, Eraser, Wifi, WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -21,9 +21,17 @@ const UNIT_OPTIONS = [
 export default function NodeLogsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // When ?container=<name> is present we are in docker-container mode.
+  const containerName = searchParams.get("container") ?? ""
+  const isContainerMode = containerName !== ""
 
   const [unitSelect, setUnitSelect] = useState("all")
-  const unit = unitSelect === "all" ? "" : unitSelect
+  // In container mode the effective unit is always "docker:<name>".
+  const unit = isContainerMode
+    ? `docker:${containerName}`
+    : unitSelect === "all" ? "" : unitSelect
   const [lines, setLines] = useState(100)
   const [autoScroll, setAutoScroll] = useState(true)
 
@@ -56,8 +64,20 @@ export default function NodeLogsPage({ params }: { params: Promise<{ id: string 
         </Button>
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-base font-semibold leading-none">System Logs</h2>
-          <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{nodeId}</p>
+          {isContainerMode ? (
+            <>
+              <h2 className="text-base font-semibold leading-none flex items-center gap-1.5">
+                <Box className="h-4 w-4 shrink-0 text-muted-foreground" />
+                Container Logs
+              </h2>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{containerName}</p>
+            </>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold leading-none">System Logs</h2>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{nodeId}</p>
+            </>
+          )}
         </div>
 
         {/* Connection indicator */}
@@ -76,19 +96,21 @@ export default function NodeLogsPage({ params }: { params: Promise<{ id: string 
           )}
         </Badge>
 
-        {/* Unit selector */}
-        <Select value={unitSelect} onValueChange={(v) => { clear(); setUnitSelect(v) }}>
-          <SelectTrigger className="w-44 h-8 text-xs">
-            <SelectValue placeholder="All units" />
-          </SelectTrigger>
-          <SelectContent>
-            {UNIT_OPTIONS.map((o) => (
-              <SelectItem key={o.value} value={o.value} className="text-xs">
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Unit selector — hidden in container mode */}
+        {!isContainerMode && (
+          <Select value={unitSelect} onValueChange={(v) => { clear(); setUnitSelect(v) }}>
+            <SelectTrigger className="w-44 h-8 text-xs">
+              <SelectValue placeholder="All units" />
+            </SelectTrigger>
+            <SelectContent>
+              {UNIT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value} className="text-xs">
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Lines selector */}
         <Select value={String(lines)} onValueChange={(v) => { clear(); setLines(Number(v)) }}>
@@ -171,3 +193,4 @@ function LogLine({ entry }: { entry: { timestamp_us: number; unit: string; messa
     </div>
   )
 }
+
