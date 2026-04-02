@@ -21,18 +21,18 @@ export async function GET(req: Request) {
 
   // User denied access or error from Google
   if (errorParam || !code) {
-    return NextResponse.redirect(new URL("/login?error=google_denied", url.origin));
+    return NextResponse.redirect(new URL("/login?error=google_denied", process.env.APP_URL ?? url.origin));
   }
 
   // CSRF: verify state matches cookie
   const cookieStore = await cookies();
   const savedState = cookieStore.get("oauth_state")?.value;
   if (!state || state !== savedState) {
-    return NextResponse.redirect(new URL("/login?error=invalid_state", url.origin));
+    return NextResponse.redirect(new URL("/login?error=invalid_state", process.env.APP_URL ?? url.origin));
   }
 
-  const origin = url.origin;
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  const appUrl = process.env.APP_URL ?? url.origin;
+  const redirectUri = `${appUrl}/api/auth/google/callback`;
 
   // Exchange authorization code for tokens with Google
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
 
   const tokens = await tokenRes.json().catch(() => ({}));
   if (!tokens.id_token) {
-    return NextResponse.redirect(new URL("/login?error=google_failed", url.origin));
+    return NextResponse.redirect(new URL("/login?error=google_failed", process.env.APP_URL ?? url.origin));
   }
 
   // Send id_token to our Go backend for verification + user creation
@@ -60,11 +60,11 @@ export async function GET(req: Request) {
 
   const data = await backendRes.json().catch(() => ({}));
   if (!backendRes.ok || !data.access_token) {
-    return NextResponse.redirect(new URL("/login?error=google_failed", url.origin));
+    return NextResponse.redirect(new URL("/login?error=google_failed", process.env.APP_URL ?? url.origin));
   }
 
   // Set JWT cookies and redirect to dashboard
-  const response = NextResponse.redirect(new URL("/", url.origin));
+  const response = NextResponse.redirect(new URL("/", process.env.APP_URL ?? url.origin));
   response.cookies.set(ACCESS_COOKIE, data.access_token, ACCESS_COOKIE_OPTIONS);
   response.cookies.set(REFRESH_COOKIE, data.refresh_token, REFRESH_COOKIE_OPTIONS);
   response.cookies.delete("oauth_state");
