@@ -21,8 +21,8 @@ export async function GET(req: Request) {
     );
   }
 
-  const origin = new URL(req.url).origin;
-  const redirectUri = `${origin}/api/auth/google/callback`;
+  const appUrl = process.env.APP_URL ?? new URL(req.url).origin;
+  const redirectUri = `${appUrl}/api/auth/google/callback`;
 
   // CSRF protection: random state stored in cookie
   const state = crypto.randomUUID();

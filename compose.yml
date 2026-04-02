@@ -4,6 +4,8 @@ services:
     container_name: autohost-cloud-lite
     ports:
       - "3000:3000"
+    environment:
+      - APP_URL=https://cloud.autohst.dev
     env_file:
       - .env.local
     extra_hosts:
