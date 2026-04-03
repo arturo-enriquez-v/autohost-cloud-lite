@@ -46,6 +46,14 @@ export interface NodeMetric {
   collected_at: string;
 }
 
+// Punto de historial de métricas (agregado por bucket temporal)
+export interface NodeMetricHistoryPoint {
+  bucket: string;
+  cpu_usage_percent: number;
+  memory_usage_percent: number;
+  disk_usage_percent: number;
+}
+
 // Tipo de respuesta del backend con métricas (formato snake_case)
 export interface NodeWithMetricsBackendResponse {
   id: string;

@@ -32,6 +32,22 @@ export async function getNodeBackend(id: string, accessToken: string) {
 
 
 /**
+ * Obtiene el historial de métricas de un nodo
+ */
+export async function getNodeMetricsHistoryBackend(
+  nodeId: string,
+  accessToken: string,
+  params: { from?: string; to?: string; bucket?: string } = {}
+) {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.bucket) query.set("bucket", params.bucket);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  return backendFetch(`${API_ENDPOINTS.NODE_METRICS.HISTORY(nodeId)}${qs}`, { method: "GET" }, accessToken);
+}
+
+/**
  * Mapea un nodo del backend al formato de la UI
  */
 export function mapNodeFromBackend(node: NodeBackendResponse) {
