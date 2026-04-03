@@ -34,6 +34,9 @@ export const API_ENDPOINTS = {
   NODE_ALERTS: {
     BY_NODE: (nodeId: string) => `/v1/node-alerts/${nodeId}`,
   },
+  NODE_METRICS: {
+    HISTORY: (nodeId: string) => `/v1/node-metrics/${nodeId}/history`,
+  },
   SCHEDULED_TASKS: {
     LIST: "/v1/scheduled-tasks",
     DETAIL: (id: string) => `/v1/scheduled-tasks/${id}`,
