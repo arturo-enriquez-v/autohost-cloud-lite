@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
     LIST: "/v1/nodes",
     WITH_METRICS: "/v1/nodes/with-metrics",
     DETAIL: (id: string) => `/v1/nodes/${id}`,
+    UPDATE: "/v1/nodes",
+    DELETE: (id: string) => `/v1/nodes/${id}`,
   },
   ENROLLMENTS: {
     CREATE: "/v1/enrollments/generate",

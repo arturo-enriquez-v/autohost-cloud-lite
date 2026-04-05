@@ -29,6 +29,19 @@ export async function getNodeBackend(id: string, accessToken: string) {
   }, accessToken);
 }
 
+export async function updateNodeBackend(id: string, hostname: string, accessToken: string) {
+  return backendFetch(API_ENDPOINTS.NODES.UPDATE, {
+    method: "PUT",
+    body: JSON.stringify({ id, hostname }),
+  }, accessToken);
+}
+
+export async function deleteNodeBackend(id: string, accessToken: string) {
+  return backendFetch(API_ENDPOINTS.NODES.DELETE(id), {
+    method: "DELETE",
+  }, accessToken);
+}
+
 
 
 /**
@@ -54,6 +67,7 @@ export function mapNodeFromBackend(node: NodeBackendResponse) {
   return {
     id: node.ID,
     name: node.Hostname,
+    hostname: node.Hostname,
     status: calculateNodeStatus(node.LastSeenAt),
     cpu: 0,
     ram: 0,
@@ -76,6 +90,7 @@ export function mapNodeWithMetricsFromBackend(node: import("@/lib/types").NodeWi
   return {
     id: node.id,
     name: node.hostname,
+    hostname: node.hostname,
     status: calculateNodeStatus(node.last_seen_at),
     cpu: node.last_metric?.cpu_usage_percent || 0,
     ram: node.last_metric?.memory_usage_percent || 0,

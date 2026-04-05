@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNodesBackend } from "@/lib/api/nodes";
+import { getNodesBackend, updateNodeBackend } from "@/lib/api/nodes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function GET() {
@@ -19,4 +19,24 @@ export async function GET() {
   const data = await res.json().catch(() => ({}));
 
   return NextResponse.json(data, { status: res.status });
+}
+
+export async function PUT(req: Request) {
+  const accessToken = await getAccessTokenFromCookie();
+  if (!accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id, hostname } = await req.json();
+    if (!id || !hostname) {
+      return NextResponse.json({ error: "Missing id or hostname" }, { status: 400 });
+    }
+
+    const res = await updateNodeBackend(id, hostname, accessToken);
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
