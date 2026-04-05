@@ -10,6 +10,7 @@ export interface Container {
 export interface Node {
   id: string;
   name: string;
+  hostname?: string;
   status: NodeStatus;
   cpu: number;
   ram: number;
