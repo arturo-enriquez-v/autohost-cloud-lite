@@ -44,6 +44,10 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/v1/scheduled-tasks/${id}`,
     TOGGLE: (id: string) => `/v1/scheduled-tasks/${id}/toggle`,
   },
-
+  MARKETPLACE: {
+    APPS: "/v1/marketplace/apps",
+    DEPLOY: "/v1/marketplace/apps/deploy",
+    BY_NODE: (nodeId: string) => `/v1/marketplace/apps/node/${nodeId}`,
+  },
 } as const;
 

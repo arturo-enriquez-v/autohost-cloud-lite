@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Store,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -27,6 +28,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/" },
     { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
+    { id: "marketplace", label: "Marketplace", icon: Store, path: "/marketplace" },
     { id: "alerts", label: "Alerts", icon: AlertTriangle, path: "/alerts" },
     { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
     { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
