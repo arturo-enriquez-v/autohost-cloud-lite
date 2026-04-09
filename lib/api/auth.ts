@@ -23,11 +23,12 @@ export async function registerBackend(data: RegisterRequest) {
 }
 
 /**
- * Cierra sesión en el backend
+ * Cierra sesión en el backend — envía el refresh_token para revocación
  */
-export async function logoutBackend(accessToken: string) {
+export async function logoutBackend(accessToken: string, refreshToken?: string) {
   return backendFetch(API_ENDPOINTS.AUTH.LOGOUT, {
     method: "POST",
+    body: JSON.stringify({ refresh_token: refreshToken ?? "" }),
   }, accessToken);
 }
 

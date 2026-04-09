@@ -10,6 +10,7 @@ export interface Container {
 export interface Node {
   id: string;
   name: string;
+  hostname?: string;
   status: NodeStatus;
   cpu: number;
   ram: number;
@@ -44,6 +45,14 @@ export interface NodeMetric {
   memory_usage_percent: number;
   disk_usage_percent: number;
   collected_at: string;
+}
+
+// Punto de historial de métricas (agregado por bucket temporal)
+export interface NodeMetricHistoryPoint {
+  bucket: string;
+  cpu_usage_percent: number;
+  memory_usage_percent: number;
+  disk_usage_percent: number;
 }
 
 // Tipo de respuesta del backend con métricas (formato snake_case)

@@ -2,4 +2,9 @@
 // export * from "./cookies";
 export * from "./auth";
 export * from "./nodes";
+export * from "./node-commands";
+export * from "./jobs";
 export * from "./fetch-client";
+export * from "./node-alerts";
+export * from "./scheduled-tasks";
+export * from "./marketplace";

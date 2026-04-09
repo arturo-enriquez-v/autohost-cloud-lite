@@ -41,6 +41,39 @@ export function useNodes() {
     fetchNodes(true);
   }, [fetchNodes]);
 
+  const updateNode = useCallback(async (nodeId: string, hostname: string): Promise<void> => {
+    setIsUpdating(true);
+    try {
+      const res = await fetchWithAuth("/api/nodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: nodeId, hostname }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Error al actualizar" }));
+        throw new Error(err.error || "Failed to update node");
+      }
+      const updated: Node = await res.json();
+      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, ...updated } : n)));
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
+  const deleteNode = useCallback(async (nodeId: string): Promise<void> => {
+    setIsUpdating(true);
+    try {
+      const res = await fetchWithAuth(`/api/nodes/${nodeId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Error al eliminar" }));
+        throw new Error(err.error || "Failed to delete node");
+      }
+      setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    } finally {
+      setIsUpdating(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchNodes();
 
@@ -58,5 +91,7 @@ export function useNodes() {
     isUpdating,
     error,
     refresh,
+    updateNode,
+    deleteNode,
   };
 }

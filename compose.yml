@@ -3,7 +3,9 @@ services:
     image: ghcr.io/mazapanuwu13/autohost-cloud-lite:latest
     container_name: autohost-cloud-lite
     ports:
-      - "3002:3000"
+      - "3000:3000"
+    environment:
+      - APP_URL=https://cloud.autohst.dev
     env_file:
       - .env.local
     extra_hosts:

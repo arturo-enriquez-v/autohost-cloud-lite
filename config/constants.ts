@@ -19,10 +19,35 @@ export const API_ENDPOINTS = {
     LIST: "/v1/nodes",
     WITH_METRICS: "/v1/nodes/with-metrics",
     DETAIL: (id: string) => `/v1/nodes/${id}`,
+    UPDATE: "/v1/nodes",
+    DELETE: (id: string) => `/v1/nodes/${id}`,
   },
   ENROLLMENTS: {
     CREATE: "/v1/enrollments/generate",
-  }
-
+  },
+  NODE_COMMANDS: {
+    BY_NODE: (nodeId: string) => `/v1/node-commands/node/${nodeId}`,
+  },
+  JOBS: {
+    CREATE: "/v1/jobs",
+    DETAIL: (id: string) => `/v1/jobs/${id}`,
+    BY_NODE: (nodeId: string) => `/v1/jobs/node/${nodeId}`,
+  },
+  NODE_ALERTS: {
+    BY_NODE: (nodeId: string) => `/v1/node-alerts/${nodeId}`,
+  },
+  NODE_METRICS: {
+    HISTORY: (nodeId: string) => `/v1/node-metrics/${nodeId}/history`,
+  },
+  SCHEDULED_TASKS: {
+    LIST: "/v1/scheduled-tasks",
+    DETAIL: (id: string) => `/v1/scheduled-tasks/${id}`,
+    TOGGLE: (id: string) => `/v1/scheduled-tasks/${id}/toggle`,
+  },
+  MARKETPLACE: {
+    APPS: "/v1/marketplace/apps",
+    DEPLOY: "/v1/marketplace/apps/deploy",
+    BY_NODE: (nodeId: string) => `/v1/marketplace/apps/node/${nodeId}`,
+  },
 } as const;
 
