@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, Download, CheckCircle2, XCircle, Loader2, ChevronDown } from "lucide-react";
+import { Package, Download, CheckCircle2, XCircle, Loader2, Search, Server } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api/fetch-client";
 import type { AppCatalogEntry, AppEnvVar, Node, MarketplaceApp, DeployAppResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ interface InstallModalProps {
 
 function InstallModal({ app, nodes, onClose, onSuccess }: InstallModalProps) {
   const [selectedNodeId, setSelectedNodeId] = useState(nodes[0]?.id ?? "");
+  const [nodeSearch, setNodeSearch] = useState("");
   const [envValues, setEnvValues] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
     app.env_vars.forEach((v) => {
@@ -100,20 +101,55 @@ function InstallModal({ app, nodes, onClose, onSuccess }: InstallModalProps) {
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4 space-y-4">
           {/* Node selector */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Target Node</label>
+            <label className="text-sm font-medium text-foreground">Node</label>
             <div className="relative">
-              <select
-                value={selectedNodeId}
-                onChange={(e) => setSelectedNodeId(e.target.value)}
-                className="w-full appearance-none rounded-lg border border-border bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {nodes.map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {n.hostname ?? n.name} ({n.ipLocal ?? "—"})
-                  </option>
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search nodes…"
+                value={nodeSearch}
+                onChange={(e) => setNodeSearch(e.target.value)}
+                className="w-full rounded-lg border border-border bg-background py-2 pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+            </div>
+            <div className="max-h-36 overflow-y-auto rounded-lg border border-border divide-y divide-border">
+              {nodes
+                .filter((n) => {
+                  const q = nodeSearch.toLowerCase();
+                  return (
+                    (n.hostname ?? "").toLowerCase().includes(q) ||
+                    (n.ipLocal ?? "").toLowerCase().includes(q)
+                  );
+                })
+                .map((n, i) => (
+                  <button
+                    key={n.id ?? n.hostname ?? i}
+                    type="button"
+                    onClick={() => setSelectedNodeId(n.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
+                      selectedNodeId === n.id && "bg-primary/10 text-primary"
+                    )}
+                  >
+                    <Server className="h-4 w-4 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{n.hostname ?? n.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{n.ipLocal ?? "—"}</p>
+                    </div>
+                    {selectedNodeId === n.id && (
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                    )}
+                  </button>
                 ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              {nodes.filter((n) => {
+                const q = nodeSearch.toLowerCase();
+                return (
+                  (n.hostname ?? "").toLowerCase().includes(q) ||
+                  (n.ipLocal ?? "").toLowerCase().includes(q)
+                );
+              }).length === 0 && (
+                <p className="px-3 py-2 text-xs text-muted-foreground">No nodes match your search</p>
+              )}
             </div>
           </div>
 
