@@ -5,3 +5,4 @@ export * from "./job";
 export * from "./node-alert";
 export * from "./scheduled-task";
 export * from "./container";
+export * from "./marketplace";

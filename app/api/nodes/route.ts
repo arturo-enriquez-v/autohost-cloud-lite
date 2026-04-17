@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getNodesBackend, updateNodeBackend } from "@/lib/api/nodes";
+import { getNodesBackend, mapNodeFromBackend, updateNodeBackend } from "@/lib/api/nodes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
+import type { NodeBackendResponse } from "@/lib/types";
 
 export async function GET() {
   const accessToken = await getAccessTokenFromCookie();
@@ -16,9 +17,13 @@ export async function GET() {
   }
 
   const res = await getNodesBackend(accessToken);
-  const data = await res.json().catch(() => ({}));
+  const data = await res.json().catch(() => ([]));
 
-  return NextResponse.json(data, { status: res.status });
+  const mapped = Array.isArray(data)
+    ? (data as NodeBackendResponse[]).map(mapNodeFromBackend)
+    : data;
+
+  return NextResponse.json(mapped, { status: res.status });
 }
 
 export async function PUT(req: Request) {
