@@ -6,3 +6,4 @@ export * from "./node-alert";
 export * from "./scheduled-task";
 export * from "./container";
 export * from "./marketplace";
+export * from "./alert-event";
