@@ -49,5 +49,8 @@ export const API_ENDPOINTS = {
     DEPLOY: "/v1/marketplace/apps/deploy",
     BY_NODE: (nodeId: string) => `/v1/marketplace/apps/node/${nodeId}`,
   },
+  ALERT_EVENTS: {
+    LIST: "/v1/alert-events",
+  },
 } as const;
 
