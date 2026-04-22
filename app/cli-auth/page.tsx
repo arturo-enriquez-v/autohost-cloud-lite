@@ -9,7 +9,9 @@ interface CLIAuthPageProps {
   searchParams: Promise<{ state?: string; callback?: string; node?: string; api_url?: string }>
 }
 
-/** Allowed: http:// followed by a private/loopback IP and a port > 1024. */
+/** Allowed: http:// followed by any IP address (private, loopback, or public) and a port > 1024.
+ *  Domain names are rejected to prevent open-redirect phishing.
+ *  CSRF is already handled by the state nonce on the CLI side. */
 function isAllowedCallback(raw: string): boolean {
   let u: URL
   try {
@@ -21,14 +23,11 @@ function isAllowedCallback(raw: string): boolean {
   const host = u.hostname
   const port = parseInt(u.port || "80", 10)
   if (port <= 1024 || port > 65535) return false
-  return (
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "::1" ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
-  )
+  // Must be an IP address (v4 or v6), not a domain name.
+  const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(host)
+  const isIPv6 = host === "::1" || (host.startsWith("[") && host.endsWith("]"))
+  const isLocalhost = host === "localhost"
+  return isIPv4 || isIPv6 || isLocalhost
 }
 
 export default async function CLIAuthPage({ searchParams }: CLIAuthPageProps) {
@@ -75,7 +74,7 @@ export default async function CLIAuthPage({ searchParams }: CLIAuthPageProps) {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full border border-destructive/40 rounded-xl bg-card p-8 text-center space-y-2">
           <h1 className="text-lg font-semibold text-foreground">Callback inválido</h1>
-          <p className="text-sm text-muted-foreground">La URL de callback debe ser una dirección IP privada o loopback.</p>
+          <p className="text-sm text-muted-foreground">La URL de callback debe apuntar a una dirección IP con un puerto válido.</p>
         </div>
       </div>
     )

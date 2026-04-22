@@ -30,7 +30,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/substratesystems/autohost-cloud-lite:latest
+          tags: ghcr.io/mazapanuwu13/autohost-cloud-lite:latest
          
           
   deploy:
@@ -43,7 +43,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
       - name: Pull imagen frontend
-        run: docker pull ghcr.io/substratesystems/autohost-cloud-lite:latest
+        run: docker pull ghcr.io/mazapanuwu13/autohost-cloud-lite:latest
 
       - name: Reiniciar servicio frontend
         run: docker compose -f ~/projects/autohost-cloud-lite/compose.yml up -d
