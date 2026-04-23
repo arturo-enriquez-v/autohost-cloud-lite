@@ -37,11 +37,22 @@ async function dispatchAndPoll(
 
 const AUTO_REFRESH_MS = 10_000
 
+/** Returns true when the error message indicates docker is not accessible. */
+function isDockerUnavailableError(msg: string): boolean {
+  return (
+    msg.includes("executable file not found") ||
+    msg.includes("docker: not found") ||
+    msg.includes("permission denied") ||
+    msg.includes("Cannot connect to the Docker daemon")
+  )
+}
+
 export function useContainers(nodeId: string) {
   const [containers, setContainers] = useState<DockerContainer[]>([])
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [dockerUnavailable, setDockerUnavailable] = useState(false)
   const [actionState, setActionState] = useState<{ name: string; action: ContainerAction } | null>(null)
   const refreshingRef = useRef(false)
 
@@ -56,19 +67,25 @@ export function useContainers(nodeId: string) {
       const parsed: DockerContainer[] = JSON.parse(output || "[]")
       setContainers(parsed)
       setLastRefreshed(new Date())
+      setDockerUnavailable(false)
     } catch (e) {
-      setRefreshError(e instanceof Error ? e.message : "Failed to list containers")
+      const msg = e instanceof Error ? e.message : "Failed to list containers"
+      setRefreshError(msg)
+      if (isDockerUnavailableError(msg)) {
+        setDockerUnavailable(true)
+      }
     } finally {
       setIsRefreshing(false)
       refreshingRef.current = false
     }
   }, [nodeId])
 
-  // Auto-refresh every 15 s
+  // Auto-refresh every 10 s — paused when docker is unavailable
   useEffect(() => {
+    if (dockerUnavailable) return
     const id = setInterval(refresh, AUTO_REFRESH_MS)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [refresh, dockerUnavailable])
 
   const runAction = useCallback(
     async (name: string, action: ContainerAction) => {
@@ -84,5 +101,5 @@ export function useContainers(nodeId: string) {
     [nodeId, refresh],
   )
 
-  return { containers, isRefreshing, lastRefreshed, refreshError, actionState, refresh, runAction }
+  return { containers, isRefreshing, lastRefreshed, refreshError, dockerUnavailable, actionState, refresh, runAction }
 }
