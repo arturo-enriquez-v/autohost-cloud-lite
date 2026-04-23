@@ -8,3 +8,4 @@ export * from "./useNodeLogs";
 export * from "./useNodeAlerts";
 export * from "./useScheduledTasks";
 export * from "./useAlertEvents";
+export * from "./useProjects";
