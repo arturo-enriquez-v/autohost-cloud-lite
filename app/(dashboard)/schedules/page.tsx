@@ -22,8 +22,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, Plus, Trash2, Clock, ChevronDown, ChevronUp } from "lucide-react"
+import { Loader2, Plus, Trash2, Clock, ChevronDown, ChevronUp, FolderKanban } from "lucide-react"
 import { useNodes } from "@/lib/hooks/useNodes"
+import { useProjectContext } from "@/lib/context/project-context"
 import { useScheduledTasks } from "@/lib/hooks/useScheduledTasks"
 import type { NodeCommand, ScheduledTask, ScheduleType } from "@/lib/types"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
@@ -65,6 +66,13 @@ function jobStatusVariant(status: string): "default" | "secondary" | "destructiv
 export default function SchedulesPage() {
   const { nodes, isLoading: nodesLoading } = useNodes()
   const { tasks, isLoading: tasksLoading, create, remove, toggle } = useScheduledTasks()
+  const { selectedProject } = useProjectContext()
+
+  // node ids in current project scope (used to filter tasks list)
+  const scopedNodeIds = new Set(nodes.map((n) => n.id))
+  const visibleTasks = selectedProject
+    ? tasks.filter((t) => scopedNodeIds.has(t.nodeId))
+    : tasks
 
   // Form — base
   const [selectedNodeId, setSelectedNodeId]       = useState("")
@@ -164,11 +172,19 @@ export default function SchedulesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Scheduled Tasks</h2>
-        <p className="text-sm text-muted-foreground">
-          Run custom commands on your nodes on a recurring schedule
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Scheduled Tasks</h2>
+          <p className="text-sm text-muted-foreground">
+            Run custom commands on your nodes on a recurring schedule
+          </p>
+        </div>
+        {selectedProject && (
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
+            <FolderKanban className="h-3.5 w-3.5" />
+            <span>{selectedProject.name}</span>
+          </div>
+        )}
       </div>
 
       {/* ── New Schedule Form ─────────────────────────────────────────── */}
@@ -298,6 +314,10 @@ export default function SchedulesPage() {
             <p className="py-8 text-center text-sm text-muted-foreground">
               No scheduled tasks yet. Create one above.
             </p>
+          ) : visibleTasks.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No scheduled tasks for nodes in &quot;{selectedProject?.name}&quot;.
+            </p>
           ) : (
             <Table>
               <TableHeader>
@@ -313,7 +333,7 @@ export default function SchedulesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tasks.map((task) => (
+                {visibleTasks.map((task) => (
                   <React.Fragment key={task.id}>
                     <TableRow>
                       <TableCell className="font-medium">{nodeName(task.nodeId)}</TableCell>

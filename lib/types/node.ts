@@ -20,6 +20,7 @@ export interface Node {
   os?: string;
   arch?: string;
   versionAgent?: string;
+  projectId?: string;
   lastSeenAt?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -64,6 +65,7 @@ export interface NodeWithMetricsBackendResponse {
   arch: string;
   version_agent: string;
   owner_id: string;
+  project_id?: string;
   last_seen_at: string;
   created_at: string;
   updated_at: string;

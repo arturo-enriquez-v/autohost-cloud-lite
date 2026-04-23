@@ -100,6 +100,7 @@ export function mapNodeWithMetricsFromBackend(node: import("@/lib/types").NodeWi
     os: node.os,
     arch: node.arch,
     versionAgent: node.version_agent,
+    projectId: node.project_id,
     lastSeenAt: node.last_seen_at,
     createdAt: node.created_at,
     updatedAt: node.updated_at,

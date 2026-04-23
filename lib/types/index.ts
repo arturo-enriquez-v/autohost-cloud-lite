@@ -7,3 +7,4 @@ export * from "./scheduled-task";
 export * from "./container";
 export * from "./marketplace";
 export * from "./alert-event";
+export * from "./project";

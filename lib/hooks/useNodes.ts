@@ -3,15 +3,22 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Node } from "@/lib/types";
 import { fetchWithAuth } from "@/lib/api/fetch-client";
+import { useProjectContext } from "@/lib/context/project-context";
 
 /**
- * Hook para obtener y gestionar la lista de nodos
+ * Hook para obtener y gestionar la lista de nodos.
+ * Si hay un proyecto seleccionado en el contexto, devuelve solo los nodos de ese proyecto.
  */
 export function useNodes() {
-  const [nodes, setNodes] = useState<Node[]>([]);
+  const [allNodes, setAllNodes] = useState<Node[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { selectedProject } = useProjectContext();
+
+  const nodes = selectedProject
+    ? allNodes.filter((n) => n.projectId === selectedProject.id)
+    : allNodes;
 
   const fetchNodes = useCallback(async (showUpdating = false) => {
     try {
@@ -26,7 +33,7 @@ export function useNodes() {
       // Los nodos ya vienen mapeados y con el estado calculado desde el servidor
       const nodes: Node[] = await res.json();
 
-      setNodes(nodes);
+      setAllNodes(nodes);
       setError(null);
     } catch (err) {
       console.error("Error fetching nodes:", err);
@@ -54,7 +61,7 @@ export function useNodes() {
         throw new Error(err.error || "Failed to update node");
       }
       const updated: Node = await res.json();
-      setNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, ...updated } : n)));
+      setAllNodes((prev) => prev.map((n) => (n.id === nodeId ? { ...n, ...updated } : n)));
     } finally {
       setIsUpdating(false);
     }
@@ -68,7 +75,7 @@ export function useNodes() {
         const err = await res.json().catch(() => ({ error: "Error al eliminar" }));
         throw new Error(err.error || "Failed to delete node");
       }
-      setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+      setAllNodes((prev) => prev.filter((n) => n.id !== nodeId));
     } finally {
       setIsUpdating(false);
     }
@@ -87,6 +94,7 @@ export function useNodes() {
 
   return {
     nodes,
+    allNodes,
     isLoading,
     isUpdating,
     error,

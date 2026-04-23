@@ -5,13 +5,29 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNodes } from "@/lib/hooks/useNodes"
+import { useProjects } from "@/lib/hooks/useProjects"
+import { useProjectContext } from "@/lib/context/project-context"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
-import { Loader2 } from "lucide-react"
+import { FolderKanban, Loader2 } from "lucide-react"
 import { NodeActions } from "@/components/features/nodes/NodeActions"
 
 export default function NodesPage() {
   const router = useRouter()
-  const { nodes, isLoading, isUpdating, error, updateNode, deleteNode } = useNodes()
+  const { nodes, allNodes, isLoading, isUpdating, error, updateNode, deleteNode, refresh: refreshNodes } = useNodes()
+  const { projects, assignNode, removeNode } = useProjects()
+  const { selectedProject } = useProjectContext()
+
+  const handleMoveToProject = async (nodeId: string, projectId: string | null) => {
+    if (projectId) {
+      await assignNode(projectId, nodeId)
+    } else {
+      const node = allNodes.find((n) => n.id === nodeId)
+      if (node?.projectId) {
+        await removeNode(node.projectId, nodeId)
+      }
+    }
+    await refreshNodes()
+  }
 
   if (isLoading) {
     return (
@@ -31,14 +47,22 @@ export default function NodesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Nodes</h2>
-        <p className="text-sm text-muted-foreground">Manage your server infrastructure</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Nodes</h2>
+          <p className="text-sm text-muted-foreground">Manage your server infrastructure</p>
+        </div>
+        {selectedProject && (
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
+            <FolderKanban className="h-3.5 w-3.5" />
+            <span>{selectedProject.name}</span>
+          </div>
+        )}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>All Nodes</CardTitle>
+          <CardTitle>{selectedProject ? `Nodes in ${selectedProject.name}` : "All Nodes"}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
@@ -103,6 +127,8 @@ export default function NodesPage() {
                       onUpdate={updateNode}
                       onDelete={deleteNode}
                       isUpdating={isUpdating}
+                      projects={projects}
+                      onMoveToProject={handleMoveToProject}
                     />
                   </TableCell>
                 </TableRow>

@@ -26,19 +26,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Pencil, Trash2, Loader2 } from "lucide-react"
-import type { Node } from "@/lib/types"
+import { MoreHorizontal, Pencil, Trash2, Loader2, FolderKanban, FolderMinus } from "lucide-react"
+import type { Node, Project } from "@/lib/types"
 
 interface NodeActionsProps {
   node: Node
   onUpdate: (nodeId: string, hostname: string) => Promise<void>
   onDelete: (nodeId: string) => Promise<void>
   isUpdating?: boolean
+  projects?: Project[]
+  onMoveToProject?: (nodeId: string, projectId: string | null) => Promise<void>
 }
 
-export function NodeActions({ node, onUpdate, onDelete, isUpdating }: NodeActionsProps) {
+export function NodeActions({ node, onUpdate, onDelete, isUpdating, projects, onMoveToProject }: NodeActionsProps) {
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showMoveDialog, setShowMoveDialog] = useState(false)
   const [editHostname, setEditHostname] = useState(node.hostname || node.name || "")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +76,20 @@ export function NodeActions({ node, onUpdate, onDelete, isUpdating }: NodeAction
     }
   }
 
+  const handleMove = async (projectId: string | null) => {
+    if (!onMoveToProject) return
+    try {
+      setIsLoading(true)
+      setError(null)
+      await onMoveToProject(node.id, projectId)
+      setShowMoveDialog(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al mover el nodo")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <>
       <DropdownMenu>
@@ -87,6 +104,18 @@ export function NodeActions({ node, onUpdate, onDelete, isUpdating }: NodeAction
             <Pencil className="mr-2 h-4 w-4" />
             <span>Editar</span>
           </DropdownMenuItem>
+          {onMoveToProject && projects && (
+            <DropdownMenuItem onClick={() => { setError(null); setShowMoveDialog(true) }}>
+              <FolderKanban className="mr-2 h-4 w-4" />
+              <span>Mover a proyecto</span>
+            </DropdownMenuItem>
+          )}
+          {onMoveToProject && node.projectId && (
+            <DropdownMenuItem onClick={() => handleMove(null)}>
+              <FolderMinus className="mr-2 h-4 w-4" />
+              <span>Quitar del proyecto</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() => setShowDeleteDialog(true)}
             className="text-destructive focus:text-destructive"
@@ -184,6 +213,43 @@ export function NodeActions({ node, onUpdate, onDelete, isUpdating }: NodeAction
           </div>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Move to project dialog */}
+      {projects && (
+        <Dialog open={showMoveDialog} onOpenChange={(open) => { setShowMoveDialog(open); if (!open) setError(null) }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Mover nodo a proyecto</DialogTitle>
+              <DialogDescription>
+                Selecciona el proyecto al que quieres transferir este nodo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1 py-2">
+              {error && (
+                <div className="text-sm text-destructive rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 mb-2">
+                  {error}
+                </div>
+              )}
+              {projects.filter((p) => p.id !== node.projectId).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No hay otros proyectos disponibles.</p>
+              ) : (
+                projects
+                  .filter((p) => p.id !== node.projectId)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleMove(p.id)}
+                      disabled={isLoading}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      <FolderKanban className="h-4 w-4 text-muted-foreground" />
+                      <span>{p.name}</span>
+                    </button>
+                  ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

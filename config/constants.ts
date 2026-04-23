@@ -52,5 +52,14 @@ export const API_ENDPOINTS = {
   ALERT_EVENTS: {
     LIST: "/v1/alert-events",
   },
+  PROJECTS: {
+    LIST: "/v1/projects",
+    CREATE: "/v1/projects",
+    DETAIL: (id: string) => `/v1/projects/${id}`,
+    UPDATE: (id: string) => `/v1/projects/${id}`,
+    DELETE: (id: string) => `/v1/projects/${id}`,
+    ASSIGN_NODE: (projectId: string, nodeId: string) => `/v1/projects/${projectId}/nodes/${nodeId}`,
+    REMOVE_NODE: (projectId: string, nodeId: string) => `/v1/projects/${projectId}/nodes/${nodeId}`,
+  },
 } as const;
 
