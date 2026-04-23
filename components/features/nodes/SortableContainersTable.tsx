@@ -69,13 +69,18 @@ function applyStoredOrder(containers: DockerContainer[], stored: string[]): Dock
 // ── Container state badge ────────────────────────────────────────────────────
 
 function ContainerStateBadge({ state }: { state: string }) {
-  if (state === "running") {
-    return <Badge className="bg-success text-black text-xs">🟢 running</Badge>
+  const cfg: Record<string, string> = {
+    running: "bg-green-500/15 text-green-600 border-green-500/30",
+    exited: "bg-muted text-muted-foreground",
+    stopped: "bg-muted text-muted-foreground",
+    paused: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
+    restarting: "bg-blue-500/15 text-blue-600 border-blue-500/30",
   }
-  if (state === "exited" || state === "stopped") {
-    return <Badge variant="destructive" className="text-xs">🔴 {state}</Badge>
-  }
-  return <Badge variant="secondary" className="text-xs">{state}</Badge>
+  return (
+    <Badge variant="outline" className={cfg[state] ?? "bg-muted text-muted-foreground"}>
+      {state}
+    </Badge>
+  )
 }
 
 // ── Single sortable row ──────────────────────────────────────────────────────
