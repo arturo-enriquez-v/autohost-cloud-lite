@@ -17,7 +17,6 @@ import {
   ScrollText,
   Settings,
   Square,
-  Terminal,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -33,13 +32,16 @@ import {
   MemoryStick,
   HardDrive,
   Radio,
+  Terminal,
+  AlertTriangle,
 } from "lucide-react"
 import { useNode } from "@/lib/hooks/useNode"
 import { useNodeCommands } from "@/lib/hooks/useNodeCommands"
 import { useNodeJobs, useJobDispatch } from "@/lib/hooks/useNodeJobs"
 import { useContainers } from "@/lib/hooks/useContainers"
 import { useNodeMetricsLive } from "@/lib/hooks/useNodeMetricsLive"
-import type { NodeCommand, Job, JobStatus, DockerContainer } from "@/lib/types"
+import { SortableContainersTable } from "@/components/features/nodes/SortableContainersTable"
+import type { NodeCommand, Job, JobStatus } from "@/lib/types"
 
 const JOBS_PER_PAGE = 10
 
@@ -64,20 +66,6 @@ function formatDate(dateStr: string | null) {
   return new Date(dateStr).toLocaleString()
 }
 
-function ContainerStateBadge({ state }: { state: string }) {
-  const cfg: Record<string, string> = {
-    running: "bg-green-500/15 text-green-600 border-green-500/30",
-    exited: "bg-muted text-muted-foreground",
-    paused: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
-    restarting: "bg-blue-500/15 text-blue-600 border-blue-500/30",
-  }
-  return (
-    <Badge variant="outline" className={cfg[state] ?? "bg-muted text-muted-foreground"}>
-      {state}
-    </Badge>
-  )
-}
-
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
@@ -87,7 +75,7 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
   const customCommands = commands.filter((c) => c.type === "custom")
   const { jobs, isLoading: jobsLoading, error: jobsError, refresh: refreshJobs } = useNodeJobs(nodeId)
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
-  const { containers, isRefreshing: containersRefreshing, lastRefreshed: containersRefreshedAt, refreshError: containersError, actionState: containerAction, refresh: refreshContainers, runAction: runContainerAction } = useContainers(nodeId)
+  const { containers, isRefreshing: containersRefreshing, lastRefreshed: containersRefreshedAt, refreshError: containersError, dockerUnavailable, actionState: containerAction, refresh: refreshContainers, runAction: runContainerAction } = useContainers(nodeId)
   const { metric: live, connected: liveConnected } = useNodeMetricsLive(nodeId)
 
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
@@ -267,9 +255,14 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                   Live
                 </Badge>
               </CardTitle>
-              {containersRefreshedAt && (
+              {containersRefreshedAt && !dockerUnavailable && (
                 <CardDescription className="mt-1">
                   Updated {containersRefreshedAt.toLocaleTimeString()} · auto-refresh 10s
+                </CardDescription>
+              )}
+              {dockerUnavailable && (
+                <CardDescription className="mt-1 text-warning">
+                  Auto-refresh paused — manual refresh only
                 </CardDescription>
               )}
             </div>
@@ -291,8 +284,30 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
             </Button>
           </CardHeader>
           <CardContent>
-            {containersError ? (
-              <p className="text-sm text-destructive">{containersError}</p>
+            {dockerUnavailable ? (
+              <div className="space-y-4 py-2">
+                <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">
+                  <AlertTriangle className="h-5 w-5 text-warning mt-0.5 shrink-0" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">
+                      Docker is not accessible on this node.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Either Docker is not installed, or the <code className="font-mono bg-muted px-1 rounded text-xs">autohost</code> user is not in the <code className="font-mono bg-muted px-1 rounded text-xs">docker</code> group.
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border bg-muted/50 p-3 space-y-2">
+                  <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                    <Terminal className="h-3.5 w-3.5" />
+                    Run on the node to fix:
+                  </p>
+                  <pre className="text-xs font-mono select-all">{`sudo usermod -aG docker autohost\nnewgrp docker`}</pre>
+                  <p className="text-xs text-muted-foreground">Then click <strong>Refresh</strong> to verify.</p>
+                </div>
+              </div>
+            ) : containersError ? (
+              <p className="text-sm text-destructive py-2">{containersError}</p>
             ) : containersRefreshing && containers.length === 0 ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground text-sm">
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -303,103 +318,13 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
                 No containers found. Click <strong>Refresh</strong> to reload.
               </p>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="hidden sm:table-cell">CPU</TableHead>
-                      <TableHead className="hidden sm:table-cell">Memory</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {containers.map((ctr: DockerContainer) => {
-                      const isActing = containerAction?.name === ctr.name
-                      const isRunning = ctr.state === "running"
-                      const isExited = ctr.state === "exited"
-                      const anyActing = containerAction !== null
-                      return (
-                        <TableRow key={ctr.id}>
-                          <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
-                          <TableCell>
-                            <ContainerStateBadge state={ctr.state} />
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
-                            {ctr.cpu ?? "—"}
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
-                            {ctr.mem ? (
-                              <span className="flex flex-col gap-0.5">
-                                <span>{ctr.mem}</span>
-                                {ctr.memPerc && (
-                                  <span className="text-[10px] text-muted-foreground/60">{ctr.memPerc}</span>
-                                )}
-                              </span>
-                            ) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Logs"
-                                onClick={() => router.push(`/node/${nodeId}/logs?container=${encodeURIComponent(ctr.name)}`)}
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Start"
-                                disabled={anyActing || isRunning}
-                                onClick={() => runContainerAction(ctr.name, "start")}
-                              >
-                                {isActing && containerAction?.action === "start" ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Stop"
-                                disabled={anyActing || isExited}
-                                onClick={() => runContainerAction(ctr.name, "stop")}
-                              >
-                                {isActing && containerAction?.action === "stop" ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Square className="h-4 w-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Restart"
-                                disabled={anyActing || isExited}
-                                onClick={() => runContainerAction(ctr.name, "restart")}
-                              >
-                                {isActing && containerAction?.action === "restart" ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <RotateCcw className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
+              <SortableContainersTable
+                nodeId={nodeId}
+                containers={containers}
+                actionState={containerAction}
+                onLog={(name) => router.push(`/node/${nodeId}/logs?container=${encodeURIComponent(name)}`)}
+                onAction={runContainerAction}
+              />
             )}
           </CardContent>
         </Card>
