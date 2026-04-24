@@ -94,7 +94,7 @@ export default function RegisterPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10">
             <Server className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">AutoHost Cloud Lite</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">AutoHost Cloud</h1>
           <p className="mt-2 text-sm text-muted-foreground">Create your account to get started</p>
         </div>
 
@@ -243,7 +243,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          © AutoHost Cloud Lite 2025 - Secure Server Management
+          © AutoHost Cloud 2025 - Secure Server Management
         </p>
       </div>
     </div>

@@ -30,7 +30,7 @@ export function Header({ onMobileMenu }: HeaderProps) {
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
           <span className="text-sm font-bold text-primary-foreground">AC</span>
         </div>
-        <h1 className="hidden text-lg font-semibold text-foreground sm:block">AutoHost Cloud Lite</h1>
+        <h1 className="hidden text-lg font-semibold text-foreground sm:block">AutoHost Cloud</h1>
       </div>
 
       <DropdownMenu>

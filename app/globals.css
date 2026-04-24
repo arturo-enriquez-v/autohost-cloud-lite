@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated theme to match AutoHost Cloud Lite dark technical aesthetic */
+  /* Updated theme to match AutoHost Cloud dark technical aesthetic */
   --background: oklch(0.145 0.008 252);
   --foreground: oklch(0.95 0.005 252);
   --card: oklch(0.19 0.01 252);

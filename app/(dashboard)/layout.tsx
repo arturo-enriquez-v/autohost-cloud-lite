@@ -34,7 +34,7 @@ export default function DashboardLayout({
             {children}
           </main>
           <footer className="border-t border-border px-6 py-3 text-center text-xs text-muted-foreground">
-            © AutoHost Cloud Lite 2025
+            © AutoHost Cloud 2025
           </footer>
         </div>
       </div>
