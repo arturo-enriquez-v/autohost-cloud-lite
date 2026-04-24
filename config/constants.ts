@@ -1,4 +1,4 @@
-export const APP_NAME = "AutoHost Cloud Lite";
+export const APP_NAME = "AutoHost Cloud";
 export const APP_DESCRIPTION = "Secure Server Management";
 
 // Cookie names

@@ -7,7 +7,7 @@ import "./globals.css"
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "AutoHost Cloud Lite",
+  title: "AutoHost Cloud",
   description: "Server monitoring dashboard for self-hosted infrastructure",
   generator: "v0.app",
 }

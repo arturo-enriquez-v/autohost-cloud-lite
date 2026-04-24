@@ -5,12 +5,16 @@
  */
 
 let isRefreshing = false;
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<"ok" | "expired" | "error"> | null = null;
 
 /**
- * Intenta refrescar el access token
+ * Intenta refrescar el access token.
+ * Retorna:
+ *  - "ok"      → token renovado, reintentar la request original
+ *  - "expired" → sesión realmente expirada, redirigir a login
+ *  - "error"   → fallo transitorio (backend caído), no cerrar sesión
  */
-async function refreshAccessToken(): Promise<boolean> {
+async function refreshAccessToken(): Promise<"ok" | "expired" | "error"> {
   // Si ya estamos refrescando, esperar la promesa existente
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -30,15 +34,21 @@ async function refreshAccessToken(): Promise<boolean> {
 
       if (res.ok) {
         console.log("[CLIENT] Token refreshed successfully");
-        return true;
+        return "ok" as const;
       }
 
-      // 401 del refresh — sesión expirada
+      // 503 = backend transitoriamente no disponible — no cerrar sesión
+      if (res.status === 503) {
+        console.warn("[CLIENT] Backend unreachable during refresh, keeping session");
+        return "error" as const;
+      }
+
+      // 401/403 = sesión realmente expirada
       console.log("[CLIENT] Token refresh failed with status:", res.status);
-      return false;
+      return "expired" as const;
     } catch (error) {
       console.error("[CLIENT] Error refreshing token:", error);
-      return false;
+      return "error" as const;
     } finally {
       isRefreshing = false;
       refreshPromise = null;
@@ -65,9 +75,9 @@ export async function fetchWithAuth(
   if (response.status === 401) {
     console.log("[CLIENT] Received 401, attempting token refresh");
     
-    const refreshed = await refreshAccessToken();
+    const refreshResult = await refreshAccessToken();
 
-    if (refreshed) {
+    if (refreshResult === "ok") {
       // Reintentar la petición original con el nuevo token
       console.log("[CLIENT] Retrying original request with new token");
       response = await fetch(url, {
@@ -80,11 +90,12 @@ export async function fetchWithAuth(
         console.log("[CLIENT] Still 401 after refresh, redirecting to login");
         window.location.href = "/login";
       }
-    } else {
-      // Si el refresh falló, redirigir al login
-      console.log("[CLIENT] Refresh failed, redirecting to login");
+    } else if (refreshResult === "expired") {
+      // Sesión realmente expirada
+      console.log("[CLIENT] Session expired, redirecting to login");
       window.location.href = "/login";
     }
+    // refreshResult === "error": error transitorio, devolver el 401 sin cerrar sesión
   }
 
   return response;
