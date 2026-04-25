@@ -61,5 +61,13 @@ export const API_ENDPOINTS = {
     ASSIGN_NODE: (projectId: string, nodeId: string) => `/v1/projects/${projectId}/nodes/${nodeId}`,
     REMOVE_NODE: (projectId: string, nodeId: string) => `/v1/projects/${projectId}/nodes/${nodeId}`,
   },
+  SERVICE_MONITORS: {
+    LIST: "/v1/service-monitors",
+    CREATE: "/v1/service-monitors",
+    UPDATE: (id: string) => `/v1/service-monitors/${id}`,
+    DELETE: (id: string) => `/v1/service-monitors/${id}`,
+    HISTORY: (id: string) => `/v1/service-monitors/${id}/history`,
+    UPTIME: (id: string) => `/v1/service-monitors/${id}/uptime`,
+  },
 } as const;
 

@@ -41,6 +41,7 @@ import { useNodeJobs, useJobDispatch } from "@/lib/hooks/useNodeJobs"
 import { useContainers } from "@/lib/hooks/useContainers"
 import { useNodeMetricsLive } from "@/lib/hooks/useNodeMetricsLive"
 import { SortableContainersTable } from "@/components/features/nodes/SortableContainersTable"
+import { ServiceMonitorsPanel } from "@/components/features/nodes/ServiceMonitorsPanel"
 import type { NodeCommand, Job, JobStatus } from "@/lib/types"
 
 const JOBS_PER_PAGE = 10
@@ -390,6 +391,9 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
         </Card>
 
       </div>{/* end grid Containers + Commands */}
+
+      {/* Monitoring & Health */}
+      <ServiceMonitorsPanel nodeId={nodeId} />
 
       {/* Active job result */}
       {activeJob && (
