@@ -9,3 +9,4 @@ export * from "./node-alerts";
 export * from "./scheduled-tasks";
 export * from "./marketplace";
 export * from "./projects";
+export * from "./service-monitors";
