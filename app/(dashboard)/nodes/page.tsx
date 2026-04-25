@@ -74,6 +74,7 @@ export default function NodesPage() {
                 <TableHead>Uptime</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Agent</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -120,6 +121,12 @@ export default function NodesPage() {
                     >
                       {node.status === "online" ? "🟢" : "🔴"} {node.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell
+                    className="text-muted-foreground text-xs font-mono cursor-pointer"
+                    onClick={() => router.push(`/node/${node.id}`)}
+                  >
+                    {node.versionAgent || "—"}
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <NodeActions
