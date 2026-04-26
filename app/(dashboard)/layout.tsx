@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Header, Sidebar } from "@/components/layout"
 import { ProjectProvider } from "@/lib/context/project-context"
+import { useTokenRefresh } from "@/lib/hooks/useTokenRefresh"
 
 export default function DashboardLayout({
   children,
@@ -11,6 +12,8 @@ export default function DashboardLayout({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  useTokenRefresh()
 
   return (
     <ProjectProvider>
