@@ -3,26 +3,42 @@
 import { useState, useCallback, useRef } from "react"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
 import type { Job } from "@/lib/types"
+import type { LiveCaddyRoute } from "@/lib/types/caddy-route"
 
 export type CaddyStatusState = "idle" | "checking" | "running" | "stopped" | "unknown"
 
-function parseStatus(job: Job): CaddyStatusState {
-  if (job.status === "pending" || job.status === "running") return "checking"
-  if (job.status === "failed") return "unknown"
+interface ParseResult {
+  status: CaddyStatusState
+  routes: LiveCaddyRoute[]
+}
+
+function parseJobOutput(job: Job): ParseResult {
+  if (job.status === "pending" || job.status === "running") {
+    return { status: "checking", routes: [] }
+  }
+  if (job.status === "failed") return { status: "unknown", routes: [] }
   // completed — inspect output
-  if (job.output.includes("caddy_running=false")) return "stopped"
+  if (job.output.includes("caddy_running=false") || job.output.includes('"caddy_running":false')) {
+    return { status: "stopped", routes: [] }
+  }
   try {
     const parsed = JSON.parse(job.output)
-    if (parsed.caddy_running === true) return "running"
-    if (parsed.caddy_running === false) return "stopped"
+    if (parsed.caddy_running === true) {
+      return {
+        status: "running",
+        routes: Array.isArray(parsed.routes) ? (parsed.routes as LiveCaddyRoute[]) : [],
+      }
+    }
+    if (parsed.caddy_running === false) return { status: "stopped", routes: [] }
   } catch {
     // output not JSON — treat as unknown
   }
-  return "unknown"
+  return { status: "unknown", routes: [] }
 }
 
 export function useCaddyStatus(nodeId: string) {
   const [status, setStatus] = useState<CaddyStatusState>("idle")
+  const [liveRoutes, setLiveRoutes] = useState<LiveCaddyRoute[]>([])
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const stopPolling = useCallback(() => {
@@ -35,6 +51,7 @@ export function useCaddyStatus(nodeId: string) {
   const check = useCallback(async () => {
     stopPolling()
     setStatus("checking")
+    setLiveRoutes([])
 
     try {
       const res = await fetchWithAuth(`/api/nodes/${nodeId}/jobs`, {
@@ -59,10 +76,11 @@ export function useCaddyStatus(nodeId: string) {
           const pollRes = await fetchWithAuth(`/api/jobs/${job.id}`)
           if (!pollRes.ok) return
           const updated: Job = await pollRes.json()
-          const s = parseStatus(updated)
-          if (s !== "checking") {
+          const result = parseJobOutput(updated)
+          if (result.status !== "checking") {
             stopPolling()
-            setStatus(s)
+            setStatus(result.status)
+            setLiveRoutes(result.routes)
             return
           }
         } catch {
@@ -78,5 +96,6 @@ export function useCaddyStatus(nodeId: string) {
     }
   }, [nodeId, stopPolling])
 
-  return { status, check }
+  return { status, check, liveRoutes }
 }
+
