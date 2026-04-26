@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, AlertTriangle, Check, CheckCircle2, Globe, Loader2, Plus, RefreshCw, Trash2, XCircle } from "lucide-react"
+import { ArrowLeft, AlertTriangle, Check, CheckCircle2, Globe, Loader2, Lock, Plus, RefreshCw, Trash2, XCircle } from "lucide-react"
 import { useNode } from "@/lib/hooks/useNode"
 import { useCaddyRoutes } from "@/lib/hooks/useCaddyRoutes"
 import { useCaddyStatus } from "@/lib/hooks/useCaddyStatus"
@@ -17,7 +17,9 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
 
   const { node, isLoading: nodeLoading } = useNode(nodeId)
   const { routes, isLoading, upsert, remove } = useCaddyRoutes(nodeId)
-  const { status: caddyStatus, check: checkCaddy } = useCaddyStatus(nodeId)
+  const { status: caddyStatus, check: checkCaddy, liveRoutes } = useCaddyStatus(nodeId)
+
+  const externalRoutes = liveRoutes.filter((r) => !r.managed)
 
   // Check Caddy status on mount
   useEffect(() => {
@@ -137,7 +139,28 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
             </div>
           ) : (
             <>
-              {/* Routes list */}
+              {/* External routes (read-only, from Caddyfile) */}
+              {externalRoutes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+                    <Lock className="h-3.5 w-3.5" />
+                    External routes (Caddyfile)
+                  </p>
+                  <div className="rounded-lg border border-dashed divide-y opacity-80">
+                    {externalRoutes.map((route) => (
+                      <div key={route.domain} className="flex items-center px-4 py-3 gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium truncate">{route.domain}</p>
+                          <p className="text-xs text-muted-foreground truncate">→ {route.upstream}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">read-only</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Managed routes */}
               {routes.length > 0 ? (
                 <div className="rounded-lg border divide-y">
                   {routes.map((route) => (
