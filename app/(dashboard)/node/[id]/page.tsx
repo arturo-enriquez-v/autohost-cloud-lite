@@ -185,6 +185,10 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
             <Activity className="h-4 w-4" />
             <span className="hidden sm:inline">Monitoring</span>
           </Button>
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/proxy`)} className="gap-2">
+            <Network className="h-4 w-4" />
+            <span className="hidden sm:inline">Proxy</span>
+          </Button>
           <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/config`)} className="gap-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
