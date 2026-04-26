@@ -40,7 +40,7 @@ export function useCaddyStatus(nodeId: string) {
       const res = await fetchWithAuth(`/api/nodes/${nodeId}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commandName: "caddy.status", commandType: "system" }),
+        body: JSON.stringify({ commandName: "caddy.status", commandType: "default" }),
       })
 
       if (!res.ok) {
