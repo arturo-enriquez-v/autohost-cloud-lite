@@ -49,7 +49,7 @@ function waitForOtherTab(): Promise<RefreshOutcome> {
  *  - "expired" → sesión realmente expirada, redirigir a login
  *  - "error"   → fallo transitorio (backend caído), no cerrar sesión
  */
-async function refreshAccessToken(): Promise<RefreshOutcome> {
+export async function refreshAccessToken(): Promise<RefreshOutcome> {
   // Otra pestaña ya está refrescando — esperar su resultado
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
