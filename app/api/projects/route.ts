@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProjectsBackend, createProjectBackend } from "@/lib/api/projects";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
+import { createProjectBackend, getProjectsBackend } from "@/lib/features/projects/api";
 
 export async function GET() {
   const accessToken = await getAccessTokenFromCookie();

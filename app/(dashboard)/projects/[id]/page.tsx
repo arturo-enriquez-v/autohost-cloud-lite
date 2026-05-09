@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useNodes } from "@/lib/hooks/useNodes"
-import { useProjects } from "@/lib/hooks/useProjects"
+import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import type { Node } from "@/lib/types"
 

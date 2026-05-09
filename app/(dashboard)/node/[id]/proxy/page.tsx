@@ -12,7 +12,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
   const router = useRouter()
 
   const { node, isLoading: nodeLoading } = useNode(nodeId)
-  const { status: caddyStatus, check: checkCaddy } = useCaddyStatus(nodeId)
+  const { status: caddyStatus, check: checkCaddy, liveRoutes } = useCaddyStatus(nodeId)
 
   useEffect(() => { checkCaddy() }, [nodeId])
 
@@ -34,7 +34,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
       </div>
 
       <CaddyStatusBanner status={caddyStatus} onRetry={checkCaddy} />
-      <CaddyRoutesCard nodeId={nodeId} />
+      <CaddyRoutesCard nodeId={nodeId} caddyStatus={caddyStatus} liveRoutes={liveRoutes} />
     </div>
   )
 }

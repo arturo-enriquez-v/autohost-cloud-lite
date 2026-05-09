@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getNodeMarketplaceAppsBackend } from "@/lib/api/marketplace";
+import { getNodeMarketplaceAppsBackend } from "@/lib/features/marketplace/fetch/marketplace.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function GET(

@@ -12,46 +12,15 @@ import type {
   NodeMetricHistoryPoint,
   NodeAlertConfig,
   DockerContainer,
-  LiveMetric,
   MetricRange,
   ContainerAction,
+  CaddyRoute,
+  ServiceMonitor,
+  UpsertServiceMonitorPayload,
+  UptimePoint,
 } from "./types";
 import { METRIC_RANGE_CONFIG } from "./types";
 
-// ── Nodes ────────────────────────────────────────────────────────────────────
-
-export async function fetchNode(nodeId: string): Promise<Node> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}`);
-  if (!res.ok) throw new Error(`Failed to fetch node: ${res.status}`);
-  return res.json();
-}
-
-export async function fetchNodesWithMetrics(): Promise<Node[]> {
-  const res = await fetchWithAuth("/api/nodes/with-metrics");
-  if (!res.ok) throw new Error(`Failed to fetch nodes: ${res.status}`);
-  return res.json();
-}
-
-export async function updateNode(nodeId: string, hostname: string): Promise<Node> {
-  const res = await fetchWithAuth("/api/nodes", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: nodeId, hostname }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Error al actualizar" }));
-    throw new Error(err.error || "Failed to update node");
-  }
-  return res.json();
-}
-
-export async function deleteNode(nodeId: string): Promise<void> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}`, { method: "DELETE" });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Error al eliminar" }));
-    throw new Error(err.error || "Failed to delete node");
-  }
-}
 
 // ── Jobs ─────────────────────────────────────────────────────────────────────
 
@@ -182,4 +151,100 @@ export async function saveNodeAlertConfig(
   });
   if (!res.ok) throw new Error("Failed to save alert config");
   return res.json();
+}
+
+// ── Caddy Routes ──────────────────────────────────────────────────────────────
+
+export async function fetchCaddyRoutes(nodeId: string): Promise<CaddyRoute[]> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/caddy-routes`);
+  if (!res.ok) throw new Error("Failed to fetch Caddy routes");
+  const data: CaddyRoute[] = await res.json();
+  return data ?? [];
+}
+
+export async function upsertCaddyRoute(
+  nodeId: string,
+  domain: string,
+  upstream: string
+): Promise<CaddyRoute> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/caddy-routes`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain, upstream }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to save Caddy route");
+  }
+  return res.json();
+}
+
+export async function deleteCaddyRoute(nodeId: string, domain: string): Promise<void> {
+  const res = await fetchWithAuth(
+    `/api/nodes/${nodeId}/caddy-routes/${encodeURIComponent(domain)}`,
+    { method: "DELETE" }
+  );
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to delete Caddy route");
+  }
+}
+
+// ── Service Monitors ──────────────────────────────────────────────────────────
+
+export async function fetchServiceMonitors(nodeId: string): Promise<ServiceMonitor[]> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors`);
+  if (!res.ok) throw new Error("Failed to fetch service monitors");
+  const data: ServiceMonitor[] = await res.json();
+  return data ?? [];
+}
+
+export async function createServiceMonitor(
+  nodeId: string,
+  payload: UpsertServiceMonitorPayload
+): Promise<ServiceMonitor> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to create monitor");
+  }
+  return res.json();
+}
+
+export async function updateServiceMonitor(
+  nodeId: string,
+  monitorId: string,
+  payload: UpsertServiceMonitorPayload
+): Promise<ServiceMonitor> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to update monitor");
+  }
+  return res.json();
+}
+
+export async function deleteServiceMonitor(nodeId: string, monitorId: string): Promise<void> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to delete monitor");
+  }
+}
+
+export async function fetchUptimeHistory(nodeId: string, monitorId: string): Promise<UptimePoint[]> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}/uptime`);
+  if (!res.ok) return [];
+  const data: UptimePoint[] = await res.json();
+  return data ?? [];
 }

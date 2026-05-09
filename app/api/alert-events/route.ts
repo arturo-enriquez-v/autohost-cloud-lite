@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listAlertEventsBackend } from "@/lib/api/alert-events";
+import { listAlertEventsBackend } from "@/lib/features/alerts/fetch/alert-events";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { AlertEvent } from "@/lib/types";
 

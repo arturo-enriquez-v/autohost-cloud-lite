@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNodeMetricsHistoryBackend } from "@/lib/api/nodes";
+import { getNodeMetricsHistoryBackend } from "@/lib/features/nodes/all-nodes/fetch/nodes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 // GET /api/nodes/[id]/metrics?from=&to=&bucket=

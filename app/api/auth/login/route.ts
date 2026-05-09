@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { loginBackend } from "@/lib/api/auth";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTIONS,
   REFRESH_COOKIE,
   REFRESH_COOKIE_OPTIONS,
 } from "@/lib/cookies";
+import { loginBackend } from "@/lib/features/auth/fech/api";
 
 export async function POST(req: Request) {
   const body = await req.json();

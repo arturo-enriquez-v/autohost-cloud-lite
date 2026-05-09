@@ -1,8 +1,8 @@
 "use client"
 
 import { ServerCard } from "@/components/features/nodes"
-import { useNodes } from "@/lib/hooks"
 import { useProjectContext } from "@/lib/context/project-context"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
 import { FolderKanban } from "lucide-react"
 
 export default function DashboardPage() {
