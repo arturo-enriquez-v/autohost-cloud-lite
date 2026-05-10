@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { DockerContainer } from "@/lib/types"
-import type { ContainerAction } from "@/lib/hooks/useContainers"
+import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
 
 // ── persist order per node in localStorage ───────────────────────────────────
 
