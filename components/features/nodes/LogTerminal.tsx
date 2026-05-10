@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { Circle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { LogEntry } from "@/lib/hooks/useNodeLogs"
+import type { LogEntry } from "@/lib/features/nodes/logs/hooks/useNodeLogs"
 
 interface LogTerminalProps {
   logs: LogEntry[]
