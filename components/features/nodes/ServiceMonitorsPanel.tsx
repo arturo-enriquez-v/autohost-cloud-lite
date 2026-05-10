@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ServiceMonitorDialog } from "./ServiceMonitorDialog";
-import { useServiceMonitors, useUptimeHistory } from "@/lib/hooks/useServiceMonitors";
+
 import type { ServiceMonitor, MonitorStatus, UptimeBucket } from "@/lib/types";
 import { Activity, Plus, Pencil, Trash2 } from "lucide-react";
+import { useServiceMonitors, useUptimeHistory } from "@/lib/features/nodes/monitoring/hooks/useServiceMonitors";
 
 // ─── Status indicator ─────────────────────────────────────────────────────────
 

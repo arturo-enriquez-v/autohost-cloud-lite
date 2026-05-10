@@ -2,8 +2,8 @@
 
 import { use, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { useNodeLogs } from "@/lib/features/nodes/hooks"
-import { LogsToolbar, LogTerminal } from "@/lib/features/nodes/components"
+import { useNodeLogs } from "@/lib/features/nodes/logs/hooks/useNodeLogs"
+import { LogsToolbar, LogTerminal } from "@/components/features/nodes"
 
 export default function NodeLogsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)

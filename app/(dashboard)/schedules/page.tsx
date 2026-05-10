@@ -23,9 +23,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Loader2, Plus, Trash2, Clock, ChevronDown, ChevronUp, FolderKanban } from "lucide-react"
-import { useNodes } from "@/lib/hooks/useNodes"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useProjectContext } from "@/lib/context/project-context"
-import { useScheduledTasks } from "@/lib/hooks/useScheduledTasks"
+import { useScheduledTasks } from "@/lib/features/schedules/hooks/useScheduledTasks"
 import type { NodeCommand, ScheduledTask, ScheduleType } from "@/lib/types"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
 

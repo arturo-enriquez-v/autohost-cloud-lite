@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { toggleScheduledTaskBackend, mapScheduledTaskFromBackend } from "@/lib/api/scheduled-tasks";
+import { toggleScheduledTaskBackend, mapScheduledTaskFromBackend } from "@/lib/features/schedules/fetch/schedule.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { ScheduledTaskBackendResponse } from "@/lib/types";
 

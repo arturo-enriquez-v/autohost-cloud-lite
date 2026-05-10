@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getUptimeHistory24hBackend, mapUptimeFromBackend } from "@/lib/api/service-monitors";
+import { getUptimeHistory24hBackend, mapUptimeFromBackend } from "@/lib/features/nodes/monitoring/fetch/service-monitors";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { UptimePointBackendResponse } from "@/lib/types";
 

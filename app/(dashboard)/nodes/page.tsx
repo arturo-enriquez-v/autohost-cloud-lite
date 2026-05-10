@@ -4,12 +4,12 @@ import { useRouter } from "next/navigation"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useNodes } from "@/lib/hooks/useNodes"
-import { useProjects } from "@/lib/hooks/useProjects"
+import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import { FolderKanban, Loader2 } from "lucide-react"
 import { NodeActions } from "@/components/features/nodes/NodeActions"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 
 export default function NodesPage() {
   const router = useRouter()

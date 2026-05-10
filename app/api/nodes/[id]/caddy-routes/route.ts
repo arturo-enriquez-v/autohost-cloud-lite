@@ -3,7 +3,7 @@ import {
   listCaddyRoutesBackend,
   upsertCaddyRouteBackend,
   mapCaddyRouteFromBackend,
-} from "@/lib/api/caddy-routes";
+} from "@/lib/features/nodes/caddy/fetch/caddy-routes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { CaddyRouteBackendResponse } from "@/lib/types";
 

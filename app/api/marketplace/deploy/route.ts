@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { deployMarketplaceAppBackend } from "@/lib/api/marketplace";
+import { deployMarketplaceAppBackend } from "@/lib/features/marketplace/fetch/marketplace.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function POST(req: NextRequest) {

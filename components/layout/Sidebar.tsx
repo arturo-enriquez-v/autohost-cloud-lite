@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
-import { useProjects } from "@/lib/hooks/useProjects"
+import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"

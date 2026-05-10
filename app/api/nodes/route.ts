@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNodesBackend, mapNodeFromBackend, updateNodeBackend } from "@/lib/api/nodes";
+import { getNodesBackend, mapNodeFromBackend, updateNodeBackend } from "@/lib/features/nodes/nodes/fetch/nodes.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { NodeBackendResponse } from "@/lib/types";
 

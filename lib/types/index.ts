@@ -5,7 +5,7 @@ export * from "./job";
 export * from "./node-alert";
 export * from "./scheduled-task";
 export * from "./container";
-export * from "./marketplace";
+export * from "../features/marketplace/interfaces/marketplace";
 export * from "./alert-event";
 export * from "./project";
 export * from "./service-monitor";

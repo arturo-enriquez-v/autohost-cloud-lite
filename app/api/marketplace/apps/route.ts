@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMarketplaceAppsBackend } from "@/lib/api/marketplace";
+import { getMarketplaceAppsBackend } from "@/lib/features/marketplace/fetch/marketplace.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function GET() {
