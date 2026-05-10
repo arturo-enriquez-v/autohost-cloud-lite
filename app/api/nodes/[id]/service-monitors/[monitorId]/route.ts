@@ -3,7 +3,7 @@ import {
   updateServiceMonitorBackend,
   deleteServiceMonitorBackend,
   mapMonitorFromBackend,
-} from "@/lib/api/service-monitors";
+} from "@/lib/features/nodes/monitoring/fetch/service-monitors";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { ServiceMonitorBackendResponse } from "@/lib/types";
 

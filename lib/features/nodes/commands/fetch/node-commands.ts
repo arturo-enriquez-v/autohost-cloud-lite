@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@/config/constants";
-import { backendFetch } from "../../../../api";
+import { backendFetch } from "@/lib/api";
 import type { NodeCommandBackendResponse, NodeCommand } from "@/lib/types";
 
 export async function getNodeCommandsBackend(nodeId: string, accessToken: string) {

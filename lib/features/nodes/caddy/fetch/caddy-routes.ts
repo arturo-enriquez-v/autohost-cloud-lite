@@ -1,9 +1,9 @@
-import { API_ENDPOINTS } from "@/config/constants";
-import type { CaddyRoute, CaddyRouteBackendResponse } from "@/lib/types";
-import { backendFetch } from "../api";
+import { API_CADDY_ENDPOINTS } from "./constants";
+import type { CaddyRoute, CaddyRouteBackendResponse } from "../interfaces/caddy";
+import { backendFetch } from "@/lib/api";
 
 export async function listCaddyRoutesBackend(nodeId: string, accessToken: string) {
-  return backendFetch(API_ENDPOINTS.CADDY_ROUTES.BY_NODE(nodeId), { method: "GET" }, accessToken);
+  return backendFetch(API_CADDY_ENDPOINTS.CADDY_ROUTES.BY_NODE(nodeId), { method: "GET" }, accessToken);
 }
 
 export async function upsertCaddyRouteBackend(
@@ -12,7 +12,7 @@ export async function upsertCaddyRouteBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.CADDY_ROUTES.BY_NODE(nodeId),
+    API_CADDY_ENDPOINTS.CADDY_ROUTES.BY_NODE(nodeId),
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -28,7 +28,7 @@ export async function deleteCaddyRouteBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.CADDY_ROUTES.DELETE(nodeId, domain),
+    API_CADDY_ENDPOINTS.CADDY_ROUTES.DELETE(nodeId, domain),
     { method: "DELETE" },
     accessToken
   );

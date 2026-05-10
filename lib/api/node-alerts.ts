@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@/config/constants";
 import type { NodeAlertConfig, NodeAlertConfigBackendResponse } from "@/lib/types";
-import { backendFetch } from "../api";
+import { backendFetch } from "@/lib/api";
 
 export async function getNodeAlertConfigBackend(nodeId: string, accessToken: string) {
   return backendFetch(API_ENDPOINTS.NODE_ALERTS.BY_NODE(nodeId), { method: "GET" }, accessToken);

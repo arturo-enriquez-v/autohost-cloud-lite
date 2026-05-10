@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getJobsByNodeBackend, dispatchJobBackend, mapJobFromBackend } from "@/lib/api/jobs";
+import { getJobsByNodeBackend, dispatchJobBackend, mapJobFromBackend } from "@/lib/features/nodes/jobs/fetch/jobs";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { JobBackendResponse } from "@/lib/types";
 

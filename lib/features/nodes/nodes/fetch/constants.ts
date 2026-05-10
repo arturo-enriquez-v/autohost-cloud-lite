@@ -8,7 +8,7 @@ export const API_NODES_ENDPOINTS = {
     DELETE: (id: string) => `/v1/nodes/${id}`,
   },
   NODE_METRICS: {
-    HISTORY: (nodeId: string) => `/v1/nodes/${nodeId}/metrics/history`,
+    HISTORY: (nodeId: string) => `/v1/node-metrics/${nodeId}/history`,
   },
     
 } as const;

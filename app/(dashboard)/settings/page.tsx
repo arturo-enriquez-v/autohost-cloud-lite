@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Copy, Check, Send, ExternalLink } from "lucide-react"
-import { useEnrollments } from "@/lib/hooks"
+import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
 
 export default function SettingsPage() {
   const { generateToken, isLoading, error } = useEnrollments()

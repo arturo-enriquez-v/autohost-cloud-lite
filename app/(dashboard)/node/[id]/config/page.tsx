@@ -4,17 +4,17 @@ import { use } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useNode } from "@/lib/features/nodes/hooks"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import {
   NodeAlertsCard,
   NodeRenameCard,
   NodeDangerZoneCard,
-} from "@/lib/features/nodes/components"
+} from "@/components/features/nodes"
 
 export default function NodeConfigPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
-  const { node, isLoading } = useNode(nodeId)
+  const { node, isLoading } = useNodes(nodeId)
 
   return (
     <div className="space-y-6">

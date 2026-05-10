@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useContainers } from "@/lib/hooks/useContainers";
 import type { CheckType, ServiceMonitor, UpsertServiceMonitorPayload } from "@/lib/types";
+import { useContainers } from "@/lib/features/nodes/containers/hooks/useContainers";
 
 interface Props {
   nodeId: string;

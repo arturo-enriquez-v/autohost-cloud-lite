@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteCaddyRouteBackend } from "@/lib/api/caddy-routes";
+import { deleteCaddyRouteBackend } from "@/lib/features/nodes/caddy/fetch/caddy-routes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 // DELETE /api/nodes/[id]/caddy-routes/[domain]

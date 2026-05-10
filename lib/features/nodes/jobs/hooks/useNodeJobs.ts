@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Job } from "../../types";
-import { fetchNodeJobs, dispatchJob, fetchJob } from "../../api";
+import type { Job, JobCommandType } from "../interfaces/job";
+import { JobService } from "../services/job.service";
 
 export function useNodeJobs(nodeId: string) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -11,7 +11,7 @@ export function useNodeJobs(nodeId: string) {
 
   const fetchJobs = useCallback(async () => {
     try {
-      const data = await fetchNodeJobs(nodeId);
+      const data = await JobService.getJobsByNode(nodeId);
       setJobs(data);
       setError(null);
     } catch (err) {
@@ -44,13 +44,13 @@ export function useJobDispatch() {
   }, []);
 
   const dispatch = useCallback(
-    async (nodeId: string, commandName: string, commandType: string = "custom") => {
+    async (nodeId: string, commandName: string, commandType: JobCommandType = "custom") => {
       setIsDispatching(true);
       setActiveJob(null);
       stopPolling();
 
       try {
-        const job = await dispatchJob(nodeId, commandName, commandType);
+        const job = await JobService.dispatchJob(nodeId, commandName, commandType);
         setActiveJob(job);
 
         let attempts = 0;
@@ -59,7 +59,7 @@ export function useJobDispatch() {
         pollingRef.current = setInterval(async () => {
           attempts++;
           try {
-            const updated = await fetchJob(job.id);
+            const updated = await JobService.getJob(job.id);
             setActiveJob(updated);
 
             if (updated.status === "completed" || updated.status === "failed") {

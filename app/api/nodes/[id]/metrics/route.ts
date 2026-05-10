@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getNodeMetricsHistoryBackend } from "@/lib/features/nodes/all-nodes/fetch/nodes";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
+import { getNodeMetricsHistoryBackend } from "@/lib/features/nodes/nodes/fetch/nodes.server";
 
 // GET /api/nodes/[id]/metrics?from=&to=&bucket=
 export async function GET(

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { fetchWithAuth } from "@/lib/api/fetch-client";
-import type { AlertEvent } from "@/lib/types";
+import { AlertService } from "../services/alert.service";
+import type { AlertEvent } from "../interfaces/alert";
 
 export function useAlertEvents(limit = 50) {
   const [events, setEvents] = useState<AlertEvent[]>([]);
@@ -12,9 +12,7 @@ export function useAlertEvents(limit = 50) {
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetchWithAuth(`/api/alert-events?limit=${limit}&offset=0`);
-      if (!res.ok) throw new Error("Failed to fetch alert events");
-      const data: AlertEvent[] = await res.json();
+      const data = await AlertService.getAlertEvents(limit, 0);
       setEvents(data);
       setError(null);
     } catch (err) {

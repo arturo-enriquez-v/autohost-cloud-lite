@@ -6,9 +6,11 @@ import { format } from "date-fns"
 import { ArrowLeft, Activity, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useNode, useNodeMetrics } from "@/lib/features/nodes/hooks"
-import { LiveMetricsCard, MetricChartsGrid } from "@/lib/features/nodes/components"
+
 import type { MetricRange } from "@/lib/features/nodes/types"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
+import { useNodeMetrics } from "@/lib/features/nodes/monitoring/hooks/useNodeMetrics"
+import { LiveMetricsCard, MetricChartsGrid } from "@/components/features/nodes"
 
 const RANGES: { value: MetricRange; label: string }[] = [
   { value: "1d", label: "24h" },
@@ -21,7 +23,7 @@ export default function MonitoringPage({ params }: { params: Promise<{ id: strin
   const router = useRouter()
   const [range, setRange] = useState<MetricRange>("7d")
 
-  const { node, isLoading: nodeLoading } = useNode(nodeId)
+  const { node, isLoading: nodeLoading } = useNodes(nodeId)
   const { points, isLoading, error, lastUpdated, refresh } = useNodeMetrics(nodeId, range)
 
   const chartData = points.map((p) => ({

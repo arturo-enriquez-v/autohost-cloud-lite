@@ -1,13 +1,13 @@
-import { API_ENDPOINTS } from "@/config/constants";
+import { API_SCHEDULE_ENDPOINTS } from "./constants";
 import type {
   ScheduledTask,
   ScheduledTaskBackendResponse,
   CreateScheduledTaskRequest,
-} from "@/lib/types";
-import { backendFetch } from "../api";
+} from "../interfaces/schedule";
+import { backendFetch } from "@/lib/api";
 
 export async function listScheduledTasksBackend(accessToken: string) {
-  return backendFetch(API_ENDPOINTS.SCHEDULED_TASKS.LIST, { method: "GET" }, accessToken);
+  return backendFetch(API_SCHEDULE_ENDPOINTS.SCHEDULED_TASKS.LIST, { method: "GET" }, accessToken);
 }
 
 export async function createScheduledTaskBackend(
@@ -15,7 +15,7 @@ export async function createScheduledTaskBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.SCHEDULED_TASKS.LIST,
+    API_SCHEDULE_ENDPOINTS.SCHEDULED_TASKS.LIST,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,7 +39,7 @@ export async function updateScheduledTaskBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.SCHEDULED_TASKS.DETAIL(id),
+    API_SCHEDULE_ENDPOINTS.SCHEDULED_TASKS.DETAIL(id),
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -58,7 +58,7 @@ export async function updateScheduledTaskBackend(
 
 export async function deleteScheduledTaskBackend(id: string, accessToken: string) {
   return backendFetch(
-    API_ENDPOINTS.SCHEDULED_TASKS.DETAIL(id),
+    API_SCHEDULE_ENDPOINTS.SCHEDULED_TASKS.DETAIL(id),
     { method: "DELETE" },
     accessToken
   );
@@ -66,7 +66,7 @@ export async function deleteScheduledTaskBackend(id: string, accessToken: string
 
 export async function toggleScheduledTaskBackend(id: string, accessToken: string) {
   return backendFetch(
-    API_ENDPOINTS.SCHEDULED_TASKS.TOGGLE(id),
+    API_SCHEDULE_ENDPOINTS.SCHEDULED_TASKS.TOGGLE(id),
     { method: "PATCH" },
     accessToken
   );

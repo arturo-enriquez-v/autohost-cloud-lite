@@ -1,4 +1,4 @@
-import { generateEnrollmentTokenBackend } from "@/lib/api/enrollments"
+import { generateEnrollmentTokenBackend } from "@/lib/features/enrollments/fetch/enrollment.server"
 import { getAccessTokenFromCookie } from "@/lib/cookies"
 import { NextResponse } from "next/server"
 

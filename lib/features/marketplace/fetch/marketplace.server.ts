@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@/config/constants";
-import { backendFetch } from "../../../api";
+import { backendFetch } from "@/lib/api";
 
 export async function getMarketplaceAppsBackend(accessToken: string) {
   return backendFetch(API_ENDPOINTS.MARKETPLACE.APPS, { method: "GET" }, accessToken);

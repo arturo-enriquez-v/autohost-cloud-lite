@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
-import { createProjectBackend, getProjectsBackend } from "@/lib/features/projects/api";
+import { createProjectBackend, getProjectsBackend } from "@/lib/features/projects/fetch/project.server";
 
 export async function GET() {
   const accessToken = await getAccessTokenFromCookie();

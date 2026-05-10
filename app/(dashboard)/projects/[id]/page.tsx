@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useNodes } from "@/lib/hooks/useNodes"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import type { Node } from "@/lib/types"

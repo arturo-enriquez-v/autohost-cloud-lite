@@ -13,7 +13,7 @@ interface NodeRenameCardProps {
 }
 
 export function NodeRenameCard({ nodeId }: NodeRenameCardProps) {
-  const { node, isLoading: nodeLoading } = useNode(nodeId)
+  const { node, isLoading: nodeLoading } = useNodes(nodeId)
   const { updateNode } = useNodes()
 
   const [value, setValue] = useState("")

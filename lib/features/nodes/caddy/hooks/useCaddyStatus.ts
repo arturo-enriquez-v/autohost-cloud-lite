@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { Job, LiveCaddyRoute } from "../../types";
-import { dispatchJob, fetchJob } from "../../api";
+import type { LiveCaddyRoute } from "../interfaces/caddy";
+import type { Job } from "../../jobs/interfaces/job";
+import { JobService } from "../../jobs/services/job.service";
 
 export type CaddyStatusState = "idle" | "checking" | "running" | "stopped" | "unknown";
 
@@ -53,7 +54,7 @@ export function useCaddyStatus(nodeId: string) {
     setLiveRoutes([]);
 
     try {
-      const job = await dispatchJob(nodeId, "caddy.status", "default");
+      const job = await JobService.dispatchJob(nodeId, "caddy.status", "default");
 
       let attempts = 0;
       const MAX_ATTEMPTS = 15;
@@ -61,7 +62,7 @@ export function useCaddyStatus(nodeId: string) {
       pollingRef.current = setInterval(async () => {
         attempts++;
         try {
-          const updated = await fetchJob(job.id);
+          const updated = await JobService.getJob(job.id);
           const result = parseJobOutput(updated);
           if (result.status !== "checking") {
             stopPolling();

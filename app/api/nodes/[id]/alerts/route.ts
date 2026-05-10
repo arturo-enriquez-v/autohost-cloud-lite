@@ -3,7 +3,7 @@ import {
   getNodeAlertConfigBackend,
   upsertNodeAlertConfigBackend,
   mapNodeAlertFromBackend,
-} from "@/lib/api/node-alerts";
+} from "@/lib/features/nodes/config/fetch/node-alert.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { NodeAlertConfigBackendResponse } from "@/lib/types";
 

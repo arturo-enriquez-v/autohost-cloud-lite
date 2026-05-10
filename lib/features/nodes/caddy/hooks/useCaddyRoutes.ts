@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { CaddyRoute } from "../../types";
-import { fetchCaddyRoutes, upsertCaddyRoute as apiUpsert, deleteCaddyRoute as apiDelete } from "../../api";
+import type { CaddyRoute } from "../interfaces/caddy";
+import { CaddyService } from "../services/caddy.service";
 
 export function useCaddyRoutes(nodeId: string) {
   const [routes, setRoutes] = useState<CaddyRoute[]>([]);
@@ -12,7 +12,7 @@ export function useCaddyRoutes(nodeId: string) {
   const fetchRoutes = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchCaddyRoutes(nodeId);
+      const data = await CaddyService.getRoutes(nodeId);
       setRoutes(data);
       setError(null);
     } catch {
@@ -28,7 +28,7 @@ export function useCaddyRoutes(nodeId: string) {
 
   const upsert = useCallback(
     async (domain: string, upstream: string) => {
-      const saved = await apiUpsert(nodeId, domain, upstream);
+      const saved = await CaddyService.upsertRoute(nodeId, domain, upstream);
       setRoutes((prev) => {
         const idx = prev.findIndex((r) => r.domain === saved.domain);
         if (idx >= 0) {
@@ -45,7 +45,7 @@ export function useCaddyRoutes(nodeId: string) {
 
   const remove = useCallback(
     async (domain: string) => {
-      await apiDelete(nodeId, domain);
+      await CaddyService.deleteRoute(nodeId, domain);
       setRoutes((prev) => prev.filter((r) => r.domain !== domain));
     },
     [nodeId]

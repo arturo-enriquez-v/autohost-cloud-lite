@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
-import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel } from "@/lib/features/nodes/components"
+import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel } from "@/components/features/nodes"
 import { ServiceMonitorsPanel } from "@/components/features/nodes/ServiceMonitorsPanel"
 
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {

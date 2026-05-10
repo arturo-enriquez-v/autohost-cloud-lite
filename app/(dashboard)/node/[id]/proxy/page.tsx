@@ -4,14 +4,16 @@ import { use, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useNode, useCaddyStatus } from "@/lib/features/nodes/hooks"
-import { CaddyStatusBanner, CaddyRoutesCard } from "@/lib/features/nodes/components"
+import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
+import { useCaddyStatus } from "@/lib/features/nodes/caddy/hooks/useCaddyStatus"
+import { CaddyStatusBanner } from "@/components/features/nodes/CaddyStatusBanner"
+import { CaddyRoutesCard } from "@/components/features/nodes/CaddyRoutesCard"
 
 export default function NodeProxyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
   const router = useRouter()
 
-  const { node, isLoading: nodeLoading } = useNode(nodeId)
+  const { node, isLoading: nodeLoading } = useNodes(nodeId)
   const { status: caddyStatus, check: checkCaddy, liveRoutes } = useCaddyStatus(nodeId)
 
   useEffect(() => { checkCaddy() }, [nodeId])

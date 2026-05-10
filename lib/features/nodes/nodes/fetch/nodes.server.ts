@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from "@/config/constants";
 import type { NodeBackendResponse } from "@/lib/types";
-import { backendFetch } from "../../../../api";
+import { backendFetch } from "@/lib/api";
 import { calculateNodeStatus } from "../../../../utils/node-status";
 import { API_NODES_ENDPOINTS } from "./constants";
 

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { NodeAlertConfig } from "../../types";
-import { fetchNodeAlertConfig, saveNodeAlertConfig as apiSaveNodeAlertConfig } from "../../api";
+import type { NodeAlertConfig } from "../interfaces/node-alert";
+import { NodeAlertService } from "../services/node-alert.service";
 
 const EMPTY_CONFIG: NodeAlertConfig = {
   nodeId: "",
@@ -24,7 +24,7 @@ export function useNodeAlerts(nodeId: string) {
   const fetchConfig = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchNodeAlertConfig(nodeId);
+      const data = await NodeAlertService.getConfig(nodeId);
       setConfig(data ?? { ...EMPTY_CONFIG, nodeId });
       setError(null);
     } catch {
@@ -43,7 +43,7 @@ export function useNodeAlerts(nodeId: string) {
       setIsSaving(true);
       setSaved(false);
       try {
-        const updated = await apiSaveNodeAlertConfig(nodeId, data);
+        const updated = await NodeAlertService.saveConfig(nodeId, data);
         setConfig(updated);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);

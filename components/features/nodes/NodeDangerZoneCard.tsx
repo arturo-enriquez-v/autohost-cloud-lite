@@ -24,8 +24,7 @@ interface NodeDangerZoneCardProps {
 
 export function NodeDangerZoneCard({ nodeId }: NodeDangerZoneCardProps) {
   const router = useRouter()
-  // const { node } = useNode(nodeId)
-  const { deleteNode } = useNodes()
+  const { node, deleteNode } = useNodes(nodeId)
 
   const [showDialog, setShowDialog] = useState(false)
   const [loading, setLoading] = useState(false)

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { getJobBackend, mapJobFromBackend } from "@/lib/api/jobs";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { JobBackendResponse } from "@/lib/types";
+import { getJobBackend, mapJobFromBackend } from "@/lib/features/nodes/jobs/fetch/jobs";
 
 // GET /api/jobs/[id] — get a single job by ID (for polling status)
 export async function GET(

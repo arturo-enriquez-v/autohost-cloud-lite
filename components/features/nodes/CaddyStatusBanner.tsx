@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { CaddyStatusState } from "../../../lib/features/nodes/hooks"
+import type { CaddyStatusState } from "@/lib/features/nodes/caddy/hooks/useCaddyStatus"
 
 interface CaddyStatusBannerProps {
   status: CaddyStatusState

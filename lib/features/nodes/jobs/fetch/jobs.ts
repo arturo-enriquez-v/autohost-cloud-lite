@@ -1,5 +1,5 @@
-import { API_ENDPOINTS } from "@/config/constants";
-import { backendFetch } from "../api";
+import { API_JOB_ENDPOINTS } from "./constants";
+import { backendFetch } from "@/lib/api";
 import type { JobBackendResponse, Job, JobCommandType } from "@/lib/types";
 
 export async function dispatchJobBackend(
@@ -9,7 +9,7 @@ export async function dispatchJobBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.JOBS.CREATE,
+    API_JOB_ENDPOINTS.JOBS.CREATE,
     {
       method: "POST",
       body: JSON.stringify({
@@ -23,11 +23,11 @@ export async function dispatchJobBackend(
 }
 
 export async function getJobBackend(jobId: string, accessToken: string) {
-  return backendFetch(API_ENDPOINTS.JOBS.DETAIL(jobId), { method: "GET" }, accessToken);
+  return backendFetch(API_JOB_ENDPOINTS.JOBS.DETAIL(jobId), { method: "GET" }, accessToken);
 }
 
 export async function getJobsByNodeBackend(nodeId: string, accessToken: string) {
-  return backendFetch(API_ENDPOINTS.JOBS.BY_NODE(nodeId), { method: "GET" }, accessToken);
+  return backendFetch(API_JOB_ENDPOINTS.JOBS.BY_NODE(nodeId), { method: "GET" }, accessToken);
 }
 
 export function mapJobFromBackend(j: JobBackendResponse): Job {

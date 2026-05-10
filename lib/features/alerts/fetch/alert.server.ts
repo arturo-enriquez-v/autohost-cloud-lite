@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from "@/config/constants";
-import { backendFetch } from "../../../api";
+import { backendFetch } from "@/lib/api";
 
 export async function listAlertEventsBackend(
   accessToken: string,

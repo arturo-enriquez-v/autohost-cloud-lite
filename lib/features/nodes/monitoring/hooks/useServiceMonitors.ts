@@ -1,14 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ServiceMonitor, UpsertServiceMonitorPayload, UptimePoint } from "../../types";
-import {
-  fetchServiceMonitors,
-  createServiceMonitor as apiCreate,
-  updateServiceMonitor as apiUpdate,
-  deleteServiceMonitor as apiDelete,
-  fetchUptimeHistory,
-} from "../../api";
+import type { ServiceMonitor, UpsertServiceMonitorPayload, UptimePoint } from "../interfaces/service-monitor";
+import { ServiceMonitorService } from "../services/service-monitor.service";
 
 export function useServiceMonitors(nodeId: string) {
   const [monitors, setMonitors] = useState<ServiceMonitor[]>([]);
@@ -19,7 +13,7 @@ export function useServiceMonitors(nodeId: string) {
   const refresh = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const data = await fetchServiceMonitors(nodeId);
+      const data = await ServiceMonitorService.getMonitors(nodeId);
       setMonitors(data);
       setError(null);
     } catch (err) {
@@ -40,7 +34,7 @@ export function useServiceMonitors(nodeId: string) {
 
   const create = useCallback(
     async (payload: UpsertServiceMonitorPayload): Promise<ServiceMonitor> => {
-      const created = await apiCreate(nodeId, payload);
+      const created = await ServiceMonitorService.createMonitor(nodeId, payload);
       setMonitors((prev) => [...prev, created]);
       return created;
     },
@@ -49,7 +43,7 @@ export function useServiceMonitors(nodeId: string) {
 
   const update = useCallback(
     async (monitorId: string, payload: UpsertServiceMonitorPayload): Promise<ServiceMonitor> => {
-      const updated = await apiUpdate(nodeId, monitorId, payload);
+      const updated = await ServiceMonitorService.updateMonitor(nodeId, monitorId, payload);
       setMonitors((prev) => prev.map((m) => (m.id === monitorId ? updated : m)));
       return updated;
     },
@@ -58,7 +52,7 @@ export function useServiceMonitors(nodeId: string) {
 
   const remove = useCallback(
     async (monitorId: string): Promise<void> => {
-      await apiDelete(nodeId, monitorId);
+      await ServiceMonitorService.deleteMonitor(nodeId, monitorId);
       setMonitors((prev) => prev.filter((m) => m.id !== monitorId));
     },
     [nodeId]
@@ -75,7 +69,7 @@ export function useUptimeHistory(nodeId: string, monitorId: string | null) {
     (showLoading: boolean) => {
       if (!monitorId) return;
       if (showLoading) setIsLoading(true);
-      fetchUptimeHistory(nodeId, monitorId)
+      ServiceMonitorService.getUptimeHistory(nodeId, monitorId)
         .then((data) => setPoints(data))
         .catch(() => {})
         .finally(() => { if (showLoading) setIsLoading(false); });

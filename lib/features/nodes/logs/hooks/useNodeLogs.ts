@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { LogEntry } from "../../types";
-import { liveLogsUrl } from "../../api";
+import type { LogEntry } from "../interfaces/log";
+import { liveLogsUrl } from "../fetch/logs.client";
 
-export type { LogEntry } from "../../types";
+export type { LogEntry } from "../interfaces/log";
 
 export interface LogError {
   message: string;

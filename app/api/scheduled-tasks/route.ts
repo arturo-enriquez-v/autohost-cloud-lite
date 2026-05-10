@@ -3,7 +3,7 @@ import {
   listScheduledTasksBackend,
   createScheduledTaskBackend,
   mapScheduledTaskFromBackend,
-} from "@/lib/api/scheduled-tasks";
+} from "@/lib/features/schedules/fetch/schedule.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { ScheduledTaskBackendResponse } from "@/lib/types";
 

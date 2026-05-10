@@ -1,4 +1,4 @@
-import { API_ENDPOINTS } from "@/config/constants";
+import { API_MONITOR_ENDPOINTS } from "./constants";
 import type {
   ServiceMonitor,
   ServiceMonitorBackendResponse,
@@ -8,7 +8,7 @@ import type {
   UptimePointBackendResponse,
   UpsertServiceMonitorPayload,
 } from "@/lib/types";
-import { backendFetch } from "../api";
+import { backendFetch } from "@/lib/api";
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
@@ -55,7 +55,7 @@ export function mapUptimeFromBackend(r: UptimePointBackendResponse): UptimePoint
 
 export async function listServiceMonitorsBackend(nodeId: string, accessToken: string) {
   return backendFetch(
-    `${API_ENDPOINTS.SERVICE_MONITORS.LIST}?nodeId=${nodeId}`,
+    `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.LIST}?nodeId=${nodeId}`,
     { method: "GET" },
     accessToken
   );
@@ -66,7 +66,7 @@ export async function createServiceMonitorBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.SERVICE_MONITORS.CREATE,
+    API_MONITOR_ENDPOINTS.SERVICE_MONITORS.CREATE,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,7 +82,7 @@ export async function updateServiceMonitorBackend(
   accessToken: string
 ) {
   return backendFetch(
-    API_ENDPOINTS.SERVICE_MONITORS.UPDATE(id),
+    API_MONITOR_ENDPOINTS.SERVICE_MONITORS.UPDATE(id),
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -94,7 +94,7 @@ export async function updateServiceMonitorBackend(
 
 export async function deleteServiceMonitorBackend(id: string, accessToken: string) {
   return backendFetch(
-    API_ENDPOINTS.SERVICE_MONITORS.DELETE(id),
+    API_MONITOR_ENDPOINTS.SERVICE_MONITORS.DELETE(id),
     { method: "DELETE" },
     accessToken
   );
@@ -102,7 +102,7 @@ export async function deleteServiceMonitorBackend(id: string, accessToken: strin
 
 export async function getUptimeHistory24hBackend(monitorId: string, accessToken: string) {
   return backendFetch(
-    API_ENDPOINTS.SERVICE_MONITORS.UPTIME(monitorId),
+    API_MONITOR_ENDPOINTS.SERVICE_MONITORS.UPTIME(monitorId),
     { method: "GET" },
     accessToken
   );
