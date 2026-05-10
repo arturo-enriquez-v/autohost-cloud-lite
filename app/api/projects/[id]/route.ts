@@ -3,7 +3,7 @@ import {
   getProjectBackend,
   updateProjectBackend,
   deleteProjectBackend,
-} from "@/lib/api/projects";
+} from "@/lib/features/projects/fetch/project.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function GET(

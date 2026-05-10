@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { assignNodeToProjectBackend, removeNodeFromProjectBackend } from "@/lib/api/projects";
+import { assignNodeToProjectBackend, removeNodeFromProjectBackend } from "@/lib/features/projects/fetch/project.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 
 export async function PUT(
