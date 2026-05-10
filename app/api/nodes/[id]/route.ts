@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getNodeBackend, deleteNodeBackend, mapNodeWithMetricsFromBackend } from "@/lib/features/nodes/all-nodes/fetch/nodes";
+import { getNodeBackend, deleteNodeBackend, mapNodeWithMetricsFromBackend } from "@/lib/features/nodes/nodes/fetch/nodes.server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { NodeWithMetricsBackendResponse } from "@/lib/types";
 

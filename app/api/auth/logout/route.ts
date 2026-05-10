@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { logoutBackend } from "@/lib/api/auth";
+import { logoutBackend } from "@/lib/features/auth/fech/api";
 import { ACCESS_COOKIE, REFRESH_COOKIE, getAccessTokenFromCookie, getRefreshTokenFromCookie } from "@/lib/cookies";
 
 export async function POST() {
