@@ -46,4 +46,4 @@ jobs:
         run: docker pull ghcr.io/mazapanuwu13/autohost-cloud-lite:latest
 
       - name: Reiniciar servicio frontend
-        run: docker compose -f ~/projects/autohost-cloud-lite/compose.yml up -d
+        run: docker compose -f ~/prod/autohost-cloud-lite/compose.yml up -d

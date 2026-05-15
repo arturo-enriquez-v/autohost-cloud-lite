@@ -1,7 +1,13 @@
 /**
  * backendFetch: llamada server-side al backend Go.
  * Solo usar en Route Handlers y Server Components (nunca en el browser).
- * Go es API pura: recibe Authorization header, devuelve JSON, nunca toca cookies.
+ *
+ * El backend acepta el token vía:
+ *   1. Authorization: Bearer <token>  (prioridad — APIs, CLI, agentes)
+ *   2. Cookie access_token            (fallback — sesiones web)
+ *
+ * En SSR, Next.js actúa como proxy explícito: lee su propia cookie y
+ * setea el header manualmente, evitando conflictos de CORS/subdominios.
  */
 export async function backendFetch(
   input: string,
