@@ -14,6 +14,8 @@ interface UseNodeMetricsLiveReturn {
 
 /**
  * Connects to the live metrics SSE endpoint and keeps the latest snapshot in state.
+ * Automatically pauses the SSE connection when the browser tab is hidden and
+ * reconnects when it becomes visible again, reducing unnecessary server load.
  */
 export function useNodeMetricsLive(nodeId: string): UseNodeMetricsLiveReturn {
   const [metric, setMetric] = useState<LiveMetric | null>(null);
@@ -21,8 +23,18 @@ export function useNodeMetricsLive(nodeId: string): UseNodeMetricsLiveReturn {
   const [error, setError] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
+  const [visible, setVisible] = useState(() =>
+    typeof document !== "undefined" ? !document.hidden : true
+  );
+
   useEffect(() => {
-    if (!nodeId) return;
+    const handler = () => setVisible(!document.hidden);
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!nodeId || !visible) return;
 
     const es = new EventSource(liveMetricsUrl(nodeId), { withCredentials: true });
     esRef.current = es;
@@ -40,7 +52,7 @@ export function useNodeMetricsLive(nodeId: string): UseNodeMetricsLiveReturn {
     es.onerror = () => { setConnected(false); setError("Connection lost — retrying…"); };
 
     return () => { es.close(); esRef.current = null; setConnected(false); };
-  }, [nodeId]);
+  }, [nodeId, visible]);
 
   return { metric, connected, error };
 }

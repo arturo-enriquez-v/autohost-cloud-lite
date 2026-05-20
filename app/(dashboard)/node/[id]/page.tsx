@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
-import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel, ProfilePanel } from "@/components/features/nodes"
+import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel } from "@/components/features/nodes"
 import { ServiceMonitorsPanel } from "@/components/features/nodes/ServiceMonitorsPanel"
 
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +22,6 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
       </div>
 
       <ServiceMonitorsPanel nodeId={nodeId} />
-      <ProfilePanel nodeId={nodeId} />
       <JobHistoryPanel nodeId={nodeId} refreshTrigger={jobRefreshKey} />
     </div>
   )

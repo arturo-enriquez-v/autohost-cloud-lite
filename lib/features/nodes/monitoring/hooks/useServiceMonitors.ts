@@ -28,7 +28,9 @@ export function useServiceMonitors(nodeId: string) {
     refresh(false).then(() => {
       initialLoadDone.current = true;
     });
-    const interval = setInterval(() => refresh(true), 10_000);
+    const interval = setInterval(() => {
+      if (!document.hidden) refresh(true);
+    }, 10_000);
     return () => clearInterval(interval);
   }, [refresh]);
 
