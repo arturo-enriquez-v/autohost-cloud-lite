@@ -73,5 +73,10 @@ export const API_ENDPOINTS = {
     BY_NODE: (nodeId: string) => `/v1/caddy-routes/${nodeId}`,
     DELETE: (nodeId: string, domain: string) => `/v1/caddy-routes/${nodeId}/${domain}`,
   },
+  PROFILE: {
+    COLLECT: (nodeId: string) => `/v1/nodes/${nodeId}/profile`,
+    DOWNLOAD: (nodeId: string) => `/v1/nodes/${nodeId}/profile/download`,
+    PROXY: (sessionId: string) => `/v1/pprof/${sessionId}`,
+  },
 } as const;
 
