@@ -26,6 +26,8 @@ interface UseNodeLogsReturn {
 /**
  * Streams real-time logs from a node via Server-Sent Events.
  * Connects to /api/nodes/{nodeId}/logs/stream and appends entries to `logs`.
+ * Automatically pauses the SSE connection when the browser tab is hidden and
+ * reconnects when it becomes visible again, reducing unnecessary server load.
  */
 export function useNodeLogs(
   nodeId: string,
@@ -36,10 +38,20 @@ export function useNodeLogs(
   const [error, setError] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
 
+  const [visible, setVisible] = useState(() =>
+    typeof document !== "undefined" ? !document.hidden : true
+  );
+
   const clear = useCallback(() => setLogs([]), []);
 
   useEffect(() => {
-    if (!nodeId) return;
+    const handler = () => setVisible(!document.hidden);
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!nodeId || !visible) return;
 
     const url = liveLogsUrl(nodeId, unit, lines);
 
@@ -83,7 +95,7 @@ export function useNodeLogs(
       esRef.current = null;
       setConnected(false);
     };
-  }, [nodeId, unit, lines, maxEntries]);
+  }, [nodeId, unit, lines, maxEntries, visible]);
 
   return { logs, connected, error, clear };
 }
