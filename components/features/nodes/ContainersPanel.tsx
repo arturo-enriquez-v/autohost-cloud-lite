@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Box, RefreshCw, Loader2, Activity, AlertTriangle, Terminal } from "lucide-react"
+import { Box, RefreshCw, Activity, AlertTriangle, Terminal, Wifi, WifiOff } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SortableContainersTable } from "@/components/features/nodes/SortableContainersTable"
-import { useContainers } from "@/lib/features/nodes/containers/hooks/useContainers"
+import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive"
 
 interface ContainersPanelProps {
   nodeId: string
@@ -17,19 +16,13 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
   const router = useRouter()
   const {
     containers,
-    isRefreshing,
-    lastRefreshed,
-    refreshError,
+    connected,
+    streamError,
     dockerUnavailable,
     actionState,
-    refresh,
+    reconnect,
     runAction,
-  } = useContainers(nodeId)
-
-  useEffect(() => {
-    refresh()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId])
+  } = useContainersLive(nodeId)
 
   return (
     <Card>
@@ -41,37 +34,35 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
             {containers.length > 0 && (
               <Badge variant="outline" className="text-xs">{containers.length}</Badge>
             )}
-            <Badge variant="outline" className="text-xs gap-1 bg-green-500/10 text-green-600 border-green-500/30">
-              <Activity className="h-3 w-3" />
-              Live
+            <Badge
+              variant="outline"
+              className={`text-xs gap-1 ${connected
+                ? "bg-green-500/10 text-green-600 border-green-500/30"
+                : "bg-muted text-muted-foreground border-border"
+              }`}
+            >
+              {connected ? (
+                <><Activity className="h-3 w-3" />Live</>
+              ) : (
+                <><WifiOff className="h-3 w-3" />Offline</>
+              )}
             </Badge>
           </CardTitle>
-          {lastRefreshed && !dockerUnavailable && (
-            <CardDescription className="mt-1">
-              Updated {lastRefreshed.toLocaleTimeString()} · auto-refresh 10s
-            </CardDescription>
-          )}
-          {dockerUnavailable && (
-            <CardDescription className="mt-1 text-warning">
-              Auto-refresh paused — manual refresh only
-            </CardDescription>
-          )}
+          <CardDescription className="mt-1">
+            {connected
+              ? "Real-time · updates via gRPC"
+              : streamError ?? "Connecting…"}
+          </CardDescription>
         </div>
         <Button
           variant="outline"
           size="sm"
-          onClick={refresh}
-          disabled={isRefreshing || actionState !== null}
+          onClick={reconnect}
+          disabled={connected || actionState !== null}
           className="shrink-0 gap-2"
         >
-          {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          <span className="hidden sm:inline">
-            {isRefreshing ? "Loading…" : "Refresh"}
-          </span>
+          <RefreshCw className="h-4 w-4" />
+          <span className="hidden sm:inline">Reconnect</span>
         </Button>
       </CardHeader>
 
@@ -95,19 +86,17 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
                 Run on the node to fix:
               </p>
               <pre className="text-xs font-mono select-all">{`sudo usermod -aG docker autohost\nnewgrp docker`}</pre>
-              <p className="text-xs text-muted-foreground">Then click <strong>Refresh</strong> to verify.</p>
+              <p className="text-xs text-muted-foreground">Then click <strong>Reconnect</strong> to verify.</p>
             </div>
           </div>
-        ) : refreshError ? (
-          <p className="text-sm text-destructive py-2">{refreshError}</p>
-        ) : isRefreshing && containers.length === 0 ? (
+        ) : !connected && containers.length === 0 ? (
           <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            Fetching containers from node…
+            <Wifi className="h-5 w-5" />
+            {streamError ?? "Connecting to node…"}
           </div>
         ) : containers.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">
-            No containers found. Click <strong>Refresh</strong> to reload.
+            No containers found on this node.
           </p>
         ) : (
           <SortableContainersTable
