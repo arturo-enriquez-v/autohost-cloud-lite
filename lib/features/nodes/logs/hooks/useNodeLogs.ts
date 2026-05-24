@@ -37,6 +37,10 @@ export function useNodeLogs(
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  // Batch incoming SSE messages and flush once per animation frame to avoid
+  // O(n) array allocations and React re-renders at the raw log ingestion rate.
+  const pendingRef = useRef<LogEntry[]>([]);
+  const rafRef = useRef<number | null>(null);
 
   const [visible, setVisible] = useState(() =>
     typeof document !== "undefined" ? !document.hidden : true
@@ -66,10 +70,22 @@ export function useNodeLogs(
     es.onmessage = (event) => {
       try {
         const entry: LogEntry = JSON.parse(event.data);
-        setLogs((prev) => {
-          const next = [...prev, entry];
-          return next.length > maxEntries ? next.slice(next.length - maxEntries) : next;
-        });
+        pendingRef.current.push(entry);
+        // Schedule a single flush per animation frame so React re-renders at
+        // most ~60 times/s regardless of the log ingestion rate.
+        if (rafRef.current === null) {
+          rafRef.current = requestAnimationFrame(() => {
+            rafRef.current = null;
+            const batch = pendingRef.current;
+            pendingRef.current = [];
+            setLogs((prev) => {
+              const combined = [...prev, ...batch];
+              return combined.length > maxEntries
+                ? combined.slice(combined.length - maxEntries)
+                : combined;
+            });
+          });
+        }
       } catch {
         // Ignore malformed events
       }
@@ -94,6 +110,11 @@ export function useNodeLogs(
       es.close();
       esRef.current = null;
       setConnected(false);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      pendingRef.current = [];
     };
   }, [nodeId, unit, lines, maxEntries, visible]);
 
