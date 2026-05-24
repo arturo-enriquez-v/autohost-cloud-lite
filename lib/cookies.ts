@@ -15,13 +15,13 @@ type CookieOptions = {
   maxAge?: number;
 };
 
-/** Opciones para el access_token (vida corta) */
+/** Opciones para el access_token (vida corta — alineada con el TTL del JWT) */
 export const ACCESS_COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
   sameSite: "lax",
   secure:   SECURE,
   path:     "/",
-  maxAge:   60 * 60, // 1 hora
+  maxAge:   15 * 60, // 15 minutos (igual que el JWT)
 };
 
 /** Opciones para el refresh_token (vida larga) */
