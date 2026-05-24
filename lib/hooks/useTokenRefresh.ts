@@ -29,6 +29,9 @@ export function useTokenRefresh() {
       // "error": fallo transitorio — el siguiente ciclo reintentará
     }
 
+    // Intentar renovar inmediatamente al montar, por si el token ya está
+    // próximo a expirar o ya expiró mientras la pestaña estaba cerrada.
+    proactiveRefresh();
     timerRef.current = setInterval(proactiveRefresh, REFRESH_INTERVAL_MS);
 
     return () => {
