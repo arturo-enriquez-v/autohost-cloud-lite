@@ -23,15 +23,27 @@ function LogLine({ entry }: { entry: LogEntry }) {
 }
 
 export function LogTerminal({ logs }: LogTerminalProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
+  // Deduplicate scroll calls: only schedule one per animation frame.
+  const scrollRafRef = useRef<number | null>(null)
 
   useEffect(() => {
-    if (autoScroll && bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" })
-    }
+    if (!autoScroll || !containerRef.current) return
+    if (scrollRafRef.current !== null) return
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null
+      if (containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight
+      }
+    })
   }, [logs, autoScroll])
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current)
+    }
+  }, [])
 
   const handleScroll = () => {
     if (!containerRef.current) return
@@ -53,10 +65,9 @@ export function LogTerminal({ logs }: LogTerminalProps) {
           </div>
         ) : (
           <div className="p-4 space-y-0.5">
-            {logs.map((entry, i) => (
-              <LogLine key={i} entry={entry} />
+            {logs.map((entry) => (
+              <LogLine key={entry.timestamp_us} entry={entry} />
             ))}
-            <div ref={bottomRef} />
           </div>
         )}
       </div>
@@ -69,7 +80,9 @@ export function LogTerminal({ logs }: LogTerminalProps) {
             className="text-xs shadow-md"
             onClick={() => {
               setAutoScroll(true)
-              bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+              if (containerRef.current) {
+                containerRef.current.scrollTop = containerRef.current.scrollHeight
+              }
             }}
           >
             ↓ Scroll to bottom

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Header, Sidebar } from "@/components/layout"
 import { ProjectProvider } from "@/lib/context/project-context"
+import { NodesProvider } from "@/lib/context/nodes-context"
 import { useTokenRefresh } from "@/lib/hooks/useTokenRefresh"
 
 export default function DashboardLayout({
@@ -17,6 +18,7 @@ export default function DashboardLayout({
 
   return (
     <ProjectProvider>
+      <NodesProvider>
       <div className="flex h-screen overflow-hidden bg-background">
         {/* Mobile backdrop */}
         {mobileOpen && (
@@ -41,6 +43,7 @@ export default function DashboardLayout({
           </footer>
         </div>
       </div>
+      </NodesProvider>
     </ProjectProvider>
   )
 }
