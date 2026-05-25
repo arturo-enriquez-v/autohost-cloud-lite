@@ -1,5 +1,6 @@
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import { backendFetch } from "@/lib/api";
+import { createSSEProxyStream } from "@/lib/api/sse";
 
 // This route must never be statically cached.
 export const dynamic = "force-dynamic";
@@ -57,8 +58,9 @@ export async function GET(
     return new Response("Backend error", { status: upstream.status });
   }
 
-  // Stream the SSE response straight through to the browser.
-  return new Response(upstream.body, {
+  // Stream the SSE response through a wrapper that guarantees the upstream
+  // connection is closed when the browser disconnects.
+  return new Response(createSSEProxyStream(upstream.body, req.signal), {
     status: 200,
     headers: {
       "Content-Type": "text/event-stream",

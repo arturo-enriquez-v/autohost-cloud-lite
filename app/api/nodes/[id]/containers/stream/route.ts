@@ -1,5 +1,6 @@
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import { backendFetch } from "@/lib/api";
+import { createSSEProxyStream } from "@/lib/api/sse";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function GET(
     return new Response("Backend error", { status: upstream.status });
   }
 
-  return new Response(upstream.body, {
+  return new Response(createSSEProxyStream(upstream.body, req.signal), {
     status: 200,
     headers: {
       "Content-Type": "text/event-stream",
