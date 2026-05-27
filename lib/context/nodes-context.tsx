@@ -8,8 +8,23 @@ import {
   useCallback,
   ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 import type { Node } from "@/lib/features/nodes/types";
 import { NodesService } from "@/lib/features/nodes/nodes/services/nodes.service";
+
+/**
+ * Paths where node-metrics polling is meaningful (dashboard home, nodes list,
+ * node detail and its sub-pages).  On every other route the interval is
+ * paused to avoid continuous /v1/nodes/with-metrics requests.
+ */
+function useIsMetricsPage(): boolean {
+  const pathname = usePathname();
+  return (
+    pathname === "/" ||
+    pathname === "/nodes" ||
+    pathname.startsWith("/node/")
+  );
+}
 
 interface NodesContextValue {
   allNodes: Node[];
@@ -34,6 +49,7 @@ export function NodesProvider({ children }: { children: ReactNode }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMetricsPage = useIsMetricsPage();
 
   const load = useCallback(async (showUpdating = false) => {
     try {
@@ -49,11 +65,20 @@ export function NodesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Initial load — always runs once on mount regardless of the current page.
   useEffect(() => {
     load();
+  }, [load]);
+
+  // Polling interval — only active on pages that actually display metrics.
+  // Starts (and refreshes immediately) when entering a metrics page;
+  // clears automatically when navigating away.
+  useEffect(() => {
+    if (!isMetricsPage) return;
+    load(true);
     const interval = setInterval(() => load(true), 10_000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, isMetricsPage]);
 
   const refresh = useCallback(() => load(true), [load]);
 
