@@ -65,20 +65,16 @@ export function NodesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Initial load — always runs once on mount regardless of the current page.
+  // Single effect: always loads once on mount, then polls every 10 s only on
+  // metrics pages.  Merging the two effects avoids the double-request that
+  // occurred when isMetricsPage was true at mount (both effects fired).
   useEffect(() => {
-    load();
-  }, [load]);
-
-  // Polling interval — only active on pages that actually display metrics.
-  // Starts (and refreshes immediately) when entering a metrics page;
-  // clears automatically when navigating away.
-  useEffect(() => {
+    load();                        // initial load — always
     if (!isMetricsPage) return;
-    load(true);
     const interval = setInterval(() => load(true), 10_000);
     return () => clearInterval(interval);
-  }, [load, isMetricsPage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMetricsPage]);             // intentionally omit `load` — stable callback
 
   const refresh = useCallback(() => load(true), [load]);
 

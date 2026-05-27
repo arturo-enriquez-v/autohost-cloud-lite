@@ -6,6 +6,10 @@ services:
       - "3000:3000"
     environment:
       - APP_URL=https://cloud.autohst.dev
+      # Cap the V8 heap to prevent GC storms on a memory-constrained VPS.
+      # Without this, Node.js will try to grow its heap until the OS is under
+      # pressure, causing the GC to spin at 100% CPU.
+      - NODE_OPTIONS=--max-old-space-size=256
     env_file:
       - .env.local
     extra_hosts:
