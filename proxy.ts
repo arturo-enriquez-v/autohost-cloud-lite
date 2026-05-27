@@ -1,7 +1,26 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
+/**
+ * Returns the public-facing origin (scheme + host) using the headers that
+ * Caddy (or any compliant reverse proxy) adds automatically:
+ *   X-Forwarded-Proto  — original scheme seen by the browser (https)
+ *   X-Forwarded-Host   — original domain seen by the browser (yourdomain.com)
+ *
+ * Without this, NextResponse.redirect() would produce URLs like
+ * http://0.0.0.0:3000/ instead of https://yourdomain.com/.
+ */
+function publicOrigin(req: NextRequest): string {
+  const proto = req.headers.get("x-forwarded-proto")?.split(",")[0].trim()
+    ?? req.nextUrl.protocol.replace(":", "")
+  const host = req.headers.get("x-forwarded-host")
+    ?? req.headers.get("host")
+    ?? req.nextUrl.host
+  return `${proto}://${host}`
+}
+
 export function proxy(req: NextRequest) {
+  const origin = publicOrigin(req)
   const access  = req.cookies.get("access_token")?.value
   const refresh = req.cookies.get("refresh_token")?.value
   const isPublic = req.nextUrl.pathname.startsWith("/login")
@@ -10,20 +29,18 @@ export function proxy(req: NextRequest) {
   if (!access && !isPublic) {
     if (refresh) {
       // access_token expirado pero hay refresh_token — renovar silenciosamente
-      const url = req.nextUrl.clone()
-      url.pathname = "/api/auth/silent-refresh"
+      const url = new URL("/api/auth/silent-refresh", origin)
       url.searchParams.set("next", req.nextUrl.pathname)
       return NextResponse.redirect(url)
     }
     // Sin ningún token — al login
-    const url = req.nextUrl.clone()
-    url.pathname = "/login"
+    const url = new URL("/login", origin)
     url.searchParams.set("next", req.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 
   if (access && isPublic) {
-    return NextResponse.redirect(new URL("/", req.url))
+    return NextResponse.redirect(new URL("/", origin))
   }
 
   return NextResponse.next()
