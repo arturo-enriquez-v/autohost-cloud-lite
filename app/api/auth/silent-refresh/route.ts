@@ -15,6 +15,19 @@ import {
  * Renueva el access_token y redirige al destino original sin interrumpir al usuario.
  * Si el refresh falla, redirige al login.
  */
+/**
+ * Returns the public-facing origin using Caddy's forwarded headers so that
+ * redirects go to https://yourdomain.com instead of http://0.0.0.0:3000.
+ */
+function publicOrigin(req: Request): string {
+  const proto = req.headers.get("x-forwarded-proto")?.split(",")[0].trim()
+    ?? new URL(req.url).protocol.replace(":", "")
+  const host = req.headers.get("x-forwarded-host")
+    ?? req.headers.get("host")
+    ?? new URL(req.url).host
+  return `${proto}://${host}`
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const next = searchParams.get("next") ?? "/";
@@ -22,11 +35,12 @@ export async function GET(req: Request) {
   // Sanidad: evitar bucles si next apunta a esta ruta
   const destination = next.startsWith("/api/auth") ? "/" : next;
 
+  const origin = publicOrigin(req);
   const refreshToken = await getRefreshTokenFromCookie();
 
   if (!refreshToken) {
     return NextResponse.redirect(
-      new URL(`/login?next=${encodeURIComponent(destination)}`, req.url)
+      new URL(`/login?next=${encodeURIComponent(destination)}`, origin)
     );
   }
 
@@ -39,7 +53,7 @@ export async function GET(req: Request) {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok && data?.access_token) {
-      const response = NextResponse.redirect(new URL(destination, req.url));
+      const response = NextResponse.redirect(new URL(destination, origin));
       response.cookies.set(ACCESS_COOKIE,  data.access_token,  ACCESS_COOKIE_OPTIONS);
       if (data.refresh_token) {
         response.cookies.set(REFRESH_COOKIE, data.refresh_token, REFRESH_COOKIE_OPTIONS);
@@ -52,7 +66,7 @@ export async function GET(req: Request) {
 
   // Refresh falló — limpiar y redirigir al login
   const response = NextResponse.redirect(
-    new URL(`/login?next=${encodeURIComponent(destination)}`, req.url)
+    new URL(`/login?next=${encodeURIComponent(destination)}`, origin)
   );
   response.cookies.delete(ACCESS_COOKIE);
   response.cookies.delete(REFRESH_COOKIE);
