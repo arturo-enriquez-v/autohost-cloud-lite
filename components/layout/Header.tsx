@@ -27,10 +27,10 @@ export function Header({ onMobileMenu }: HeaderProps) {
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMobileMenu}>
           <Menu className="h-5 w-5" />
         </Button>
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
+        {/* <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
           <span className="text-sm font-bold text-primary-foreground">AC</span>
-        </div>
-        <h1 className="hidden text-lg font-semibold text-foreground sm:block">AutoHost Cloud</h1>
+        </div> */}
+        {/* <h1 className="hidden text-lg font-semibold text-foreground sm:block">AutoHost Cloud</h1> */}
       </div>
 
       <DropdownMenu>

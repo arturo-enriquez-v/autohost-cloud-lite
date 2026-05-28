@@ -24,6 +24,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { AutohostLogo } from "@/components/ui/AutohostLogo"
 
 interface SidebarProps {
   isCollapsed: boolean
@@ -186,21 +187,37 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   )
 
   const renderContent = (collapsed: boolean) => (
-    <nav className="flex-1 overflow-y-auto p-3">
-      {collapsed ? (
-        <div className="space-y-1">
-          {renderProjectsCollapsed()}
-          <div className="my-2 border-t border-border" />
-          {renderNavItems(true)}
-        </div>
-      ) : (
-        <div className="space-y-1">
-          {renderProjectsSection()}
-          <div className="my-2 border-t border-border" />
-          {renderNavItems(false)}
-        </div>
-      )}
-    </nav>
+    <>
+      {/* Brand header */}
+      <div
+        className={cn(
+          "flex items-center border-b border-border px-3 py-3 shrink-0",
+          collapsed ? "justify-center" : "gap-2.5"
+        )}
+      >
+        <AutohostLogo className="h-8 w-8 shrink-0" />
+        {!collapsed && (
+          <span className="text-sm font-bold tracking-wide text-sidebar-foreground">
+            AutoHost
+          </span>
+        )}
+      </div>
+      <nav className="flex-1 overflow-y-auto p-3">
+        {collapsed ? (
+          <div className="space-y-1">
+            {renderProjectsCollapsed()}
+            <div className="my-2 border-t border-border" />
+            {renderNavItems(true)}
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {renderProjectsSection()}
+            <div className="my-2 border-t border-border" />
+            {renderNavItems(false)}
+          </div>
+        )}
+      </nav>
+    </>
   )
 
   return (
