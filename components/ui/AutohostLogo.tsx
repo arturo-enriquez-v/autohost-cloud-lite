@@ -1,0 +1,48 @@
+import { cn } from "@/lib/utils"
+
+interface AutohostLogoProps {
+  className?: string
+}
+
+export function AutohostLogo({ className }: AutohostLogoProps) {
+  return (
+    <svg
+      viewBox="0 0 858 629"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("shrink-0", className)}
+      aria-label="AutoHost logo"
+    >
+      <path fillRule="evenodd" clipRule="evenodd" d="M251.764 48.5H294.014C296.913 48.5 299.264 46.1495 299.264 43.25C299.264 40.3505 301.614 38 304.514 38H551.014C553.913 38 556.264 40.3505 556.264 43.25C556.264 46.1495 558.614 48.5 561.514 48.5H605.264C605.264 21.9903 583.773 0.5 557.264 0.5H299.764C273.254 0.5 251.764 21.9903 251.764 48.5Z" fill="url(#g0)" stroke="#70AEFF"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M856.764 628L687.764 240.5L675.764 258.25L663.764 276L795.764 587.5H646.764L601.764 488.5H559.764L620.764 628H856.764Z" fill="url(#g1)" stroke="#70AEFF"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M0.763672 628L169.764 240.5L181.764 258.25L193.764 276L61.7637 587.5H210.764L255.764 488.5H297.764L236.764 628H0.763672Z" fill="url(#g2)" stroke="#70AEFF"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M256.66 283.5C228.016 283.5 204.779 306.654 204.767 335.297C204.758 356.657 204.769 379.192 204.787 398.61C204.812 427.293 228.078 450.5 256.761 450.5H600.587C629.306 450.5 652.587 427.219 652.587 398.5V335.5C652.587 306.781 629.306 283.5 600.587 283.5H256.66ZM258.765 413.5C249.945 413.5 242.79 406.374 242.773 397.554C242.744 381.544 242.713 356.444 242.753 336.408C242.77 327.606 249.917 320.5 258.719 320.5H598.587C607.423 320.5 614.587 327.663 614.587 336.5V397.5C614.587 406.337 607.423 413.5 598.587 413.5H258.765Z" fill="url(#g3)" stroke="#70AEFF"/>
+      <circle cx="286.764" cy="369.5" r="19.5" fill="url(#g4)" stroke="#70AEFF"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M256.836 84.5C228.193 84.5 204.956 107.654 204.944 136.297C204.935 157.657 204.946 180.192 204.964 199.61C204.989 228.293 228.255 251.5 256.937 251.5H600.763C629.482 251.5 652.764 228.219 652.764 199.5V136.5C652.764 107.781 629.482 84.5 600.764 84.5H256.836ZM258.942 214.5C250.122 214.5 242.966 207.374 242.95 198.554C242.921 182.544 242.889 157.444 242.929 137.408C242.947 128.606 250.094 121.5 258.896 121.5H598.764C607.6 121.5 614.764 128.663 614.764 137.5V198.5C614.764 207.337 607.6 214.5 598.764 214.5H258.942Z" fill="url(#g5)" stroke="#70AEFF"/>
+      <circle cx="286.764" cy="170.5" r="19.5" fill="url(#g6)" stroke="#70AEFF"/>
+      <defs>
+        <linearGradient id="g0" x1="251.764" y1="24.5" x2="605.264" y2="24.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="0.0001" stopColor="#5A9BF1"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g1" x1="373.264" y1="591.5" x2="782.764" y2="529.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g2" x1="149.264" y1="240.5" x2="292.264" y2="245" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g3" x1="123.264" y1="340.5" x2="652.764" y2="377.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g4" x1="266.764" y1="360" x2="309.764" y2="383" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g5" x1="206.264" y1="164.5" x2="652.264" y2="167.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+        <linearGradient id="g6" x1="266.764" y1="169.5" x2="306.764" y2="185.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#5DA1F9"/><stop offset="1" stopColor="#375F93"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  )
+}

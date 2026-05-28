@@ -9,7 +9,12 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "AutoHost Cloud",
   description: "Server monitoring dashboard for self-hosted infrastructure",
-  generator: "v0.app",
+  generator: "",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 }
 
 export default function RootLayout({

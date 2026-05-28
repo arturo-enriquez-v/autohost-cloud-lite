@@ -7,7 +7,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Server, Lock, Mail, User } from "lucide-react"
+import { Lock, Mail, User } from "lucide-react"
+import { AutohostLogo } from "@/components/ui/AutohostLogo"
 
 function GoogleIcon() {
   return (
@@ -91,8 +92,8 @@ export default function RegisterPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo and Title */}
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-lg bg-primary/10">
-            <Server className="h-8 w-8 text-primary" />
+          <div className="mx-auto mb-4 flex justify-center">
+            <AutohostLogo className="h-16 w-16" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">AutoHost Cloud</h1>
           <p className="mt-2 text-sm text-muted-foreground">Create your account to get started</p>
