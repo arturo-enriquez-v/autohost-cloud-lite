@@ -38,21 +38,21 @@ export function createSSEProxyStream(
 
   return new ReadableStream<Uint8Array>({
     async start(controller) {
-      // Pre-built reject promise so we can race it against each read.
-      // Recreated each iteration because a resolved/rejected promise can't be
-      // reused, but a new Promise wrapping the same signal is cheap.
-      const makeAbortPromise = () =>
-        new Promise<never>((_, reject) => {
-          if (abort.signal.aborted) {
-            reject(new DOMException("Stream aborted", "AbortError"));
-            return;
-          }
-          abort.signal.addEventListener(
-            "abort",
-            () => reject(new DOMException("Stream aborted", "AbortError")),
-            { once: true }
-          );
-        });
+      // Single abort promise created once — adds exactly ONE listener to
+      // abort.signal for the entire lifetime of the stream.  Creating it
+      // inside the loop (as makeAbortPromise did) accumulated one listener per
+      // iteration, triggering MaxListenersExceededWarning.
+      const abortPromise = new Promise<never>((_, reject) => {
+        if (abort.signal.aborted) {
+          reject(new DOMException("Stream aborted", "AbortError"));
+          return;
+        }
+        abort.signal.addEventListener(
+          "abort",
+          () => reject(new DOMException("Stream aborted", "AbortError")),
+          { once: true }
+        );
+      });
 
       // Idle timeout: forcibly close the stream if no data arrives for
       // IDLE_TIMEOUT_MS.  Resets on every received chunk.
@@ -67,7 +67,7 @@ export function createSSEProxyStream(
         while (true) {
           const { done, value } = await Promise.race([
             reader.read(),
-            makeAbortPromise(),
+            abortPromise,
           ]);
           if (done) {
             controller.close();
