@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CheckType, ServiceMonitor, UpsertServiceMonitorPayload } from "@/lib/types";
-import { useContainers } from "@/lib/features/nodes/containers/hooks/useContainers";
+import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
 
 interface Props {
   nodeId: string;
@@ -54,12 +54,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   const serviceInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const { containers, refresh: refreshContainers } = useContainers(nodeId);
-
-  // Fetch containers when the dialog opens so suggestions are ready
-  useEffect(() => {
-    if (open) refreshContainers();
-  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { containers } = useContainersLive(nodeId);
 
   // Close dropdown on outside click
   useEffect(() => {
