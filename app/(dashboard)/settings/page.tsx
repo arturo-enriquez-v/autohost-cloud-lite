@@ -6,13 +6,34 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Copy, Check, Send, ExternalLink } from "lucide-react"
+import { Copy, Check, Send, ExternalLink, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
 
 export default function SettingsPage() {
   const { generateToken, isLoading, error } = useEnrollments()
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+
+  // Node status report
+  const [reportStatus, setReportStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [reportResult, setReportResult] = useState<{ nodes_total?: number; nodes_active?: number; nodes_alerts?: number } | null>(null)
+
+  const triggerNodeStatusReport = async () => {
+    setReportStatus("loading")
+    setReportResult(null)
+    try {
+      const res = await fetch("/api/reports/node-status", { method: "POST", credentials: "include" })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setReportStatus("success")
+        setReportResult(data)
+      } else {
+        setReportStatus("error")
+      }
+    } catch {
+      setReportStatus("error")
+    }
+  }
 
   const generateApiKey = async () => {
     const result = await generateToken()
@@ -150,6 +171,54 @@ export default function SettingsPage() {
             <p className="text-sm text-muted-foreground">
               Once you have your token and chat ID, go to a <b>node's detail page</b> and open the <b>Alerts</b> section to configure per-node thresholds.
             </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Node Status Report
+            </CardTitle>
+            <CardDescription>
+              Collect current node metrics and queue a status report email via Redis. Reports are sent automatically on a schedule; use the button below to trigger a test.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {reportStatus === "success" && reportResult && (
+              <div className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <div>
+                  <p className="font-medium">Report queued successfully</p>
+                  <p className="text-xs text-green-700 dark:text-green-400">
+                    Nodes: {reportResult.nodes_total ?? "—"} total · {reportResult.nodes_active ?? "—"} active · {reportResult.nodes_alerts ?? "—"} alerts
+                  </p>
+                </div>
+              </div>
+            )}
+            {reportStatus === "error" && (
+              <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>Failed to queue report. Check API connectivity and Redis.</span>
+              </div>
+            )}
+            <Button
+              onClick={triggerNodeStatusReport}
+              disabled={reportStatus === "loading"}
+              variant="outline"
+            >
+              {reportStatus === "loading" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Collecting metrics…
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Test Report
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 

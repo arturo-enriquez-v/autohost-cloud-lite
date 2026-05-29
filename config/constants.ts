@@ -78,5 +78,8 @@ export const API_ENDPOINTS = {
     DOWNLOAD: (nodeId: string) => `/v1/nodes/${nodeId}/profile/download`,
     PROXY: (sessionId: string) => `/v1/pprof/${sessionId}`,
   },
+  REPORTS: {
+    TRIGGER_NODE_STATUS: "/v1/reports/node-status/trigger",
+  },
 } as const;
 
