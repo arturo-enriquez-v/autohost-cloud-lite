@@ -11,12 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout } from "@/lib/api/fetch-client"
+import { useRouter } from "next/navigation"
 
 interface HeaderProps {
   onMobileMenu: () => void
 }
 
 export function Header({ onMobileMenu }: HeaderProps) {
+  const router = useRouter()
+
   const handleLogout = async () => {
     await logout()
   }
@@ -42,11 +45,11 @@ export function Header({ onMobileMenu }: HeaderProps) {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/profile")}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push("/settings")}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>

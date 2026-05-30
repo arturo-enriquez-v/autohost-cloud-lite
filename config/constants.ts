@@ -80,6 +80,7 @@ export const API_ENDPOINTS = {
   },
   REPORTS: {
     TRIGGER_NODE_STATUS: "/v1/reports/node-status/trigger",
+    SETTINGS: "/v1/reports/settings",
   },
 } as const;
 

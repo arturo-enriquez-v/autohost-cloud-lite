@@ -108,7 +108,7 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
       </Card>
 
       {activeJob && (
-        <Card className="border-blue-500/30">
+        <Card className="border-blue-500/30 lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <Zap className="h-5 w-5" />
