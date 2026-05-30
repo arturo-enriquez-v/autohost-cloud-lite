@@ -8,7 +8,7 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "AutoHost Cloud",
-  description: "Server monitoring dashboard for self-hosted infrastructure",
+  description: "Server monitoring dashboard for infrastructure",
   generator: "",
   icons: {
     icon: "/logo.svg",

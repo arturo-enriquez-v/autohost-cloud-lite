@@ -244,7 +244,7 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground">
-          © AutoHost Cloud 2025 - Secure Server Management
+          © AutoHost Cloud 2026 - Secure Server Management
         </p>
       </div>
     </div>

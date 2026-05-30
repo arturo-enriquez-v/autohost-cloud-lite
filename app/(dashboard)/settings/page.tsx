@@ -6,33 +6,33 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Copy, Check, Send, ExternalLink, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
+import { useReportSettings } from "@/lib/features/report-settings/hooks/useReportSettings"
+
+const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
+
+function formatHour(h: number) {
+  const period = h < 12 ? "AM" : "PM"
+  const display = h % 12 === 0 ? 12 : h % 12
+  return `${String(display).padStart(2, "0")}:00 ${period} (UTC)`
+}
 
 export default function SettingsPage() {
   const { generateToken, isLoading, error } = useEnrollments()
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // Node status report
-  const [reportStatus, setReportStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
-  const [reportResult, setReportResult] = useState<{ nodes_total?: number; nodes_active?: number; nodes_alerts?: number } | null>(null)
+  const { settings, isLoading: reportLoading, isSaving, error: reportError, save } = useReportSettings()
+  const [saved, setSaved] = useState(false)
 
-  const triggerNodeStatusReport = async () => {
-    setReportStatus("loading")
-    setReportResult(null)
-    try {
-      const res = await fetch("/api/reports/node-status", { method: "POST", credentials: "include" })
-      const data = await res.json().catch(() => ({}))
-      if (res.ok) {
-        setReportStatus("success")
-        setReportResult(data)
-      } else {
-        setReportStatus("error")
-      }
-    } catch {
-      setReportStatus("error")
-    }
+  const handleToggle = async (enabled: boolean) => {
+    await save({ ...settings, enabled })
+  }
+
+  const handleHourChange = (value: string) => {
+    save({ ...settings, hour_utc: Number(value) })
   }
 
   const generateApiKey = async () => {
@@ -58,6 +58,120 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6">
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Email Reports
+            </CardTitle>
+            <CardDescription>
+              Receive a daily node status report by email with metrics, alerts and uptime summary.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {reportError && (
+              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {reportError}
+              </div>
+            )}
+
+            {/* Enable toggle */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="report-toggle" className="text-sm font-medium">
+                  Enable daily report
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Sends a summary to your account email once a day
+                </p>
+              </div>
+              {reportLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <Switch
+                  id="report-toggle"
+                  checked={settings.enabled}
+                  onCheckedChange={handleToggle}
+                  disabled={isSaving}
+                />
+              )}
+            </div>
+
+            {/* Hour selector */}
+            <div className={`space-y-2 transition-opacity ${settings.enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+              <Label htmlFor="report-hour" className="text-sm font-medium">
+                Delivery time
+              </Label>
+              <Select
+                value={String(settings.hour_utc)}
+                onValueChange={handleHourChange}
+                disabled={!settings.enabled || isSaving || reportLoading}
+              >
+                <SelectTrigger id="report-hour" className="w-56">
+                  <SelectValue placeholder="Select hour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {UTC_HOURS.map((h) => (
+                    <SelectItem key={h} value={String(h)}>
+                      {formatHour(h)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                All times are in UTC. Your local time may differ.
+              </p>
+            </div>
+
+            {saved && (
+              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                <CheckCircle className="h-4 w-4" />
+                Settings saved
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5" />
+              Telegram Alerts
+            </CardTitle>
+            <CardDescription>
+              Configure a Telegram bot to receive alerts per node. You can set thresholds (CPU, RAM, disk) and enable offline notifications from each node's detail page.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-md border bg-muted/40 p-4 text-sm space-y-2">
+              <p className="font-medium">How to get your Bot Token and Chat ID:</p>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <li>
+                  Open Telegram and start a chat with{" "}
+                  <span className="font-mono text-foreground">@BotFather</span>.
+                </li>
+                <li>Send <span className="font-mono">/newbot</span> and follow the instructions to get your <b>Bot Token</b>.</li>
+                <li>
+                  Start a chat with your new bot (or add it to a group), then open{" "}
+                  <span className="font-mono">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> to retrieve your <b>Chat ID</b>.
+                </li>
+              </ol>
+              <a
+                href="https://core.telegram.org/bots/tutorial"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline text-xs"
+              >
+                Telegram Bot docs <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Once you have your token and chat ID, go to a <b>node's detail page</b> and open the <b>Alerts</b> section to configure per-node thresholds.
+            </p>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
@@ -111,116 +225,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Update Settings</CardTitle>
-            <CardDescription>Configure how often data is refreshed</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="interval">Update Interval</Label>
-              <Select defaultValue="10">
-                <SelectTrigger id="interval">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 seconds</SelectItem>
-                  <SelectItem value="10">10 seconds</SelectItem>
-                  <SelectItem value="30">30 seconds</SelectItem>
-                  <SelectItem value="60">1 minute</SelectItem>
-                  <SelectItem value="300">5 minutes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Telegram Alerts
-            </CardTitle>
-            <CardDescription>
-              Configure a Telegram bot to receive alerts per node. You can set thresholds (CPU, RAM, disk) and enable offline notifications from each node's detail page.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-md border bg-muted/40 p-4 text-sm space-y-2">
-              <p className="font-medium">How to get your Bot Token and Chat ID:</p>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>
-                  Open Telegram and start a chat with{" "}
-                  <span className="font-mono text-foreground">@BotFather</span>.
-                </li>
-                <li>Send <span className="font-mono">/newbot</span> and follow the instructions to get your <b>Bot Token</b>.</li>
-                <li>
-                  Start a chat with your new bot (or add it to a group), then open{" "}
-                  <span className="font-mono">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> to retrieve your <b>Chat ID</b>.
-                </li>
-              </ol>
-              <a
-                href="https://core.telegram.org/bots/tutorial"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline text-xs"
-              >
-                Telegram Bot docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Once you have your token and chat ID, go to a <b>node's detail page</b> and open the <b>Alerts</b> section to configure per-node thresholds.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Node Status Report
-            </CardTitle>
-            <CardDescription>
-              Collect current node metrics and queue a status report email via Redis. Reports are sent automatically on a schedule; use the button below to trigger a test.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {reportStatus === "success" && reportResult && (
-              <div className="flex items-start gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
-                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
-                  <p className="font-medium">Report queued successfully</p>
-                  <p className="text-xs text-green-700 dark:text-green-400">
-                    Nodes: {reportResult.nodes_total ?? "—"} total · {reportResult.nodes_active ?? "—"} active · {reportResult.nodes_alerts ?? "—"} alerts
-                  </p>
-                </div>
-              </div>
-            )}
-            {reportStatus === "error" && (
-              <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>Failed to queue report. Check API connectivity and Redis.</span>
-              </div>
-            )}
-            <Button
-              onClick={triggerNodeStatusReport}
-              disabled={reportStatus === "loading"}
-              variant="outline"
-            >
-              {reportStatus === "loading" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Collecting metrics…
-                </>
-              ) : (
-                <>
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Test Report
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
 
         <div className="flex justify-end gap-3">
           <Button variant="outline">Reset to Defaults</Button>

@@ -15,7 +15,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Monitor your self-hosted infrastructure</p>
+            <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
           </div>
         </div>
         <div className="flex items-center justify-center py-12">
@@ -34,7 +34,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Monitor your self-hosted infrastructure</p>
+            <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
           </div>
         </div>
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/10 dark:text-red-400">
@@ -49,7 +49,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Monitor your self-hosted infrastructure</p>
+          <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
         </div>
         <div className="flex items-center gap-3">
           {selectedProject && (
