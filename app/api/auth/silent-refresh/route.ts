@@ -20,6 +20,9 @@ import {
  * redirects go to https://yourdomain.com instead of http://0.0.0.0:3000.
  */
 function publicOrigin(req: Request): string {
+  // APP_URL is the authoritative source — prevents Host Header Injection.
+  // Only fall back to forwarded headers in dev (when APP_URL is not set).
+  if (process.env.APP_URL) return process.env.APP_URL
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0].trim()
     ?? new URL(req.url).protocol.replace(":", "")
   const host = req.headers.get("x-forwarded-host")
@@ -28,12 +31,24 @@ function publicOrigin(req: Request): string {
   return `${proto}://${host}`
 }
 
+/**
+ * Validates that a redirect destination is a safe relative path.
+ * Rejects absolute URLs (https://evil.com) and protocol-relative URLs (//evil.com)
+ * to prevent open redirect attacks.
+ */
+function safeDestination(raw: string | null): string {
+  if (!raw) return "/"
+  // Must start with / but NOT // (protocol-relative) or contain a scheme (absolute URL)
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/"
+  // Block auth loops
+  if (raw.startsWith("/api/auth")) return "/"
+  return raw
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const next = searchParams.get("next") ?? "/";
 
-  // Sanidad: evitar bucles si next apunta a esta ruta
-  const destination = next.startsWith("/api/auth") ? "/" : next;
+  const destination = safeDestination(searchParams.get("next"));
 
   const origin = publicOrigin(req);
   const refreshToken = await getRefreshTokenFromCookie();

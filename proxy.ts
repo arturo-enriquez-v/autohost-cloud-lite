@@ -11,6 +11,9 @@ import type { NextRequest } from "next/server"
  * http://0.0.0.0:3000/ instead of https://yourdomain.com/.
  */
 function publicOrigin(req: NextRequest): string {
+  // APP_URL is the authoritative source — prevents Host Header Injection.
+  // Only fall back to forwarded headers in dev (when APP_URL is not set).
+  if (process.env.APP_URL) return process.env.APP_URL
   const proto = req.headers.get("x-forwarded-proto")?.split(",")[0].trim()
     ?? req.nextUrl.protocol.replace(":", "")
   const host = req.headers.get("x-forwarded-host")
