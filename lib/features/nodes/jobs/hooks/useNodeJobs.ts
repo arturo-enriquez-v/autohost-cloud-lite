@@ -10,6 +10,8 @@ export function useNodeJobs(nodeId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchJobs = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const data = await JobService.getJobsByNode(nodeId);
       setJobs(data);

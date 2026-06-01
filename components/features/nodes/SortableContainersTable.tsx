@@ -124,7 +124,12 @@ function SortableRow({ ctr, actionState, onLog, onStart, onStop, onRestart }: So
       </TableCell>
       <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
       <TableCell>
-        <ContainerStateBadge state={ctr.state} />
+        <div className="flex flex-col gap-0.5">
+          <ContainerStateBadge state={ctr.state} />
+          {ctr.status && (
+            <span className="text-[10px] text-muted-foreground/60 font-mono">{ctr.status}</span>
+          )}
+        </div>
       </TableCell>
       <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
         {ctr.cpu ?? "—"}
