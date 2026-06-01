@@ -54,7 +54,9 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   const serviceInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  const { containers } = useContainersLive(nodeId);
+  // Only connect when the dialog is actually open — the component stays mounted
+  // even when closed, so we pass "" to prevent a redundant SSE stream.
+  const { containers } = useContainersLive(open ? nodeId : "");
 
   // Close dropdown on outside click
   useEffect(() => {
