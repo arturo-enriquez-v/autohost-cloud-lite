@@ -219,7 +219,7 @@ export default function ReportsPage() {
   const isLoading = reportLoading || projectsLoading || nodesLoading
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
+    <div className="space-y-6 pb-12">
       {/* Page Header */}
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b pb-5">
         <div>
