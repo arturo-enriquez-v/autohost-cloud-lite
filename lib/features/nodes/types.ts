@@ -175,6 +175,7 @@ export interface NodeCommand {
 export interface NodeAlertConfig {
   id?: string;
   nodeId: string;
+  telegramBotId?: string | null;
   telegramBotToken: string;
   telegramChatId: string;
   cpuThreshold: number | null;
@@ -188,6 +189,7 @@ export interface NodeAlertConfig {
 export interface NodeAlertConfigBackendResponse {
   id?: string;
   node_id: string;
+  telegram_bot_id?: string | null;
   telegram_bot_token: string;
   telegram_chat_id: string;
   cpu_threshold: number | null;
