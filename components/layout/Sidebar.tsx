@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Calendar,
   Settings,
+  Mail,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -38,6 +39,7 @@ const menuItems = [
   { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
   { id: "marketplace", label: "Marketplace", icon: Store, path: "/marketplace" },
   { id: "alerts", label: "Alerts", icon: AlertTriangle, path: "/alerts" },
+  { id: "reports", label: "Reports", icon: Mail, path: "/reports" },
   { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
 ]
