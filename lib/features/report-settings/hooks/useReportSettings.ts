@@ -5,10 +5,11 @@ import { useState, useEffect, useCallback } from "react"
 export interface ReportSettings {
   enabled: boolean
   hour_utc: number
+  excluded_node_ids: string[]
 }
 
 export function useReportSettings() {
-  const [settings, setSettings] = useState<ReportSettings>({ enabled: false, hour_utc: 8 })
+  const [settings, setSettings] = useState<ReportSettings>({ enabled: false, hour_utc: 8, excluded_node_ids: [] })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

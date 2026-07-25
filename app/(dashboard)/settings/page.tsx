@@ -62,13 +62,20 @@ export default function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              Email Reports
-            </CardTitle>
-            <CardDescription>
-              Receive a daily node status report by email with metrics, alerts and uptime summary.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Email Reports
+                </CardTitle>
+                <CardDescription>
+                  Receive a daily node status report by email with metrics, alerts and uptime summary.
+                </CardDescription>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => window.location.href = "/reports"}>
+                Configure & Groups <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-5">
             {reportError && (
@@ -125,13 +132,6 @@ export default function SettingsPage() {
                 All times are in UTC. Your local time may differ.
               </p>
             </div>
-
-            {saved && (
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <CheckCircle className="h-4 w-4" />
-                Settings saved
-              </div>
-            )}
           </CardContent>
         </Card>
 
