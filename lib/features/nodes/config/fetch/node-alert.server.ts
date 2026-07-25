@@ -21,6 +21,7 @@ export async function upsertNodeAlertConfigBackend(
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        telegram_bot_id: data.telegramBotId,
         telegram_bot_token: data.telegramBotToken,
         telegram_chat_id: data.telegramChatId,
         cpu_threshold: data.cpuThreshold,
@@ -37,6 +38,7 @@ export function mapNodeAlertFromBackend(r: NodeAlertConfigBackendResponse): Node
   return {
     id: r.id,
     nodeId: r.node_id,
+    telegramBotId: r.telegram_bot_id ?? null,
     telegramBotToken: r.telegram_bot_token ?? "",
     telegramChatId: r.telegram_chat_id ?? "",
     cpuThreshold: r.cpu_threshold ?? null,

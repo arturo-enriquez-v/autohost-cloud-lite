@@ -82,5 +82,12 @@ export const API_ENDPOINTS = {
     TRIGGER_NODE_STATUS: "/v1/reports/node-status/trigger",
     SETTINGS: "/v1/reports/settings",
   },
+  TELEGRAM_BOTS: {
+    LIST: "/v1/telegram-bots",
+    CREATE: "/v1/telegram-bots",
+    UPDATE: (id: string) => `/v1/telegram-bots/${id}`,
+    DELETE: (id: string) => `/v1/telegram-bots/${id}`,
+    TEST: "/v1/telegram-bots/test",
+  },
 } as const;
 

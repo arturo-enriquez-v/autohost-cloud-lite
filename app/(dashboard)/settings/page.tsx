@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Copy, Check, Send, ExternalLink, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
 import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
 import { useReportSettings } from "@/lib/features/report-settings/hooks/useReportSettings"
+import { TelegramBotsCard } from "@/components/features/settings/TelegramBotsCard"
 
 const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -134,44 +135,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Send className="h-5 w-5" />
-              Telegram Alerts
-            </CardTitle>
-            <CardDescription>
-              Configure a Telegram bot to receive alerts per node. You can set thresholds (CPU, RAM, disk) and enable offline notifications from each node's detail page.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-md border bg-muted/40 p-4 text-sm space-y-2">
-              <p className="font-medium">How to get your Bot Token and Chat ID:</p>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                <li>
-                  Open Telegram and start a chat with{" "}
-                  <span className="font-mono text-foreground">@BotFather</span>.
-                </li>
-                <li>Send <span className="font-mono">/newbot</span> and follow the instructions to get your <b>Bot Token</b>.</li>
-                <li>
-                  Start a chat with your new bot (or add it to a group), then open{" "}
-                  <span className="font-mono">https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</span> to retrieve your <b>Chat ID</b>.
-                </li>
-              </ol>
-              <a
-                href="https://core.telegram.org/bots/tutorial"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline text-xs"
-              >
-                Telegram Bot docs <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Once you have your token and chat ID, go to a <b>node's detail page</b> and open the <b>Alerts</b> section to configure per-node thresholds.
-            </p>
-          </CardContent>
-        </Card>
+        <TelegramBotsCard />
         <Card>
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
