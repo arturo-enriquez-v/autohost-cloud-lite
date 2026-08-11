@@ -32,6 +32,8 @@ export function mapMonitorFromBackend(r: ServiceMonitorBackendResponse): Service
     lastCheckedAt: r.last_checked_at ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    autoHealConfig: r.auto_heal_config,
+    autoHealState: r.auto_heal_state,
   };
 }
 
@@ -123,5 +125,7 @@ function toBackendPayload(p: UpsertServiceMonitorPayload) {
     failure_threshold: p.failureThreshold,
     notify_telegram: p.notifyTelegram,
     enabled: p.enabled,
+    auto_heal_config: p.autoHealConfig,
+    auto_heal_state: p.autoHealState,
   };
 }

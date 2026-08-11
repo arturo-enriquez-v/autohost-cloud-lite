@@ -237,6 +237,9 @@ export type MonitorStatus = "healthy" | "degraded" | "down" | "unknown";
 export type HealthEventStatus = "up" | "down";
 export type UptimeBucket = "up" | "down" | "no_data";
 
+export type { AutoHealConfig, ServiceStatus, ServiceHealthState } from "./monitoring/auto-heal";
+import type { AutoHealConfig, ServiceHealthState } from "./monitoring/auto-heal";
+
 export interface ServiceMonitorBackendResponse {
   id: string;
   node_id: string;
@@ -256,6 +259,8 @@ export interface ServiceMonitorBackendResponse {
   last_checked_at: string | null;
   created_at: string;
   updated_at: string;
+  auto_heal_config?: AutoHealConfig;
+  auto_heal_state?: ServiceHealthState;
 }
 
 export interface ServiceHealthEventBackendResponse {
@@ -293,6 +298,8 @@ export interface ServiceMonitor {
   lastCheckedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  autoHealConfig?: AutoHealConfig;
+  autoHealState?: ServiceHealthState;
 }
 
 export interface ServiceHealthEvent {
