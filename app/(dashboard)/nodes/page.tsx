@@ -91,7 +91,16 @@ export default function NodesPage() {
                     className="font-mono text-sm cursor-pointer"
                     onClick={() => router.push(`/node/${node.id}`)}
                   >
-                    {node.ipLocal || "N/A"}
+                    <div className="flex flex-col gap-0.5">
+                      {node.ipLocal && <span className="text-xs">{node.ipLocal}</span>}
+                      {node.ipVpn && (
+                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
+                          {node.ipVpn}
+                        </span>
+                      )}
+                      {!node.ipLocal && !node.ipVpn && <span className="text-muted-foreground">N/A</span>}
+                    </div>
                   </TableCell>
                   <TableCell
                     className="cursor-pointer"

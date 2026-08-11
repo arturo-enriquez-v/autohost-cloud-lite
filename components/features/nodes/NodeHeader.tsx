@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Wifi, WifiOff, Server, Network, Activity, Settings, ScrollText } from "lucide-react"
+import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
@@ -56,9 +56,15 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
             {nodeId}
           </span>
           {!isLoading && node?.ipLocal && (
-            <span className="text-xs text-muted-foreground font-mono flex items-center gap-1">
+            <span className="text-xs text-muted-foreground font-mono flex items-center gap-1" title="IP Local / Pública">
               <Network className="h-3 w-3" />
               {node.ipLocal}
+            </span>
+          )}
+          {!isLoading && node?.ipVpn && (
+            <span className="text-xs font-mono flex items-center gap-1 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20" title="IP Privada VPN (Headscale)">
+              <Shield className="h-3 w-3" />
+              {node.ipVpn}
             </span>
           )}
           {!isLoading && node?.os && (

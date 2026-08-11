@@ -18,6 +18,7 @@ export interface Node {
     disk: number;
     containers: Container[];
     ipLocal?: string;
+    ipVpn?: string;
     os?: string;
     arch?: string;
     versionAgent?: string;

@@ -16,6 +16,7 @@ import {
   Plus,
   Layers,
   Loader2,
+  FileText,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -39,6 +40,7 @@ const menuItems = [
   { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
   { id: "marketplace", label: "Marketplace", icon: Store, path: "/marketplace" },
   { id: "alerts", label: "Alerts", icon: AlertTriangle, path: "/alerts" },
+  { id: "external-logs", label: "External Logs", icon: FileText, path: "/logs" },
   { id: "reports", label: "Reports", icon: Mail, path: "/reports" },
   { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
@@ -88,15 +90,15 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           className={cn(
             "text-[11px] font-semibold uppercase tracking-wider transition-colors",
             pathname?.startsWith("/projects")
-              ? "text-sidebar-foreground"
-              : "text-sidebar-foreground/50 hover:text-sidebar-foreground"
+              ? "text-[#70AEFF]"
+              : "text-sidebar-foreground/50 hover:text-[#70AEFF]"
           )}
         >
           Projects
         </button>
         <button
           onClick={() => setProjectsOpen((o) => !o)}
-          className="rounded p-0.5 text-sidebar-foreground/40 hover:text-sidebar-foreground transition-colors"
+          className="rounded p-0.5 text-sidebar-foreground/40 hover:text-[#70AEFF] hover:bg-[#70AEFF]/15 transition-colors"
         >
           <ChevronDown
             className={cn("h-3.5 w-3.5 transition-transform duration-200", projectsOpen && "rotate-180")}
@@ -111,8 +113,8 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
             className={cn(
               "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               !selectedProject
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+                : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
             )}
           >
             <Layers className="h-4 w-4 shrink-0 opacity-70" />
@@ -126,8 +128,8 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 selectedProject?.id === p.id
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+                  : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
               )}
             >
               <FolderKanban className="h-4 w-4 shrink-0 opacity-70" />
@@ -137,7 +139,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
 
           <button
             onClick={() => { setNameInput(""); setFormError(null); setCreateOpen(true) }}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF] transition-colors"
           >
             <Plus className="h-4 w-4 shrink-0" />
             <span>New Project</span>
@@ -154,8 +156,8 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
       className={cn(
         "flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
         pathname?.startsWith("/projects")
-          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-          : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          ? "bg-[#70AEFF]/20 text-[#70AEFF]"
+          : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
       )}
     >
       <FolderKanban className="h-5 w-5" />
@@ -176,8 +178,8 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
               "flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               collapsed ? "justify-center gap-0" : "gap-3",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+                : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]",
             )}
           >
             <Icon className="h-5 w-5 shrink-0" />
@@ -191,19 +193,20 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const renderContent = (collapsed: boolean) => (
     <>
       {/* Brand header */}
-      <div
+      <a
+        href="https://cloud.autohst.dev/"
         className={cn(
-          "flex items-center border-b border-border px-3 py-3 shrink-0",
+          "flex items-center border-b border-border px-3 py-3 shrink-0 hover:opacity-85 transition-opacity cursor-pointer group",
           collapsed ? "justify-center" : "gap-2.5"
         )}
       >
-        <AutohostLogo className="h-8 w-8 shrink-0" />
+        <AutohostLogo className="h-8 w-8 shrink-0 transition-transform group-hover:scale-105" />
         {!collapsed && (
-          <span className="text-sm font-bold tracking-wide text-sidebar-foreground">
+          <span className="text-sm font-bold tracking-wide text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">
             AutoHost
           </span>
         )}
-      </div>
+      </a>
       <nav className="flex-1 overflow-y-auto p-3">
         {collapsed ? (
           <div className="space-y-1">
@@ -237,7 +240,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
             onClick={onToggle}
             title={isCollapsed ? "Expand" : "Collapse"}
             className={cn(
-              "flex w-full items-center rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors",
+              "flex w-full items-center rounded-lg px-3 py-2 text-sm text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF] transition-colors",
               isCollapsed ? "justify-center" : "gap-3",
             )}
           >
@@ -261,10 +264,13 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
         )}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
-          <span className="text-sm font-semibold text-sidebar-foreground">Menu</span>
+          <a href="https://cloud.autohst.dev/" className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer group">
+            <AutohostLogo className="h-6 w-6 shrink-0 transition-transform group-hover:scale-105" />
+            <span className="text-sm font-semibold text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">AutoHost</span>
+          </a>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className="rounded-md p-1 text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
           >
             <X className="h-5 w-5" />
           </button>

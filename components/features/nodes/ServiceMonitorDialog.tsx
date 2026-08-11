@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CheckType, ServiceMonitor, UpsertServiceMonitorPayload } from "@/lib/types";
+import type { CheckType, ServiceMonitor, UpsertServiceMonitorPayload, AutoHealConfig } from "@/lib/types";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
+import { ShieldCheck, RefreshCw, Layers, ChevronDown, ChevronUp, Shield, Wrench } from "lucide-react";
 
 interface Props {
   nodeId: string;
@@ -29,6 +30,23 @@ interface Props {
   onClose: () => void;
   onSave: (payload: UpsertServiceMonitorPayload) => Promise<void>;
 }
+
+const DEFAULT_AUTO_HEAL: AutoHealConfig = {
+  enabled: false,
+  consecutive_failures_threshold: 3,
+  grace_period_seconds: 30,
+  restart: {
+    enabled: true,
+    max_attempts: 3,
+    window_seconds: 900,
+  },
+  recreate: {
+    enabled: false,
+    compose_file_path: "",
+    service_name: "",
+    max_attempts: 1,
+  },
+};
 
 const DEFAULT_FORM: UpsertServiceMonitorPayload = {
   nodeId: "",
@@ -42,20 +60,20 @@ const DEFAULT_FORM: UpsertServiceMonitorPayload = {
   failureThreshold: 3,
   notifyTelegram: false,
   enabled: true,
+  autoHealConfig: DEFAULT_AUTO_HEAL,
 };
 
 export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }: Props) {
   const [form, setForm] = useState<UpsertServiceMonitorPayload>({ ...DEFAULT_FORM, nodeId });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAutoHealSection, setShowAutoHealSection] = useState(false);
 
   // Autocomplete state
   const [showSuggestions, setShowSuggestions] = useState(false);
   const serviceInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Only connect when the dialog is actually open — the component stays mounted
-  // even when closed, so we pass "" to prevent a redundant SSE stream.
   const { containers } = useContainersLive(open ? nodeId : "");
 
   // Close dropdown on outside click
@@ -75,6 +93,13 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   // Populate form when editing an existing monitor.
   useEffect(() => {
     if (monitor) {
+      const autoHeal: AutoHealConfig = monitor.autoHealConfig ?? {
+        ...DEFAULT_AUTO_HEAL,
+        recreate: {
+          ...DEFAULT_AUTO_HEAL.recreate,
+          service_name: monitor.serviceName,
+        },
+      };
       setForm({
         nodeId,
         serviceName: monitor.serviceName,
@@ -87,9 +112,12 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
         failureThreshold: monitor.failureThreshold,
         notifyTelegram: monitor.notifyTelegram,
         enabled: monitor.enabled,
+        autoHealConfig: autoHeal,
       });
+      if (autoHeal.enabled) setShowAutoHealSection(true);
     } else {
       setForm({ ...DEFAULT_FORM, nodeId });
+      setShowAutoHealSection(false);
     }
     setError(null);
   }, [monitor, open, nodeId]);
@@ -98,6 +126,13 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
     key: K,
     value: UpsertServiceMonitorPayload[K]
   ) => setForm((f) => ({ ...f, [key]: value }));
+
+  const setAutoHeal = (updater: (prev: AutoHealConfig) => AutoHealConfig) => {
+    setForm((f) => ({
+      ...f,
+      autoHealConfig: updater(f.autoHealConfig || DEFAULT_AUTO_HEAL),
+    }));
+  };
 
   const handleSubmit = async () => {
     setError(null);
@@ -116,11 +151,13 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
     }
   };
 
+  const autoHeal = form.autoHealConfig || DEFAULT_AUTO_HEAL;
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{monitor ? "Edit Monitor" : "Add Health Check"}</DialogTitle>
+          <DialogTitle>{monitor ? "Edit Monitor & Auto-Healing" : "Add Health Check & Auto-Healing"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
@@ -135,8 +172,15 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                 autoComplete="off"
                 value={form.serviceName}
                 onChange={(e) => {
-                  set("serviceName", e.target.value);
+                  const val = e.target.value;
+                  set("serviceName", val);
                   setShowSuggestions(true);
+                  if (!autoHeal.recreate.service_name) {
+                    setAutoHeal((ah) => ({
+                      ...ah,
+                      recreate: { ...ah.recreate, service_name: val },
+                    }));
+                  }
                 }}
                 onFocus={() => setShowSuggestions(true)}
               />
@@ -157,8 +201,12 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                         type="button"
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
                         onMouseDown={(e) => {
-                          e.preventDefault(); // prevent input blur before click
+                          e.preventDefault();
                           set("serviceName", c.name);
+                          setAutoHeal((ah) => ({
+                            ...ah,
+                            recreate: { ...ah.recreate, service_name: c.name },
+                          }));
                           setShowSuggestions(false);
                         }}
                       >
@@ -275,12 +323,198 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             </div>
           </div>
 
+          {/* AUTO-HEALING SECTION */}
+          <div className="border rounded-xl p-3.5 space-y-3 bg-secondary/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#70AEFF]" />
+                <span className="font-semibold text-sm text-foreground">Auto-Recuperación (Self-Healing)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={autoHeal.enabled}
+                  onCheckedChange={(v) => {
+                    setAutoHeal((ah) => ({ ...ah, enabled: v }));
+                    if (v) setShowAutoHealSection(true);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAutoHealSection((prev) => !prev)}
+                  className="text-xs text-muted-foreground hover:text-foreground p-1"
+                >
+                  {showAutoHealSection ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {showAutoHealSection && (
+              <div className="space-y-4 pt-2 border-t border-border">
+                {/* General Thresholds */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Fallos consec. antes de actuar</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={20}
+                      value={autoHeal.consecutive_failures_threshold}
+                      onChange={(e) =>
+                        setAutoHeal((ah) => ({
+                          ...ah,
+                          consecutive_failures_threshold: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Periodo de Gracia (segundos)</Label>
+                    <Input
+                      type="number"
+                      min={5}
+                      max={600}
+                      value={autoHeal.grace_period_seconds}
+                      onChange={(e) =>
+                        setAutoHeal((ah) => ({
+                          ...ah,
+                          grace_period_seconds: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* Strategy 1: Container Restart */}
+                <div className="p-3 bg-background/60 rounded-lg border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <RefreshCw className="h-3.5 w-3.5 text-[#70AEFF]" />
+                      Estrategia 1: Reiniciar Contenedor (`docker restart`)
+                    </span>
+                    <Switch
+                      checked={autoHeal.restart.enabled}
+                      onCheckedChange={(v) =>
+                        setAutoHeal((ah) => ({
+                          ...ah,
+                          restart: { ...ah.restart, enabled: v },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {autoHeal.restart.enabled && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Max Intentos</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={autoHeal.restart.max_attempts}
+                          onChange={(e) =>
+                            setAutoHeal((ah) => ({
+                              ...ah,
+                              restart: { ...ah.restart, max_attempts: Number(e.target.value) },
+                            }))
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Ventana de Tiempo (seg)</Label>
+                        <Input
+                          type="number"
+                          min={60}
+                          max={86400}
+                          value={autoHeal.restart.window_seconds}
+                          onChange={(e) =>
+                            setAutoHeal((ah) => ({
+                              ...ah,
+                              restart: { ...ah.restart, window_seconds: Number(e.target.value) },
+                            }))
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Strategy 2: Docker Compose Recreate */}
+                <div className="p-3 bg-background/60 rounded-lg border space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Wrench className="h-3.5 w-3.5 text-[#70AEFF]" />
+                      Estrategia 2: Recreación Compose (`docker compose up`)
+                    </span>
+                    <Switch
+                      checked={autoHeal.recreate.enabled}
+                      onCheckedChange={(v) =>
+                        setAutoHeal((ah) => ({
+                          ...ah,
+                          recreate: { ...ah.recreate, enabled: v },
+                        }))
+                      }
+                    />
+                  </div>
+
+                  {autoHeal.recreate.enabled && (
+                    <div className="space-y-2 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] text-muted-foreground">Ruta a docker-compose.yml</Label>
+                        <Input
+                          placeholder="/opt/apps/mi-app/docker-compose.yml"
+                          value={autoHeal.recreate.compose_file_path}
+                          onChange={(e) =>
+                            setAutoHeal((ah) => ({
+                              ...ah,
+                              recreate: { ...ah.recreate, compose_file_path: e.target.value },
+                            }))
+                          }
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">Nombre de Servicio YAML</Label>
+                          <Input
+                            placeholder="e.g. web"
+                            value={autoHeal.recreate.service_name}
+                            onChange={(e) =>
+                              setAutoHeal((ah) => ({
+                                ...ah,
+                                recreate: { ...ah.recreate, service_name: e.target.value },
+                              }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">Max Intentos por Incidente</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={5}
+                            value={autoHeal.recreate.max_attempts}
+                            onChange={(e) =>
+                              setAutoHeal((ah) => ({
+                                ...ah,
+                                recreate: { ...ah.recreate, max_attempts: Number(e.target.value) },
+                              }))
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Notify Telegram */}
           <div className="flex items-center justify-between rounded-md border px-3 py-2">
             <div>
               <p className="text-sm font-medium">Telegram alert</p>
               <p className="text-xs text-muted-foreground">
-                Send a message when the service goes down
+                Send a message when the service goes down or enters critical state
               </p>
             </div>
             <Switch

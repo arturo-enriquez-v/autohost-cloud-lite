@@ -10,4 +10,7 @@ export type {
   ServiceHealthEvent,
   UptimePoint,
   UpsertServiceMonitorPayload,
+  AutoHealConfig,
+  ServiceStatus,
+  ServiceHealthState,
 } from "@/lib/features/nodes/types";
