@@ -18,6 +18,7 @@ export interface Node {
   disk: number;
   containers: Container[];
   ipLocal?: string;
+  ipVpn?: string;
   os?: string;
   arch?: string;
   versionAgent?: string;
@@ -31,6 +32,7 @@ export interface NodeBackendResponse {
   ID: string;
   Hostname: string;
   IPLocal: string;
+  IPVPN?: string;
   OS: string;
   Arch: string;
   VersionAgent: string;
@@ -58,6 +60,7 @@ export interface NodeWithMetricsBackendResponse {
   id: string;
   hostname: string;
   ip_local: string;
+  ip_vpn?: string;
   os: string;
   arch: string;
   version_agent: string;

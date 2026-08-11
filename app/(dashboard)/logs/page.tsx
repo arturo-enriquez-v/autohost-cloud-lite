@@ -286,7 +286,7 @@ export default function ExternalLogsPage() {
   const activeTokenSample = tokens.find((t) => !t.revoked_at)
   const sampleTokenStr = rawTokenCreated || (activeTokenSample ? `${activeTokenSample.token_prefix}secret` : "ahl_sec_YOUR_SECRET_TOKEN")
 
-  const curlSnippet = `curl -X POST http://localhost:8090/v1/external-logs/ingest \\
+  const curlSnippet = `curl -X POST https://api.autohst.dev/v1/external-logs/ingest \\
   -H "Authorization: Bearer ${sampleTokenStr}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -301,7 +301,7 @@ export default function ExternalLogsPage() {
     }
   }'`
 
-  const jsSnippet = `await fetch("http://localhost:8090/v1/external-logs/ingest", {
+  const jsSnippet = `await fetch("https://api.autohst.dev/v1/external-logs/ingest", {
   method: "POST",
   headers: {
     "Authorization": "Bearer ${sampleTokenStr}",
@@ -318,7 +318,7 @@ export default function ExternalLogsPage() {
 
   const pythonSnippet = `import requests
 
-url = "http://localhost:8090/v1/external-logs/ingest"
+url = "https://api.autohst.dev/v1/external-logs/ingest"
 headers = {
     "Authorization": "Bearer ${sampleTokenStr}",
     "Content-Type": "application/json"
@@ -719,7 +719,7 @@ print(response.json())`
                 How to Send External Logs
               </CardTitle>
               <CardDescription>
-                Send structured JSON payloads to <code className="text-[#70AEFF] font-mono">POST /v1/external-logs/ingest</code> using your API token.
+                Send structured JSON payloads to <code className="text-[#70AEFF] font-mono">POST https://api.autohst.dev/v1/external-logs/ingest</code> using your API token.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

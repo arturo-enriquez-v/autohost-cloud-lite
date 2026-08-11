@@ -11,6 +11,7 @@ import { Copy, Check, Send, ExternalLink, Mail, CheckCircle, AlertCircle, Loader
 import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
 import { useReportSettings } from "@/lib/features/report-settings/hooks/useReportSettings"
 import { TelegramBotsCard } from "@/components/features/settings/TelegramBotsCard"
+import { HeadscaleCard } from "@/components/features/settings/HeadscaleCard"
 
 const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -135,6 +136,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        <HeadscaleCard />
         <TelegramBotsCard />
         <Card>
           <CardHeader>
