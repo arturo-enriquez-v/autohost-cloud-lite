@@ -274,6 +274,33 @@ export interface NodeNetworkPort {
   bind_addr: string;
 }
 
+export interface VPNPeer {
+  ip: string;
+  hostname: string;
+  online: boolean;
+  latency_ms: number;
+  relay?: string;
+}
+
+export interface ActiveConnection {
+  local_ip: string;
+  local_port: number;
+  remote_ip: string;
+  remote_port: number;
+  protocol: string;
+  state: string;
+}
+
+export interface HTTPRequestLog {
+  timestamp: string;
+  client_ip: string;
+  method: string;
+  path: string;
+  status_code: number;
+  duration_ms: number;
+  user_agent?: string;
+}
+
 export interface NodeNetworkInterface {
   interface: string;
   rx_bytes: number;
@@ -294,8 +321,12 @@ export interface NodeNetworkStats {
   tx_dropped: number;
   rx_errors: number;
   tx_errors: number;
+  rps?: number;
   interfaces: NodeNetworkInterface[];
   ports: NodeNetworkPort[];
+  peers?: VPNPeer[];
+  connections?: ActiveConnection[];
+  requests?: HTTPRequestLog[];
 }
 
 export async function fetchNodeNetworkStats(nodeId: string): Promise<NodeNetworkStats | null> {

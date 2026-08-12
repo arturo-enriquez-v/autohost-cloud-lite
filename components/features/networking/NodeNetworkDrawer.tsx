@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  X, Globe, Lock, Cpu, MemoryStick, ArrowDownToLine, ArrowUpFromLine,
-  AlertTriangle, Box, Network, Loader2,
+  X, Globe, Lock, Cpu, ArrowDownToLine, ArrowUpFromLine,
+  AlertTriangle, Box, Network, Loader2, Terminal, Plug, Activity,
 } from "lucide-react";
 import type { Node, DockerContainer } from "@/lib/features/nodes/types";
 import type { NodeNetworkStats } from "@/lib/features/nodes/api";
@@ -14,7 +14,7 @@ interface NodeNetworkDrawerProps {
   onClose: () => void;
 }
 
-type DrawerTab = "ports" | "containers" | "health";
+type DrawerTab = "ports" | "containers" | "requests" | "connections" | "health";
 
 function formatBytes(b: number): string {
   if (!b) return "0 B";
@@ -103,17 +103,17 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
   const otherPorts = ports.filter((p) => !isPublicBind(p.bind_addr) && !isMeshBind(p.bind_addr) && !isLocalBind(p.bind_addr));
 
   const totalDrops = (stats?.rx_dropped ?? 0) + (stats?.tx_dropped ?? 0);
-  const totalErrors = (stats?.rx_errors ?? 0) + (stats?.tx_errors ?? 0);
   const dropRate = stats && (stats.rx_bytes + stats.tx_bytes) > 0
     ? ((totalDrops / Math.max(1, (stats.rx_bytes + stats.tx_bytes) / 1500)) * 100).toFixed(2)
     : "0.00";
 
   const tabStyle = (active: boolean) => ({
-    fontSize: 11, fontWeight: 600, padding: "5px 12px", borderRadius: 8, cursor: "pointer",
+    fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 8, cursor: "pointer",
     backgroundColor: active ? "rgba(112,174,255,0.15)" : "transparent",
     color: active ? "#70AEFF" : "rgba(148,163,184,0.7)",
     border: active ? "1px solid rgba(112,174,255,0.2)" : "1px solid transparent",
     transition: "all 0.15s",
+    display: "flex", alignItems: "center", gap: 4,
   });
 
   return (
@@ -129,7 +129,7 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
       <div
         className="fixed right-0 top-0 bottom-0 z-30 flex flex-col"
         style={{
-          width: 380,
+          width: 420,
           background: "linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0.96) 100%)",
           backdropFilter: "blur(16px)",
           borderLeft: "1px solid rgba(255,255,255,0.07)",
@@ -182,15 +182,21 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1.5 mt-3">
+          <div className="flex gap-1 mt-3 overflow-x-auto pb-1">
             <button style={tabStyle(tab === "ports")} onClick={() => setTab("ports")}>
-              Ports
+              <Network size={11} /> Ports
+            </button>
+            <button style={tabStyle(tab === "requests")} onClick={() => setTab("requests")}>
+              <Terminal size={11} /> Requests
+            </button>
+            <button style={tabStyle(tab === "connections")} onClick={() => setTab("connections")}>
+              <Plug size={11} /> Active Sockets
             </button>
             <button style={tabStyle(tab === "containers")} onClick={() => setTab("containers")}>
-              Containers
+              <Box size={11} /> Containers
             </button>
             <button style={tabStyle(tab === "health")} onClick={() => setTab("health")}>
-              Network Health
+              <Activity size={11} /> Health
             </button>
           </div>
         </div>
@@ -307,6 +313,99 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
                 </div>
               )}
 
+              {/* ── HTTP Requests Tab ────────────────────────── */}
+              {tab === "requests" && (
+                <div>
+                  {(!stats?.requests || stats.requests.length === 0) ? (
+                    <div className="text-center py-8" style={{ color: "rgba(148,163,184,0.5)", fontSize: 12 }}>
+                      <Terminal size={28} style={{ margin: "0 auto 8px", opacity: 0.3 }} />
+                      No HTTP request logs recorded yet.<br />
+                      <span style={{ fontSize: 10 }}>Logs stream automatically when apps receive web traffic.</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pb-1">
+                        <span>Recent HTTP Traffic ({stats.requests.length})</span>
+                        {stats.rps !== undefined && (
+                          <span className="font-semibold text-[#70AEFF]">{stats.rps.toFixed(1)} req/s</span>
+                        )}
+                      </div>
+                      <div className="space-y-1.5 font-mono text-xs max-h-[500px] overflow-y-auto pr-1">
+                        {stats.requests.map((r, i) => {
+                          const is2xx = r.status_code >= 200 && r.status_code < 300;
+                          const is4xx = r.status_code >= 400 && r.status_code < 500;
+                          const is5xx = r.status_code >= 500;
+                          const statusBg = is2xx ? "rgba(34,197,94,0.12)" : is4xx ? "rgba(245,158,11,0.12)" : is5xx ? "rgba(239,68,68,0.12)" : "rgba(148,163,184,0.12)";
+                          const statusColor = is2xx ? "#4ade80" : is4xx ? "#fbbf24" : is5xx ? "#f87171" : "#94a3b8";
+
+                          return (
+                            <div
+                              key={i}
+                              className="p-2.5 rounded-lg border border-white/5 bg-slate-900/60 flex flex-col gap-1"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                                    style={{ backgroundColor: statusBg, color: statusColor }}
+                                  >
+                                    {r.status_code}
+                                  </span>
+                                  <span className="font-bold text-slate-200">{r.method}</span>
+                                  <span className="text-slate-300 truncate max-w-[180px]">{r.path}</span>
+                                </div>
+                                <span className="text-[10px] text-slate-400">{r.timestamp}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5 border-t border-white/5">
+                                <span>Client: <strong className="text-slate-300">{r.client_ip}</strong></span>
+                                {r.duration_ms > 0 && (
+                                  <span>{r.duration_ms.toFixed(1)} ms</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Active Connections Tab ──────────────────── */}
+              {tab === "connections" && (
+                <div>
+                  {(!stats?.connections || stats.connections.length === 0) ? (
+                    <div className="text-center py-8" style={{ color: "rgba(148,163,184,0.5)", fontSize: 12 }}>
+                      <Plug size={28} style={{ margin: "0 auto 8px", opacity: 0.3 }} />
+                      No active remote TCP connections.<br />
+                      <span style={{ fontSize: 10 }}>Shows active sockets established to server ports.</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-slate-300 px-1 pb-1">
+                        Established Sockets ({stats.connections.length})
+                      </div>
+                      <div className="space-y-1.5 font-mono text-xs">
+                        {stats.connections.map((c, i) => (
+                          <div
+                            key={i}
+                            className="p-2.5 rounded-lg border border-white/5 bg-slate-900/60 flex items-center justify-between"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-slate-200 font-semibold">{c.remote_ip}:{c.remote_port}</span>
+                              <span className="text-[10px] text-slate-400">→ Local Port :{c.local_port} ({c.protocol})</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-green-500/10 text-green-400 border border-green-500/20">
+                              ESTABLISHED
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* ── Network Health Tab ──────────────────────── */}
               {tab === "health" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -318,9 +417,16 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
                     </div>
                   ) : (
                     <>
-                      {/* Traffic */}
+                      {/* Traffic & RPS */}
                       <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(148,163,184,0.7)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.07em" }}>Traffic</div>
+                        <div className="flex items-center justify-between mb-3">
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(148,163,184,0.7)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Traffic & Throughput</span>
+                          {stats.rps !== undefined && (
+                            <span className="text-[11px] font-bold text-[#70AEFF] bg-[#70AEFF]/10 px-2 py-0.5 rounded-full border border-[#70AEFF]/20">
+                              {stats.rps.toFixed(1)} req/s
+                            </span>
+                          )}
+                        </div>
                         <div style={{ display: "flex", gap: 12 }}>
                           <div style={{ flex: 1, textAlign: "center" }}>
                             <ArrowDownToLine size={16} color="#38bdf8" style={{ margin: "0 auto 4px" }} />

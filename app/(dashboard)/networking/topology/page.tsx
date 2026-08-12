@@ -53,10 +53,11 @@ function circleLayout(count: number, index: number): { x: number; y: number } {
 function buildAllEdges(
   serverNodes: Node[],
   publicNodeIds: Set<string>,
+  networkStatsByNode: Record<string, { ports: PortEntry[]; rxDropped: number; txDropped: number; peers: import("@/lib/features/nodes/api").VPNPeer[] }>,
 ): Edge[] {
   const edges: Edge[] = [];
 
-  // Inbound: Public Internet → nodes with public ports or known IP
+  // Inbound: Public Internet → nodes with public ports
   for (const n of serverNodes) {
     if (publicNodeIds.has(n.id)) {
       edges.push({
@@ -75,21 +76,47 @@ function buildAllEdges(
     }
   }
 
-  // Mesh: full-mesh between all server nodes
+  // Mesh: check real active VPN peers reported by agents
   for (let i = 0; i < serverNodes.length; i++) {
     for (let j = i + 1; j < serverNodes.length; j++) {
       const a = serverNodes[i];
       const b = serverNodes[j];
-      const aOnline = (a.data as unknown as ServerNodeData).status === "online";
-      const bOnline = (b.data as unknown as ServerNodeData).status === "online";
-      edges.push({
-        id: `mesh-${a.id}-${b.id}`,
-        source: a.id,
-        target: b.id,
-        type: "networkEdge",
-        animated: aOnline && bOnline,
-        data: { edgeType: "mesh", sourceOnline: aOnline, targetOnline: bOnline },
-      });
+      const aData = a.data as unknown as ServerNodeData;
+      const bData = b.data as unknown as ServerNodeData;
+
+      const aIpVpn = aData.ipVpn?.trim();
+      const bIpVpn = bData.ipVpn?.trim();
+
+      const aStats = networkStatsByNode[a.id];
+      const bStats = networkStatsByNode[b.id];
+
+      // Check if A sees B as a peer, or B sees A as a peer
+      const aPeerB = aStats?.peers?.find((p) => p.ip === bIpVpn || p.hostname === bData.hostname);
+      const bPeerA = bStats?.peers?.find((p) => p.ip === aIpVpn || p.hostname === aData.hostname);
+
+      const realPeerFound = Boolean(aPeerB || bPeerA);
+      const bothHaveIp = Boolean(aIpVpn && bIpVpn);
+
+      // Connect if real peer found OR (as fallback) both have valid mesh IP
+      if (realPeerFound || bothHaveIp) {
+        const peerObj = aPeerB || bPeerA;
+        const tunnelOnline = peerObj ? peerObj.online : (aData.status === "online" && bData.status === "online");
+        const latencyLabel = peerObj?.latency_ms ? `${peerObj.latency_ms.toFixed(0)}ms` : peerObj?.relay ? peerObj.relay : "Mesh";
+
+        edges.push({
+          id: `mesh-${a.id}-${b.id}`,
+          source: a.id,
+          target: b.id,
+          type: "networkEdge",
+          animated: tunnelOnline,
+          data: {
+            edgeType: "mesh",
+            label: latencyLabel,
+            sourceOnline: tunnelOnline,
+            targetOnline: tunnelOnline,
+          },
+        });
+      }
     }
   }
 
@@ -102,9 +129,9 @@ export default function TopologyPage() {
   const { selectedProject } = useProjectContext();
   const [selectedNode, setSelectedNode] = useState<AutohostNode | null>(null);
 
-  // Network stats map: nodeId → ports/drops
+  // Network stats map: nodeId → ports, drops, peers
   const [networkStatsByNode, setNetworkStatsByNode] = useState<
-    Record<string, { ports: PortEntry[]; rxDropped: number; txDropped: number }>
+    Record<string, { ports: PortEntry[]; rxDropped: number; txDropped: number; peers: import("@/lib/features/nodes/api").VPNPeer[] }>
   >({});
 
   // Filter by project
@@ -113,11 +140,11 @@ export default function TopologyPage() {
     return allNodes.filter((n) => n.projectId === selectedProject.id);
   }, [allNodes, selectedProject]);
 
-  // Fetch network stats for all visible nodes (once, on mount / project change)
+  // Fetch network stats for all visible nodes
   useEffect(() => {
     if (visibleNodes.length === 0) return;
     const abort = new AbortController();
-    const map: Record<string, { ports: PortEntry[]; rxDropped: number; txDropped: number }> = {};
+    const map: Record<string, { ports: PortEntry[]; rxDropped: number; txDropped: number; peers: import("@/lib/features/nodes/api").VPNPeer[] }> = {};
 
     Promise.all(
       visibleNodes.map(async (n) => {
@@ -132,6 +159,7 @@ export default function TopologyPage() {
               })),
               rxDropped: s.rx_dropped ?? 0,
               txDropped: s.tx_dropped ?? 0,
+              peers: s.peers ?? [],
             };
           }
         } catch {/* silent */}
@@ -206,8 +234,8 @@ export default function TopologyPage() {
   );
 
   const allFlowEdges = useMemo(
-    () => buildAllEdges(serverFlowNodes, publicNodeIds),
-    [serverFlowNodes, publicNodeIds]
+    () => buildAllEdges(serverFlowNodes, publicNodeIds, networkStatsByNode),
+    [serverFlowNodes, publicNodeIds, networkStatsByNode]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(allFlowNodes);
