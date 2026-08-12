@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
-
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8080";
+import { backendFetch } from "@/lib/api";
 
 // GET /api/nodes/[id]/network-stats → GET /v1/node-network/{id}
 export async function GET(
@@ -15,10 +14,7 @@ export async function GET(
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/v1/node-network/${nodeId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      cache: "no-store",
-    });
+    const res = await backendFetch(`/v1/node-network/${nodeId}`, { method: "GET" }, accessToken);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
