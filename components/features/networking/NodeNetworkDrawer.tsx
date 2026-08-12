@@ -5,9 +5,9 @@ import {
   X, Globe, Lock, Cpu, MemoryStick, ArrowDownToLine, ArrowUpFromLine,
   AlertTriangle, Box, Network, Loader2,
 } from "lucide-react";
-import type { Node } from "@/lib/features/nodes/types";
+import type { Node, DockerContainer } from "@/lib/features/nodes/types";
 import type { NodeNetworkStats } from "@/lib/features/nodes/api";
-import { fetchNodeNetworkStats } from "@/lib/features/nodes/api";
+import { fetchNodeNetworkStats, fetchContainers } from "@/lib/features/nodes/api";
 
 interface NodeNetworkDrawerProps {
   node: Node | null;
@@ -72,16 +72,26 @@ function PortRow({ port, proto, bind, service }: { port: number; proto: string; 
 export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
   const [tab, setTab] = useState<DrawerTab>("ports");
   const [stats, setStats] = useState<NodeNetworkStats | null>(null);
+  const [containers, setContainers] = useState<DockerContainer[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingContainers, setLoadingContainers] = useState(false);
 
   useEffect(() => {
     if (!node) return;
     setStats(null);
+    setContainers([]);
     setLoading(true);
+    setLoadingContainers(true);
+
     fetchNodeNetworkStats(node.id)
       .then(setStats)
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
+
+    fetchContainers(node.id)
+      .then((res) => setContainers(res ?? []))
+      .catch(() => setContainers([]))
+      .finally(() => setLoadingContainers(false));
   }, [node?.id]);
 
   if (!node) return null;
@@ -250,17 +260,20 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
               {/* ── Containers Tab ──────────────────────────── */}
               {tab === "containers" && (
                 <div>
-                  {(!node.containers || node.containers.length === 0) ? (
+                  {loadingContainers ? (
+                    <div className="flex justify-center pt-8">
+                      <Loader2 size={20} className="animate-spin text-[#70AEFF]" />
+                    </div>
+                  ) : containers.length === 0 ? (
                     <div className="text-center py-8" style={{ color: "rgba(148,163,184,0.5)", fontSize: 12 }}>
                       <Box size={28} style={{ margin: "0 auto 8px", opacity: 0.3 }} />
-                      No container data.<br />
-                      <span style={{ fontSize: 10 }}>Open the Containers view on the node to stream data.</span>
+                      No containers running.
                     </div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {node.containers.map((c, i) => (
+                      {containers.map((c) => (
                         <div
-                          key={i}
+                          key={c.id || c.name}
                           style={{
                             background: "rgba(255,255,255,0.03)",
                             border: "1px solid rgba(255,255,255,0.06)",
@@ -268,19 +281,25 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
                             padding: "10px 12px",
                           }}
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-1">
                             <span style={{ fontSize: 12, fontWeight: 600, color: "#e2e8f0" }}>{c.name}</span>
                             <span
                               style={{
                                 fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 8,
-                                backgroundColor: c.status === "running" ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
-                                color: c.status === "running" ? "#4ade80" : "#f87171",
-                                border: `1px solid ${c.status === "running" ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
+                                backgroundColor: (c.state === "running" || c.status?.includes("Up")) ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
+                                color: (c.state === "running" || c.status?.includes("Up")) ? "#4ade80" : "#f87171",
+                                border: `1px solid ${(c.state === "running" || c.status?.includes("Up")) ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}`,
                               }}
                             >
-                              {c.status}
+                              {c.state || c.status}
                             </span>
                           </div>
+                          {(c.cpu || c.mem) && (
+                            <div className="flex items-center gap-3 mt-1.5" style={{ fontSize: 10, color: "rgba(148,163,184,0.7)" }}>
+                              {c.cpu && <span>CPU: <strong style={{ color: "#e2e8f0" }}>{c.cpu}</strong></span>}
+                              {c.mem && <span>RAM: <strong style={{ color: "#e2e8f0" }}>{c.mem}</strong></span>}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

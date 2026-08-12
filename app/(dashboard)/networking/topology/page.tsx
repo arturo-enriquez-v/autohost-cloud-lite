@@ -210,8 +210,14 @@ export default function TopologyPage() {
     [serverFlowNodes, publicNodeIds]
   );
 
-  const [nodes, , onNodesChange] = useNodesState(allFlowNodes);
+  const [nodes, setNodes, onNodesChange] = useNodesState(allFlowNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(allFlowEdges);
+
+  // Sync ReactFlow nodes and edges whenever project selection or allNodes changes
+  useEffect(() => {
+    setNodes(allFlowNodes);
+    setEdges(allFlowEdges);
+  }, [allFlowNodes, allFlowEdges, setNodes, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
