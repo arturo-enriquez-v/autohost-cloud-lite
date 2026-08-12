@@ -190,39 +190,22 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
     </>
   )
 
-  const renderContent = (collapsed: boolean) => (
-    <>
-      {/* Brand header */}
-      <a
-        href="https://cloud.autohst.dev/"
-        className={cn(
-          "flex items-center border-b border-border px-3 py-3 shrink-0 hover:opacity-85 transition-opacity cursor-pointer group",
-          collapsed ? "justify-center" : "gap-2.5"
-        )}
-      >
-        <AutohostLogo className="h-8 w-8 shrink-0 transition-transform group-hover:scale-105" />
-        {!collapsed && (
-          <span className="text-sm font-bold tracking-wide text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">
-            AutoHost
-          </span>
-        )}
-      </a>
-      <nav className="flex-1 overflow-y-auto p-3">
-        {collapsed ? (
-          <div className="space-y-1">
-            {renderProjectsCollapsed()}
-            <div className="my-2 border-t border-border" />
-            {renderNavItems(true)}
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {renderProjectsSection()}
-            <div className="my-2 border-t border-border" />
-            {renderNavItems(false)}
-          </div>
-        )}
-      </nav>
-    </>
+  const renderNav = (collapsed: boolean) => (
+    <nav className="flex-1 overflow-y-auto p-3">
+      {collapsed ? (
+        <div className="space-y-1">
+          {renderProjectsCollapsed()}
+          <div className="my-2 border-t border-border" />
+          {renderNavItems(true)}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {renderProjectsSection()}
+          <div className="my-2 border-t border-border" />
+          {renderNavItems(false)}
+        </div>
+      )}
+    </nav>
   )
 
   return (
@@ -234,7 +217,21 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           isCollapsed ? "w-16" : "w-64",
         )}
       >
-        {renderContent(isCollapsed)}
+        <a
+          href="https://cloud.autohst.dev/"
+          className={cn(
+            "flex items-center border-b border-border px-3 py-3 shrink-0 hover:opacity-85 transition-opacity cursor-pointer group",
+            isCollapsed ? "justify-center" : "gap-2.5"
+          )}
+        >
+          <AutohostLogo className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105" />
+          {!isCollapsed && (
+            <span className="text-sm font-bold tracking-wide text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">
+              AutoHost
+            </span>
+          )}
+        </a>
+        {renderNav(isCollapsed)}
         <div className="border-t border-border p-3">
           <button
             onClick={onToggle}
@@ -263,19 +260,21 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           isMobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-4">
-          <a href="https://cloud.autohst.dev/" className="flex items-center gap-2 hover:opacity-85 transition-opacity cursor-pointer group">
-            <AutohostLogo className="h-6 w-6 shrink-0 transition-transform group-hover:scale-105" />
-            <span className="text-sm font-semibold text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">AutoHost</span>
+        <div className="flex items-center justify-between border-b border-border px-3 py-3 shrink-0">
+          <a href="https://cloud.autohst.dev/" className="flex items-center gap-2.5 hover:opacity-85 transition-opacity cursor-pointer group">
+            <AutohostLogo className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105" />
+            <span className="text-sm font-bold tracking-wide text-sidebar-foreground group-hover:text-[#70AEFF] transition-colors">
+              AutoHost
+            </span>
           </a>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
+            className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF] transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        {renderContent(false)}
+        {renderNav(false)}
       </aside>
 
       {/* Create project dialog */}
