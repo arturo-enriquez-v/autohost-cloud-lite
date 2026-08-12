@@ -108,12 +108,13 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
     : "0.00";
 
   const tabStyle = (active: boolean) => ({
-    fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 8, cursor: "pointer",
+    fontSize: 11, fontWeight: 600, padding: "5px 8px", borderRadius: 8, cursor: "pointer",
     backgroundColor: active ? "rgba(112,174,255,0.15)" : "transparent",
     color: active ? "#70AEFF" : "rgba(148,163,184,0.7)",
     border: active ? "1px solid rgba(112,174,255,0.2)" : "1px solid transparent",
     transition: "all 0.15s",
     display: "flex", alignItems: "center", gap: 4,
+    whiteSpace: "nowrap" as const,
   });
 
   return (
@@ -129,7 +130,7 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
       <div
         className="fixed right-0 top-0 bottom-0 z-30 flex flex-col"
         style={{
-          width: 420,
+          width: 480,
           background: "linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0.96) 100%)",
           backdropFilter: "blur(16px)",
           borderLeft: "1px solid rgba(255,255,255,0.07)",
@@ -182,7 +183,7 @@ export function NodeNetworkDrawer({ node, onClose }: NodeNetworkDrawerProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 mt-3 overflow-x-auto pb-1">
+          <div className="flex gap-1 mt-3 overflow-x-auto pb-1 [scrollbar-width:none]">
             <button style={tabStyle(tab === "ports")} onClick={() => setTab("ports")}>
               <Network size={11} /> Ports
             </button>
