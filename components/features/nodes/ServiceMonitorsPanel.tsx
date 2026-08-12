@@ -208,10 +208,10 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Activity className="h-4 w-4" />
+      <Card className="overflow-hidden">
+        <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Activity className="h-4 w-4 shrink-0" />
             Monitoring &amp; Health
           </CardTitle>
           <Button size="sm" variant="outline" onClick={openCreate}>
@@ -219,7 +219,7 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
             Add
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : monitors.length === 0 ? (

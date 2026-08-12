@@ -25,10 +25,10 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
   } = useContainersLive(nodeId)
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
+    <Card className="overflow-hidden">
+      <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Box className="h-5 w-5 shrink-0" />
             Containers
             {containers.length > 0 && (
@@ -48,7 +48,7 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
               )}
             </Badge>
           </CardTitle>
-          <CardDescription className="mt-1">
+          <CardDescription className="mt-1 text-xs sm:text-sm">
             {connected
               ? "Real-time · updates via gRPC"
               : streamError ?? "Connecting…"}
@@ -66,7 +66,7 @@ export function ContainersPanel({ nodeId }: ContainersPanelProps) {
         </Button>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         {dockerUnavailable ? (
           <div className="space-y-4 py-2">
             <div className="flex items-start gap-3 rounded-lg border border-warning/40 bg-warning/5 p-4">

@@ -10,7 +10,7 @@ export function AutohostLogo({ className }: AutohostLogoProps) {
       viewBox="0 0 858 629"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("shrink-0", className)}
+      className={cn("shrink-0 aspect-[858/629]", className)}
       aria-label="AutoHost logo"
     >
       <path fillRule="evenodd" clipRule="evenodd" d="M251.764 48.5H294.014C296.913 48.5 299.264 46.1495 299.264 43.25C299.264 40.3505 301.614 38 304.514 38H551.014C553.913 38 556.264 40.3505 556.264 43.25C556.264 46.1495 558.614 48.5 561.514 48.5H605.264C605.264 21.9903 583.773 0.5 557.264 0.5H299.764C273.254 0.5 251.764 21.9903 251.764 48.5Z" fill="url(#g0)" stroke="#70AEFF"/>

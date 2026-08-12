@@ -26,9 +26,9 @@ export function LiveMetricsBar({ nodeId }: LiveMetricsBarProps) {
   const { metric: live, connected: liveConnected } = useNodeMetricsLive(nodeId)
 
   return (
-    <Card>
-      <CardContent className="py-4">
-        <div className="flex items-center gap-3 flex-wrap">
+    <Card className="overflow-hidden">
+      <CardContent className="p-3.5 sm:p-4">
+        <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-xs sm:text-sm">
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
             <Radio className={`h-3.5 w-3.5 ${liveConnected ? "text-green-400 animate-pulse" : "text-muted-foreground"}`} />
             {liveConnected ? "Live" : "Connecting…"}
@@ -36,27 +36,27 @@ export function LiveMetricsBar({ nodeId }: LiveMetricsBarProps) {
 
           {live ? (
             <>
-              <div className="h-4 w-px bg-border" />
-              <span className="flex items-center gap-1.5 text-sm">
-                <Cpu className="h-3.5 w-3.5 text-blue-400" />
+              <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
+              <span className="flex items-center gap-1.5">
+                <Cpu className="h-3.5 w-3.5 text-blue-400 shrink-0" />
                 <span className="font-medium">{live.cpu_usage_percent.toFixed(1)}%</span>
                 <span className="text-xs text-muted-foreground">CPU</span>
               </span>
-              <div className="h-4 w-px bg-border" />
-              <span className="flex items-center gap-1.5 text-sm">
-                <MemoryStick className="h-3.5 w-3.5 text-green-400" />
+              <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
+              <span className="flex items-center gap-1.5">
+                <MemoryStick className="h-3.5 w-3.5 text-green-400 shrink-0" />
                 <span className="font-medium">{live.ram_usage_percent.toFixed(1)}%</span>
                 <span className="text-xs text-muted-foreground">of {fmtBytes(live.ram_total_bytes)} RAM</span>
               </span>
-              <div className="h-4 w-px bg-border" />
-              <span className="flex items-center gap-1.5 text-sm">
-                <HardDrive className="h-3.5 w-3.5 text-orange-400" />
+              <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
+              <span className="flex items-center gap-1.5">
+                <HardDrive className="h-3.5 w-3.5 text-orange-400 shrink-0" />
                 <span className="font-medium">{live.disk_usage_percent.toFixed(1)}%</span>
                 <span className="text-xs text-muted-foreground">of {fmtBytes(live.disk_total_bytes)} disk</span>
               </span>
-              <div className="h-4 w-px bg-border" />
-              <span className="flex items-center gap-1.5 text-sm">
-                <Activity className="h-3.5 w-3.5 text-purple-400" />
+              <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
+              <span className="flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-purple-400 shrink-0" />
                 <span className="font-medium">{fmtUptime(live.uptime_seconds)}</span>
                 <span className="text-xs text-muted-foreground">uptime</span>
               </span>

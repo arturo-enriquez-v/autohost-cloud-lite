@@ -221,19 +221,19 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between border-b pb-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-5">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Mail className="h-6 w-6 text-primary shrink-0" />
             Reportes por Correo
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Recibe reportes matutinos automatizados de tu infraestructura organizados por grupos de VPSs.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <Button variant="outline" size="sm" onClick={openCreateGroupModal}>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+          <Button variant="outline" size="sm" onClick={openCreateGroupModal} className="flex-1 sm:flex-initial">
             <Plus className="mr-1.5 h-4 w-4" />
             Nuevo Grupo
           </Button>
@@ -241,7 +241,7 @@ export default function ReportsPage() {
             size="sm"
             onClick={handleTriggerReport}
             disabled={isTriggering || !settings.enabled}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-initial"
           >
             {isTriggering ? (
               <>
@@ -284,22 +284,22 @@ export default function ReportsPage() {
 
       <div className="grid gap-8">
         {/* Card 1: Configuration */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Mail className="h-5 w-5 text-muted-foreground" />
+        <Card className="border-border shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
               Configuración del Reporte Matutino
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Ajusta la frecuencia y hora de envío del reporte diario a tu correo electrónico registrado.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 pt-0">
-            <div className="grid gap-6 md:grid-cols-2 items-start pt-2 border-t">
+          <CardContent className="p-4 sm:p-6 space-y-6 pt-0 sm:pt-0">
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 items-start pt-2 border-t">
               {/* Enable Switch */}
-              <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border">
-                <div className="space-y-0.5 pr-4">
-                  <Label htmlFor="report-toggle-page" className="text-sm font-semibold text-foreground cursor-pointer">
+              <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-muted/30 border gap-3 min-w-0">
+                <div className="space-y-0.5 min-w-0 flex-1">
+                  <Label htmlFor="report-toggle-page" className="text-xs sm:text-sm font-semibold text-foreground cursor-pointer block truncate">
                     Habilitar reporte diario
                   </Label>
                   <p className="text-xs text-muted-foreground">
@@ -307,20 +307,21 @@ export default function ReportsPage() {
                   </p>
                 </div>
                 {reportLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
                 ) : (
                   <Switch
                     id="report-toggle-page"
                     checked={settings.enabled}
                     onCheckedChange={handleToggleEnable}
                     disabled={reportSaving}
+                    className="shrink-0"
                   />
                 )}
               </div>
 
               {/* UTC Delivery Time Selector */}
-              <div className={`space-y-2 p-4 rounded-xl bg-muted/30 border transition-opacity ${settings.enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
-                <Label htmlFor="report-hour-page" className="text-sm font-semibold text-foreground">
+              <div className={`space-y-2 p-3 sm:p-4 rounded-xl bg-muted/30 border transition-opacity min-w-0 ${settings.enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
+                <Label htmlFor="report-hour-page" className="text-xs sm:text-sm font-semibold text-foreground">
                   Hora de entrega (UTC)
                 </Label>
                 <Select
@@ -348,26 +349,26 @@ export default function ReportsPage() {
         </Card>
 
         {/* Card 2: Group & VPS Selection Management */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="border-border shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                  <FolderKanban className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                  <FolderKanban className="h-5 w-5 text-muted-foreground shrink-0" />
                   Grupos & Selección de VPSs para el Reporte
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs sm:text-sm">
                   Organiza tus VPSs en grupos (proyectos) y selecciona individualmente cuales enviar en el correo diario.
                 </CardDescription>
               </div>
-              <Button size="sm" variant="outline" onClick={openCreateGroupModal} className="shrink-0">
+              <Button size="sm" variant="outline" onClick={openCreateGroupModal} className="shrink-0 self-start sm:self-auto">
                 <Plus className="mr-1.5 h-4 w-4" />
                 Crear Grupo
               </Button>
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-6 pt-0">
+          <CardContent className="p-4 sm:p-6 space-y-6 pt-0 sm:pt-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -470,18 +471,18 @@ export default function ReportsPage() {
         </Card>
 
         {/* Card 3: Live Preview of Grouped Email Report */}
-        <Card className="border-border shadow-sm">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
+        <Card className="border-border shadow-sm overflow-hidden">
+          <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary shrink-0" />
               Vista Previa del Reporte Matutino (Seccionado por Grupos)
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Así es como se genera y envía la estructura del correo diario a tu casilla.
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
-            <div className="rounded-xl border bg-card p-6 space-y-6 font-mono text-sm shadow-inner">
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="rounded-xl border bg-card p-3.5 sm:p-6 space-y-6 font-mono text-sm shadow-inner max-w-full overflow-hidden">
               {/* Resumen de la Mañana */}
               <div className="space-y-2 border-b pb-4">
                 <div className="flex items-center gap-2 text-base font-bold text-foreground font-sans">
@@ -620,12 +621,12 @@ function NodeReportRow({
   const hostname = node.hostname || node.name || "node"
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 min-w-0">
+      <div className="flex items-center gap-3 min-w-0">
         <Server className="h-5 w-5 text-muted-foreground shrink-0" />
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-foreground">{hostname}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-sm text-foreground truncate">{hostname}</span>
             <Badge
               variant="outline"
               className={`text-[10px] px-1.5 py-0 ${
@@ -639,17 +640,17 @@ function NodeReportRow({
               {hasAlerts ? "⚠️ Alerta" : isOnline ? "✅ Normal" : "Offline"}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground truncate">
             IP: {node.ipLocal || "—"} | RAM: {node.ram?.toFixed(1) ?? "0"}% | CPU: {node.cpu?.toFixed(1) ?? "0"}%
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-4 self-end sm:self-center">
+      <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-border/40">
         {/* Project Selector */}
-        <div className="w-40">
+        <div className="flex-1 sm:flex-initial sm:w-40 min-w-0">
           <Select value={node.projectId || "unassigned"} onValueChange={onGroupChange}>
-            <SelectTrigger className="h-8 text-xs bg-background">
+            <SelectTrigger className="h-8 text-xs bg-background w-full">
               <SelectValue placeholder="Seleccionar grupo" />
             </SelectTrigger>
             <SelectContent>
@@ -664,7 +665,7 @@ function NodeReportRow({
         </div>
 
         {/* Included Toggle */}
-        <div className="flex items-center gap-2 border-l pl-3">
+        <div className="flex items-center gap-2 border-l pl-3 shrink-0">
           <Switch
             id={`inc-${node.id}`}
             checked={isIncluded}

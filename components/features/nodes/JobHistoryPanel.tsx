@@ -58,12 +58,12 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
   const pagedJobs = jobs.slice((page - 1) * JOBS_PER_PAGE, page * JOBS_PER_PAGE)
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="overflow-hidden">
+      <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Job History</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Job History</CardTitle>
           {jobs.length > 0 && (
-            <CardDescription className="mt-1">
+            <CardDescription className="mt-1 text-xs sm:text-sm">
               {jobs.length} job{jobs.length !== 1 ? "s" : ""} total
             </CardDescription>
           )}
@@ -74,7 +74,7 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
         </Button>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -84,7 +84,7 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
         ) : jobs.length === 0 ? (
           <p className="text-muted-foreground text-sm py-4">No jobs executed yet.</p>
         ) : (
-          <>
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -103,9 +103,9 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
                       className="cursor-pointer"
                       onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
                     >
-                      <TableCell className="font-mono font-medium">{job.commandName}</TableCell>
+                      <TableCell className="font-mono font-medium text-xs sm:text-sm">{job.commandName}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{job.commandType}</Badge>
+                        <Badge variant="outline" className="text-xs">{job.commandType}</Badge>
                       </TableCell>
                       <TableCell>
                         <StatusBadge status={job.status} />
@@ -119,7 +119,7 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
                           : "—"}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className="text-xs">
                           {expandedJob === job.id ? "Hide" : "Show"}
                         </Button>
                       </TableCell>
@@ -132,13 +132,13 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
                             {job.output && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground mb-1">Output</p>
-                                <pre className="bg-background p-3 rounded-md text-sm overflow-x-auto whitespace-pre-wrap">{job.output}</pre>
+                                <pre className="bg-background p-3 rounded-md text-xs sm:text-sm overflow-x-auto whitespace-pre-wrap max-w-full">{job.output}</pre>
                               </div>
                             )}
                             {job.error && (
                               <div>
                                 <p className="text-xs font-medium text-destructive mb-1">Error</p>
-                                <pre className="bg-destructive/10 p-3 rounded-md text-sm text-destructive overflow-x-auto whitespace-pre-wrap">{job.error}</pre>
+                                <pre className="bg-destructive/10 p-3 rounded-md text-xs sm:text-sm text-destructive overflow-x-auto whitespace-pre-wrap max-w-full">{job.error}</pre>
                               </div>
                             )}
                             {!job.output && !job.error && (
@@ -182,7 +182,7 @@ export function JobHistoryPanel({ nodeId, refreshTrigger }: JobHistoryPanelProps
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </CardContent>
     </Card>

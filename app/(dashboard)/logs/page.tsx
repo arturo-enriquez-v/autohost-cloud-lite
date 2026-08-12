@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
 interface ExternalLog {
@@ -335,7 +336,7 @@ response = requests.post(url, json=payload, headers=headers)
 print(response.json())`
 
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
@@ -433,41 +434,39 @@ print(response.json())`
 
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Level Select */}
-                  <div className="flex items-center gap-1.5 bg-background/60 px-3 py-1.5 rounded-lg border border-border">
-                    <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">Level:</span>
-                    <select
-                      value={selectedLevel}
-                      onChange={(e) => setSelectedLevel(e.target.value)}
-                      className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
-                    >
-                      <option value="all">All Levels</option>
-                      <option value="info">Info</option>
-                      <option value="warning">Warning</option>
-                      <option value="error">Error</option>
-                      <option value="critical">Critical</option>
-                      <option value="debug">Debug</option>
-                    </select>
-                  </div>
+                  <Select value={selectedLevel} onValueChange={(val) => setSelectedLevel(val)}>
+                    <SelectTrigger className="h-9 text-xs bg-background/60 border-border">
+                      <Filter className="h-3.5 w-3.5 text-muted-foreground mr-1 shrink-0" />
+                      <span className="text-muted-foreground font-medium mr-1">Level:</span>
+                      <SelectValue placeholder="All Levels" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">All Levels</SelectItem>
+                      <SelectItem value="info" className="text-xs">Info</SelectItem>
+                      <SelectItem value="warning" className="text-xs">Warning</SelectItem>
+                      <SelectItem value="error" className="text-xs">Error</SelectItem>
+                      <SelectItem value="critical" className="text-xs">Critical</SelectItem>
+                      <SelectItem value="debug" className="text-xs">Debug</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                   {/* Node Select */}
-                  <div className="flex items-center gap-1.5 bg-background/60 px-3 py-1.5 rounded-lg border border-border">
-                    <Server className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground font-medium">Node:</span>
-                    <select
-                      value={selectedNode}
-                      onChange={(e) => setSelectedNode(e.target.value)}
-                      className="bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer max-w-[150px] truncate"
-                    >
-                      <option value="all">All Nodes</option>
-                      <option value="unlinked">Global / Unlinked</option>
+                  <Select value={selectedNode} onValueChange={(val) => setSelectedNode(val)}>
+                    <SelectTrigger className="h-9 text-xs bg-background/60 border-border min-w-[160px]">
+                      <Server className="h-3.5 w-3.5 text-muted-foreground mr-1 shrink-0" />
+                      <span className="text-muted-foreground font-medium mr-1">Node:</span>
+                      <SelectValue placeholder="All Nodes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-xs">All Nodes</SelectItem>
+                      <SelectItem value="unlinked" className="text-xs">Global / Unlinked</SelectItem>
                       {nodes.map((n) => (
-                        <option key={n.id} value={n.id}>
+                        <SelectItem key={n.id} value={n.id} className="text-xs">
                           {n.hostname}
-                        </option>
+                        </SelectItem>
                       ))}
-                    </select>
-                  </div>
+                    </SelectContent>
+                  </Select>
 
                   {totalLogs > 0 && (
                     <Button
@@ -819,18 +818,22 @@ print(response.json())`
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-foreground">Link to Specific Node (Optional)</label>
-                <select
-                  value={tokenNodeId}
-                  onChange={(e) => setTokenNodeId(e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                <Select
+                  value={tokenNodeId || "none"}
+                  onValueChange={(val) => setTokenNodeId(val === "none" ? "" : val)}
                 >
-                  <option value="">No Node (Global / Standalone)</option>
-                  {nodes.map((n) => (
-                    <option key={n.id} value={n.id}>
-                      {n.hostname} ({n.id.substring(0, 8)})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full bg-background">
+                    <SelectValue placeholder="No Node (Global / Standalone)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Node (Global / Standalone)</SelectItem>
+                    {nodes.map((n) => (
+                      <SelectItem key={n.id} value={n.id}>
+                        {n.hostname} ({n.id.substring(0, 8)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-[11px] text-muted-foreground">
                   If linked to a node, logs sent with this token will automatically inherit this node ID unless explicitly overridden.
                 </p>
