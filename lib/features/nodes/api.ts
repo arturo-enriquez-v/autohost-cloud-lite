@@ -274,6 +274,14 @@ export interface NodeNetworkPort {
   bind_addr: string;
 }
 
+export interface VPNPeer {
+  ip: string;
+  hostname: string;
+  online: boolean;
+  latency_ms: number;
+  relay?: string;
+}
+
 export interface NodeNetworkInterface {
   interface: string;
   rx_bytes: number;
@@ -296,6 +304,7 @@ export interface NodeNetworkStats {
   tx_errors: number;
   interfaces: NodeNetworkInterface[];
   ports: NodeNetworkPort[];
+  peers?: VPNPeer[];
 }
 
 export async function fetchNodeNetworkStats(nodeId: string): Promise<NodeNetworkStats | null> {
