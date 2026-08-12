@@ -13,3 +13,5 @@ export { CaddyStatusBanner } from "./CaddyStatusBanner"
 export { CaddyRoutesCard } from "./CaddyRoutesCard"
 export { LiveMetricsCard } from "./LiveMetricsCard"
 export { MetricChartsGrid } from "./MetricChartsGrid"
+export { ContainerMetricsDialog } from "./ContainerMetricsDialog"
+

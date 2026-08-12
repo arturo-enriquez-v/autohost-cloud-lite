@@ -98,6 +98,14 @@ export const METRIC_RANGE_CONFIG: Record<MetricRange, { days: number; bucket: st
   "30d": { days: 30, bucket: "day", label: "Last 30 days" },
 };
 
+export interface ContainerMetricHistoryPoint {
+  bucket: string;
+  cpu_usage_percent: number;
+  memory_usage_percent: number;
+  memory_usage_bytes: number;
+  state: string;
+}
+
 // ─── Jobs ─────────────────────────────────────────────────────────────────────
 
 export type JobStatus = "pending" | "running" | "completed" | "failed";

@@ -10,6 +10,7 @@ import type {
   JobStatus,
   NodeCommand,
   NodeMetricHistoryPoint,
+  ContainerMetricHistoryPoint,
   NodeAlertConfig,
   DockerContainer,
   MetricRange,
@@ -100,6 +101,22 @@ export async function fetchNodeMetricsHistory(
   );
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data: NodeMetricHistoryPoint[] = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function fetchContainerMetricsHistory(
+  nodeId: string,
+  containerNameOrId: string,
+  range: MetricRange
+): Promise<ContainerMetricHistoryPoint[]> {
+  const { days, bucket } = METRIC_RANGE_CONFIG[range];
+  const to = new Date().toISOString();
+  const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const res = await fetchWithAuth(
+    `/api/nodes/${nodeId}/containers/metrics?container_name=${encodeURIComponent(containerNameOrId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&bucket=${bucket}`
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data: ContainerMetricHistoryPoint[] = await res.json();
   return Array.isArray(data) ? data : [];
 }
 
@@ -248,3 +265,42 @@ export async function fetchUptimeHistory(nodeId: string, monitorId: string): Pro
   const data: UptimePoint[] = await res.json();
   return data ?? [];
 }
+
+// ── Network stats (topology map drawer) ──────────────────────────────────────
+
+export interface NodeNetworkPort {
+  port: number;
+  protocol: string;
+  bind_addr: string;
+}
+
+export interface NodeNetworkInterface {
+  interface: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_errors: number;
+  rx_dropped: number;
+  tx_bytes_out?: number;
+  tx_errors: number;
+  tx_dropped: number;
+}
+
+export interface NodeNetworkStats {
+  node_id: string;
+  collected_at?: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_dropped: number;
+  tx_dropped: number;
+  rx_errors: number;
+  tx_errors: number;
+  interfaces: NodeNetworkInterface[];
+  ports: NodeNetworkPort[];
+}
+
+export async function fetchNodeNetworkStats(nodeId: string): Promise<NodeNetworkStats | null> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/network-stats`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
