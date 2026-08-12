@@ -265,3 +265,42 @@ export async function fetchUptimeHistory(nodeId: string, monitorId: string): Pro
   const data: UptimePoint[] = await res.json();
   return data ?? [];
 }
+
+// ── Network stats (topology map drawer) ──────────────────────────────────────
+
+export interface NodeNetworkPort {
+  port: number;
+  protocol: string;
+  bind_addr: string;
+}
+
+export interface NodeNetworkInterface {
+  interface: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_errors: number;
+  rx_dropped: number;
+  tx_bytes_out?: number;
+  tx_errors: number;
+  tx_dropped: number;
+}
+
+export interface NodeNetworkStats {
+  node_id: string;
+  collected_at?: string;
+  rx_bytes: number;
+  tx_bytes: number;
+  rx_dropped: number;
+  tx_dropped: number;
+  rx_errors: number;
+  tx_errors: number;
+  interfaces: NodeNetworkInterface[];
+  ports: NodeNetworkPort[];
+}
+
+export async function fetchNodeNetworkStats(nodeId: string): Promise<NodeNetworkStats | null> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/network-stats`);
+  if (!res.ok) return null;
+  return res.json();
+}
+

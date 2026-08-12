@@ -17,6 +17,8 @@ import {
   Layers,
   Loader2,
   FileText,
+  Network,
+  Share2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -52,6 +54,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const { projects, createProject } = useProjects()
   const { selectedProject, setSelectedProject } = useProjectContext()
   const [projectsOpen, setProjectsOpen] = useState(true)
+  const [networkingOpen, setNetworkingOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [nameInput, setNameInput] = useState("")
   const [submitting, setSubmitting] = useState(false)
@@ -164,6 +167,60 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
     </button>
   )
 
+  const renderNetworkingSection = (collapsed: boolean) => {
+    if (collapsed) {
+      return (
+        <button
+          title="Topology"
+          onClick={() => navigate("/networking/topology")}
+          className={cn(
+            "flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            pathname?.startsWith("/networking")
+              ? "bg-[#70AEFF]/20 text-[#70AEFF]"
+              : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
+          )}
+        >
+          <Network className="h-5 w-5" />
+        </button>
+      )
+    }
+    return (
+      <div className="mb-1">
+        <button
+          onClick={() => setNetworkingOpen((o) => !o)}
+          className={cn(
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+            pathname?.startsWith("/networking")
+              ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+              : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
+          )}
+        >
+          <Network className="h-5 w-5 shrink-0" />
+          <span className="flex-1 text-left">Networking</span>
+          <ChevronDown
+            className={cn("h-3.5 w-3.5 transition-transform duration-200", networkingOpen && "rotate-180")}
+          />
+        </button>
+        {networkingOpen && (
+          <div className="mt-0.5 space-y-0.5 pl-4">
+            <button
+              onClick={() => navigate("/networking/topology")}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/networking/topology"
+                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+                  : "text-sidebar-foreground/80 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
+              )}
+            >
+              <Share2 className="h-4 w-4 shrink-0 opacity-70" />
+              <span>Topology</span>
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const renderNavItems = (collapsed: boolean) => (
     <>
       {menuItems.map((item) => {
@@ -197,12 +254,16 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           {renderProjectsCollapsed()}
           <div className="my-2 border-t border-border" />
           {renderNavItems(true)}
+          <div className="my-2 border-t border-border" />
+          {renderNetworkingSection(true)}
         </div>
       ) : (
         <div className="space-y-1">
           {renderProjectsSection()}
           <div className="my-2 border-t border-border" />
           {renderNavItems(false)}
+          <div className="my-2 border-t border-border" />
+          {renderNetworkingSection(false)}
         </div>
       )}
     </nav>
