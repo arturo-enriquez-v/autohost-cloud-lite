@@ -57,6 +57,24 @@ export async function getNodeMetricsHistoryBackend(
 }
 
 /**
+ * Obtiene el historial de métricas de un contenedor específico
+ */
+export async function getContainerMetricsHistoryBackend(
+  nodeId: string,
+  accessToken: string,
+  params: { container_name?: string; container_id?: string; from?: string; to?: string; bucket?: string } = {}
+) {
+  const query = new URLSearchParams();
+  if (params.container_name) query.set("container_name", params.container_name);
+  if (params.container_id) query.set("container_id", params.container_id);
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.bucket) query.set("bucket", params.bucket);
+  const qs = query.toString() ? `?${query.toString()}` : "";
+  return backendFetch(`/v1/node-containers/${nodeId}/metrics${qs}`, { method: "GET" }, accessToken);
+}
+
+/**
  * Mapea un nodo del backend al formato de la UI
  */
 export function mapNodeFromBackend(node: NodeBackendResponse) {

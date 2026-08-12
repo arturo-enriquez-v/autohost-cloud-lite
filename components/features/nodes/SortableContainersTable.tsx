@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useEffect, useRef, useState } from "react"
-import { GripVertical, Loader2, FileText, Play, Square, RotateCcw } from "lucide-react"
+import { GripVertical, Loader2, FileText, Play, Square, RotateCcw, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/table"
 import type { DockerContainer } from "@/lib/types"
 import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
+import { useRouter } from "next/navigation"
 
 // ── persist order per node in localStorage ───────────────────────────────────
 
@@ -89,12 +90,13 @@ interface SortableRowProps {
   ctr: DockerContainer
   actionState: { name: string; action: ContainerAction } | null
   onLog: () => void
+  onMetrics: () => void
   onStart: () => void
   onStop: () => void
   onRestart: () => void
 }
 
-function SortableRow({ ctr, actionState, onLog, onStart, onStop, onRestart }: SortableRowProps) {
+function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRestart }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: ctr.id })
 
@@ -146,6 +148,15 @@ function SortableRow({ ctr, actionState, onLog, onStart, onStop, onRestart }: So
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+            title="Metrics"
+            onClick={onMetrics}
+          >
+            <Activity className="h-4 w-4" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" title="Logs" onClick={onLog}>
             <FileText className="h-4 w-4" />
           </Button>
@@ -190,6 +201,7 @@ interface Props {
 }
 
 export function SortableContainersTable({ nodeId, containers, actionState, onLog, onAction }: Props) {
+  const router = useRouter()
   const [sorted, setSorted] = useState<DockerContainer[]>([])
   const initialised = useRef(false)
 
@@ -239,6 +251,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                   key={ctr.id}
                   ctr={ctr}
                   actionState={actionState}
+                  onMetrics={() => router.push(`/node/${nodeId}/containers/${encodeURIComponent(ctr.name)}`)}
                   onLog={() => onLog(ctr.name)}
                   onStart={() => onAction(ctr.name, "start")}
                   onStop={() => onAction(ctr.name, "stop")}
