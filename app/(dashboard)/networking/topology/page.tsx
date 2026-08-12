@@ -75,21 +75,30 @@ function buildAllEdges(
     }
   }
 
-  // Mesh: full-mesh between all server nodes
+  // Mesh: only connect nodes that are actually part of the private Mesh network (both have ipVpn)
   for (let i = 0; i < serverNodes.length; i++) {
     for (let j = i + 1; j < serverNodes.length; j++) {
       const a = serverNodes[i];
       const b = serverNodes[j];
-      const aOnline = (a.data as unknown as ServerNodeData).status === "online";
-      const bOnline = (b.data as unknown as ServerNodeData).status === "online";
-      edges.push({
-        id: `mesh-${a.id}-${b.id}`,
-        source: a.id,
-        target: b.id,
-        type: "networkEdge",
-        animated: aOnline && bOnline,
-        data: { edgeType: "mesh", sourceOnline: aOnline, targetOnline: bOnline },
-      });
+      const aData = a.data as unknown as ServerNodeData;
+      const bData = b.data as unknown as ServerNodeData;
+
+      // Both nodes must have a VPN Mesh IP to form a private mesh tunnel
+      const aHasMesh = Boolean(aData.ipVpn && aData.ipVpn.trim() !== "");
+      const bHasMesh = Boolean(bData.ipVpn && bData.ipVpn.trim() !== "");
+
+      if (aHasMesh && bHasMesh) {
+        const aOnline = aData.status === "online";
+        const bOnline = bData.status === "online";
+        edges.push({
+          id: `mesh-${a.id}-${b.id}`,
+          source: a.id,
+          target: b.id,
+          type: "networkEdge",
+          animated: aOnline && bOnline,
+          data: { edgeType: "mesh", sourceOnline: aOnline, targetOnline: bOnline },
+        });
+      }
     }
   }
 
