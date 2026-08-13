@@ -100,7 +100,9 @@ function buildAllEdges(
       // Connect if real peer found OR (as fallback) both have valid mesh IP
       if (realPeerFound || bothHaveIp) {
         const peerObj = aPeerB || bPeerA;
-        const tunnelOnline = peerObj ? peerObj.online : (aData.status === "online" && bData.status === "online");
+        const bothNodesOnline = aData.status === "online" && bData.status === "online";
+        const peerActive = peerObj ? (peerObj.online || peerObj.relay === "direct") : true;
+        const tunnelOnline = bothNodesOnline && peerActive;
         const latencyLabel = peerObj?.latency_ms ? `${peerObj.latency_ms.toFixed(0)}ms` : peerObj?.relay ? peerObj.relay : "Mesh";
 
         edges.push({
