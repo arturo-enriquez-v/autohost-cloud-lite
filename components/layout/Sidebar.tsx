@@ -19,6 +19,7 @@ import {
   FileText,
   Network,
   Share2,
+  CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -45,6 +46,7 @@ const menuItems = [
   { id: "external-logs", label: "External Logs", icon: FileText, path: "/logs" },
   { id: "reports", label: "Reports", icon: Mail, path: "/reports" },
   { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
+  { id: "billing", label: "Billing & Plans", icon: CreditCard, path: "/billing" },
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
 ]
 
