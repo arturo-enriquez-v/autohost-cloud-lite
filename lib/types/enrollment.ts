@@ -9,4 +9,5 @@ export interface Enrollment {
 export interface EnrollmentTokenResponse {
   token: string;
   expires_at: string;
+  api_url?: string;
 }

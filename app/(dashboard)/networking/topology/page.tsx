@@ -26,7 +26,7 @@ import { ServerNode, type ServerNodeData, type PortEntry } from "@/components/fe
 import { PublicInternetNode } from "@/components/features/networking/PublicInternetNode";
 import { NetworkEdge } from "@/components/features/networking/NetworkEdge";
 import { NodeNetworkDrawer } from "@/components/features/networking/NodeNetworkDrawer";
-import { Network, Loader2, Circle } from "lucide-react";
+import { Network, Loader2, Circle, RotateCcw } from "lucide-react";
 
 // ─── Custom node / edge type registrations ────────────────────────────────────
 const nodeTypes = {
@@ -36,6 +36,26 @@ const nodeTypes = {
 const edgeTypes = { networkEdge: NetworkEdge };
 
 const PUBLIC_INTERNET_ID = "public-internet";
+const POSITIONS_KEY = "autohost_topology_node_positions_v1";
+
+function loadSavedPositions(): Record<string, { x: number; y: number }> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(POSITIONS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePosition(id: string, pos: { x: number; y: number }) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = loadSavedPositions();
+    current[id] = pos;
+    localStorage.setItem(POSITIONS_KEY, JSON.stringify(current));
+  } catch {}
+}
 
 // ─── Layout: circle around a center point ─────────────────────────────────────
 function circleLayout(count: number, index: number): { x: number; y: number } {
@@ -181,54 +201,52 @@ export default function TopologyPage() {
       const ns = networkStatsByNode[n.id];
       if (ns && ns.ports.some((p) => p.bind_addr === "0.0.0.0" || p.bind_addr === "::")) {
         set.add(n.id);
-      } else if (!ns && n.ipVpn) {
-        // Default: nodes with VPN receive inbound (we'll refine when agent reports)
-        // Don't add by default — only when data is known
       }
     }
     return set;
   }, [visibleNodes, networkStatsByNode]);
 
   // Build ReactFlow server nodes
-  const serverFlowNodes: Node[] = useMemo(
-    () =>
-      visibleNodes.map((n, i) => {
-        const ns = networkStatsByNode[n.id];
-        return {
-          id: n.id,
-          type: "serverNode",
-          position: circleLayout(visibleNodes.length, i),
-          data: {
-            label: n.hostname ?? n.name,
-            hostname: n.hostname ?? n.name,
-            status: n.status,
-            ipVpn: n.ipVpn,
-            ipLocal: n.ipLocal,
-            cpu: n.cpu ?? 0,
-            ram: n.ram ?? 0,
-            ports: ns?.ports,
-            rxDropped: ns?.rxDropped,
-            txDropped: ns?.txDropped,
-            nodeId: n.id,
-          } satisfies ServerNodeData,
-        };
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [visibleNodes.length, selectedProject?.id, networkStatsByNode]
-  );
+  const serverFlowNodes: Node[] = useMemo(() => {
+    const saved = loadSavedPositions();
+    return visibleNodes.map((n, i) => {
+      const ns = networkStatsByNode[n.id];
+      const defaultPos = circleLayout(visibleNodes.length, i);
+      const initialPos = saved[n.id] || defaultPos;
+
+      return {
+        id: n.id,
+        type: "serverNode",
+        position: initialPos,
+        data: {
+          label: n.hostname ?? n.name,
+          hostname: n.hostname ?? n.name,
+          status: n.status,
+          ipVpn: n.ipVpn,
+          ipLocal: n.ipLocal,
+          cpu: n.cpu ?? 0,
+          ram: n.ram ?? 0,
+          ports: ns?.ports,
+          rxDropped: ns?.rxDropped,
+          txDropped: ns?.txDropped,
+          nodeId: n.id,
+        } satisfies ServerNodeData,
+      };
+    });
+  }, [visibleNodes, networkStatsByNode]);
 
   // Public Internet synthetic node (fixed at top)
-  const publicInternetNode: Node = useMemo(
-    () => ({
+  const publicInternetNode: Node = useMemo(() => {
+    const saved = loadSavedPositions();
+    return {
       id: PUBLIC_INTERNET_ID,
       type: "publicInternetNode",
-      position: { x: 400, y: 30 },
+      position: saved[PUBLIC_INTERNET_ID] || { x: 400, y: 30 },
       data: { label: "Public Internet" },
       draggable: true,
       selectable: false,
-    }),
-    []
-  );
+    };
+  }, []);
 
   const allFlowNodes = useMemo(
     () => [publicInternetNode, ...serverFlowNodes],
@@ -243,11 +261,28 @@ export default function TopologyPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState(allFlowNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(allFlowEdges);
 
-  // Sync ReactFlow nodes and edges whenever project selection or allNodes changes
+  // Sync ReactFlow nodes without resetting dragged positions
   useEffect(() => {
-    setNodes(allFlowNodes);
+    setNodes((prevNodes) => {
+      const prevMap = new Map(prevNodes.map((pn) => [pn.id, pn]));
+
+      return allFlowNodes.map((newNode) => {
+        const existing = prevMap.get(newNode.id);
+        if (existing) {
+          return {
+            ...newNode,
+            // Preserve the active position in ReactFlow state (where the user dragged it)
+            position: existing.position,
+          };
+        }
+        return newNode;
+      });
+    });
+  }, [allFlowNodes, setNodes]);
+
+  useEffect(() => {
     setEdges(allFlowEdges);
-  }, [allFlowNodes, allFlowEdges, setNodes, setEdges]);
+  }, [allFlowEdges, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -262,6 +297,28 @@ export default function TopologyPage() {
     },
     [allNodes]
   );
+
+  const onNodeDragStop = useCallback((_evt: unknown, node: Node) => {
+    savePosition(node.id, node.position);
+  }, []);
+
+  const handleResetLayout = useCallback(() => {
+    try {
+      localStorage.removeItem(POSITIONS_KEY);
+    } catch {}
+
+    setNodes((prevNodes) =>
+      prevNodes.map((n, i) => {
+        if (n.id === PUBLIC_INTERNET_ID) return { ...n, position: { x: 400, y: 30 } };
+        const idx = visibleNodes.findIndex((vn) => vn.id === n.id);
+        const resetPos = circleLayout(visibleNodes.length, idx >= 0 ? idx : i);
+        return {
+          ...n,
+          position: resetPos,
+        };
+      })
+    );
+  }, [visibleNodes, setNodes]);
 
   // ─── Stats bar ──────────────────────────────────────────────────────────────
   const onlineCount = visibleNodes.filter((n) => n.status === "online").length;
@@ -321,9 +378,32 @@ export default function TopologyPage() {
             {offlineCount} offline
           </div>
         )}
-        <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", paddingLeft: 4 }}>
+        <div style={{ fontSize: 11, color: "rgba(148,163,184,0.5)", paddingLeft: 4, paddingRight: 4 }}>
           {selectedProject ? selectedProject.name : "All nodes"}
         </div>
+        <button
+          type="button"
+          onClick={handleResetLayout}
+          style={{
+            pointerEvents: "auto",
+            cursor: "pointer",
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 12,
+            padding: "2px 8px",
+            fontSize: 10,
+            color: "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            transition: "all 0.15s ease",
+          }}
+          className="hover:text-white hover:bg-white/15"
+          title="Reset node positions to default layout"
+        >
+          <RotateCcw size={10} />
+          Reset Layout
+        </button>
       </div>
 
       <ReactFlow
@@ -333,6 +413,7 @@ export default function TopologyPage() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView
