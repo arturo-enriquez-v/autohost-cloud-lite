@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useEffect, useRef, useState } from "react"
-import { GripVertical, Loader2, FileText, Play, Square, RotateCcw, Activity } from "lucide-react"
+import { GripVertical, Loader2, FileText, Play, Square, RotateCcw, Activity, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -31,13 +31,12 @@ import type { DockerContainer } from "@/lib/types"
 import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
 import { useRouter } from "next/navigation"
 
-// ── persist order per node in localStorage ───────────────────────────────────
-
 function storageKey(nodeId: string) {
   return `container-order:${nodeId}`
 }
 
 function loadOrder(nodeId: string): string[] {
+  if (typeof window === "undefined") return []
   try {
     const raw = localStorage.getItem(storageKey(nodeId))
     return raw ? (JSON.parse(raw) as string[]) : []
@@ -46,12 +45,11 @@ function loadOrder(nodeId: string): string[] {
   }
 }
 
-function saveOrder(nodeId: string, ids: string[]) {
+function saveOrder(nodeId: string, order: string[]) {
+  if (typeof window === "undefined") return
   try {
-    localStorage.setItem(storageKey(nodeId), JSON.stringify(ids))
-  } catch {
-    // ignore
-  }
+    localStorage.setItem(storageKey(nodeId), JSON.stringify(order))
+  } catch {}
 }
 
 function applyStoredOrder(containers: DockerContainer[], stored: string[]): DockerContainer[] {
@@ -59,15 +57,14 @@ function applyStoredOrder(containers: DockerContainer[], stored: string[]): Dock
   const map = new Map(containers.map((c) => [c.id, c]))
   const ordered: DockerContainer[] = []
   for (const id of stored) {
-    const c = map.get(id)
-    if (c) { ordered.push(c); map.delete(id) }
+    const found = map.get(id)
+    if (found) {
+      ordered.push(found)
+      map.delete(id)
+    }
   }
-  // append any new containers not in stored order
-  for (const c of map.values()) ordered.push(c)
-  return ordered
+  return [...ordered, ...Array.from(map.values())]
 }
-
-// ── Container state badge ────────────────────────────────────────────────────
 
 function ContainerStateBadge({ state }: { state: string }) {
   const cfg: Record<string, string> = {
@@ -84,26 +81,25 @@ function ContainerStateBadge({ state }: { state: string }) {
   )
 }
 
-// ── Single sortable row ──────────────────────────────────────────────────────
-
 interface SortableRowProps {
   ctr: DockerContainer
   actionState: { name: string; action: ContainerAction } | null
   onLog: () => void
   onMetrics: () => void
+  onBackups: () => void
   onStart: () => void
   onStop: () => void
   onRestart: () => void
 }
 
-function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRestart }: SortableRowProps) {
+function SortableRow({ ctr, actionState, onLog, onMetrics, onBackups, onStart, onStop, onRestart }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: ctr.id })
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.4 : 1,
   }
 
   const isActing = actionState?.name === ctr.name
@@ -113,7 +109,6 @@ function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRe
 
   return (
     <TableRow ref={setNodeRef} style={style}>
-      {/* Drag handle */}
       <TableCell className="w-8 px-2">
         <button
           {...attributes}
@@ -124,7 +119,14 @@ function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRe
           <GripVertical className="h-4 w-4" />
         </button>
       </TableCell>
-      <TableCell className="font-mono font-medium text-sm">{ctr.name}</TableCell>
+      <TableCell className="font-mono font-medium text-sm">
+        <button
+          onClick={onMetrics}
+          className="hover:underline hover:text-blue-400 text-left font-mono"
+        >
+          {ctr.name}
+        </button>
+      </TableCell>
       <TableCell>
         <div className="flex flex-col gap-0.5">
           <ContainerStateBadge state={ctr.state} />
@@ -151,8 +153,17 @@ function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRe
           <Button
             variant="ghost"
             size="icon"
+            className="h-8 w-8 text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+            title="Respaldos R2/S3"
+            onClick={onBackups}
+          >
+            <ShieldCheck className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-            title="Metrics"
+            title="Métricas"
             onClick={onMetrics}
           >
             <Activity className="h-4 w-4" />
@@ -178,7 +189,7 @@ function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRe
           </Button>
           <Button
             variant="ghost" size="icon" className="h-8 w-8" title="Restart"
-            disabled={anyActing || isExited} onClick={onRestart}
+            disabled={anyActing} onClick={onRestart}
           >
             {isActing && actionState?.action === "restart"
               ? <Loader2 className="h-4 w-4 animate-spin" />
@@ -189,8 +200,6 @@ function SortableRow({ ctr, actionState, onLog, onMetrics, onStart, onStop, onRe
     </TableRow>
   )
 }
-
-// ── Main component ───────────────────────────────────────────────────────────
 
 interface Props {
   nodeId: string
@@ -205,7 +214,6 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
   const [sorted, setSorted] = useState<DockerContainer[]>([])
   const initialised = useRef(false)
 
-  // Sync with incoming containers while preserving stored order
   useEffect(() => {
     const stored = loadOrder(nodeId)
     setSorted(applyStoredOrder(containers, stored))
@@ -252,6 +260,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                   ctr={ctr}
                   actionState={actionState}
                   onMetrics={() => router.push(`/node/${nodeId}/containers/${encodeURIComponent(ctr.name)}`)}
+                  onBackups={() => router.push(`/node/${nodeId}/containers/${encodeURIComponent(ctr.name)}?tab=backups`)}
                   onLog={() => onLog(ctr.name)}
                   onStart={() => onAction(ctr.name, "start")}
                   onStop={() => onAction(ctr.name, "stop")}
