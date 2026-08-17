@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   RefreshCw,
   Plus,
-  Cloud
+  Cloud,
+  FileArchive,
+  Download,
+  User,
+  Bot
 } from "lucide-react";
 import { toast } from "sonner";
 import { BackupConfig, BackupRecord } from "@/lib/api/backups";
@@ -23,6 +27,26 @@ interface Props {
   nodeId: string;
   containerName: string;
   detectedVolumes?: string[];
+}
+
+function formatSnapshotDateFromKey(s3Key: string): string {
+  if (!s3Key) return "";
+  const parts = s3Key.split("/");
+  for (const part of parts) {
+    if (part.includes("_") && part.includes("-")) {
+      const subParts = part.split("_");
+      if (subParts.length === 2 && subParts[0].length === 10) {
+        const dateStr = subParts[0];
+        const timeStr = subParts[1];
+        if (timeStr.length >= 6) {
+          const formattedTime = `${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}:${timeStr.substring(4, 6)}`;
+          return `${dateStr} ${formattedTime}`;
+        }
+        return dateStr;
+      }
+    }
+  }
+  return s3Key.split("/").pop() || "";
 }
 
 export function ContainerBackupsTab({
@@ -37,6 +61,9 @@ export function ContainerBackupsTab({
   const [config, setConfig] = useState<BackupConfig | null>(null);
   const [records, setRecords] = useState<BackupRecord[]>([]);
 
+  // Sub-tabs state for History vs Snapshots
+  const [historyTab, setHistoryTab] = useState<"snapshots" | "activity">("snapshots");
+
   // Form State
   const [enabled, setEnabled] = useState(false);
   const [cronExpr, setCronExpr] = useState("0 3 * * *");
@@ -50,6 +77,27 @@ export function ContainerBackupsTab({
   const [restoring, setRestoring] = useState(false);
   const [restoreConfirmInput, setRestoreConfirmInput] = useState("");
   const [restoreStatusMsg, setRestoreStatusMsg] = useState("");
+
+  const completedSnapshots = records.filter(
+    (r) => r.trigger_type !== "restore" && r.trigger_type !== "download" && r.status === "completed"
+  );
+
+  // Check if inner configuration fields have unsaved modifications
+  const hasChanges = (() => {
+    if (!config) {
+      return cronExpr !== "0 3 * * *" || retention !== 7 || pauseContainer !== true;
+    }
+    const cronChanged = (config.cron_expression || "0 3 * * *") !== cronExpr;
+    const retentionChanged = (config.retention_count || 7) !== Number(retention);
+    const pauseChanged = (config.pause_container ?? true) !== pauseContainer;
+    
+    const configVols = Array.isArray(config.volumes) ? config.volumes : detectedVolumes;
+    const volsChanged =
+      configVols.length !== selectedVolumes.length ||
+      !configVols.every((v: string) => selectedVolumes.includes(v));
+
+    return cronChanged || retentionChanged || pauseChanged || volsChanged;
+  })();
 
   useEffect(() => {
     loadData(true);
@@ -99,6 +147,36 @@ export function ContainerBackupsTab({
       if (isInitial) setLoading(false);
     }
   }
+
+  const handleToggleEnabled = async () => {
+    const nextEnabled = !enabled;
+    setEnabled(nextEnabled);
+    try {
+      const res = await fetch(`/api/backups/config/${nodeId}/${containerName}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: nextEnabled,
+          volumes: selectedVolumes,
+          cron_expression: cronExpr,
+          retention_count: Number(retention),
+          pause_container: pauseContainer,
+        }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setConfig(updated);
+        toast.success(nextEnabled ? "Automatic backups enabled." : "Automatic backups disabled.");
+      } else {
+        setEnabled(!nextEnabled);
+        toast.error("Failed to update backup status.");
+      }
+    } catch (err) {
+      setEnabled(!nextEnabled);
+      console.error(err);
+      toast.error("Error connecting to API.");
+    }
+  };
 
   const toggleVolume = (vol: string) => {
     if (selectedVolumes.includes(vol)) {
@@ -195,6 +273,33 @@ export function ContainerBackupsTab({
     }
   };
 
+  const handleDownload = async (recordId: string) => {
+    try {
+      const res = await fetch(`/api/backups/download/${recordId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.download_url) {
+          const a = document.createElement("a");
+          a.href = data.download_url;
+          a.download = data.filename || "backup.tar.gz";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          toast.success("Download started.");
+          loadData(false);
+        } else {
+          toast.error("Download URL not found.");
+        }
+      } else {
+        const err = await res.json();
+        toast.error(`Download failed: ${err.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to connect for download.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8 text-center text-slate-400 flex items-center justify-center gap-3">
@@ -225,7 +330,7 @@ export function ContainerBackupsTab({
           <span className="text-sm font-medium text-slate-300">Automatic Backups:</span>
           <button
             type="button"
-            onClick={() => setEnabled(!enabled)}
+            onClick={handleToggleEnabled}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               enabled ? "bg-emerald-600" : "bg-slate-700"
             }`}
@@ -240,10 +345,19 @@ export function ContainerBackupsTab({
       </div>
 
       {/* CONFIGURATION PANEL */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
-        <h4 className="text-md font-semibold text-white flex items-center gap-2">
-          <HardDrive className="w-5 h-5 text-blue-400" /> Configuration & Schedule
-        </h4>
+      <div className={`bg-slate-900 border rounded-xl p-6 space-y-6 transition-all duration-300 ${
+        enabled ? "border-slate-800 opacity-100" : "border-slate-800/60 opacity-60"
+      }`}>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h4 className="text-md font-semibold text-white flex items-center gap-2">
+            <HardDrive className="w-5 h-5 text-blue-400" /> Configuration & Schedule
+          </h4>
+          {!enabled && (
+            <span className="text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800 font-medium">
+              Automated Schedule Inactive
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Storage Managed Badge */}
@@ -334,20 +448,31 @@ export function ContainerBackupsTab({
 
         {/* Form Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-          <button
-            type="button"
-            onClick={handleSaveConfig}
-            disabled={saving}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm px-5 py-2 rounded-lg transition disabled:opacity-50"
-          >
-            {saving ? "Saving..." : "Save Configuration"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveConfig}
+              disabled={!hasChanges || saving}
+              className={`font-medium text-sm px-5 py-2 rounded-lg transition-all duration-200 ${
+                hasChanges && !saving
+                  ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20 cursor-pointer"
+                  : "bg-slate-800/80 text-slate-500 cursor-not-allowed border border-slate-700/40"
+              }`}
+            >
+              {saving ? "Saving..." : "Save Configuration"}
+            </button>
+            {hasChanges && (
+              <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+                ● Unsaved changes
+              </span>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={handleRunManualBackup}
             disabled={runningBackup}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition disabled:opacity-50"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-2 rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
             <Play className="w-4 h-4" />
             {runningBackup ? "Executing..." : "⚡ Create Manual Backup Now"}
@@ -355,98 +480,224 @@ export function ContainerBackupsTab({
         </div>
       </div>
 
-      {/* RECORDS HISTORY TABLE */}
+      {/* SUB-TABS: AVAILABLE SNAPSHOTS vs ACTIVITY LOG */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-        <h4 className="text-md font-semibold text-white flex items-center gap-2">
-          <Clock className="w-5 h-5 text-blue-400" /> Backup History
-        </h4>
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryTab("snapshots")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                historyTab === "snapshots"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <FileArchive className="w-4 h-4 text-blue-300" />
+              <span>Available Snapshots ({completedSnapshots.length})</span>
+            </button>
 
-        {records.length === 0 ? (
-          <div className="text-center py-8 text-slate-500 text-sm">
-            No backup records found for this container.
+            <button
+              type="button"
+              onClick={() => setHistoryTab("activity")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+                historyTab === "activity"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              <Clock className="w-4 h-4 text-blue-300" />
+              <span>Activity & Audit Log ({records.length})</span>
+            </button>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
-                <tr>
-                  <th className="py-3 px-4">Date / Time</th>
-                  <th className="py-3 px-4">Backup Path</th>
-                  <th className="py-3 px-4">Size</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {records.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-800/40 transition">
-                    <td className="py-3 px-4 font-mono text-xs text-slate-300">
-                      {new Date(r.started_at).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-4 font-mono text-xs text-slate-400 max-w-xs truncate">
-                      {r.s3_key || "-"}
-                    </td>
-                    <td className="py-3 px-4 text-xs font-mono">
-                      {r.file_size_bytes ? `${(r.file_size_bytes / (1024 * 1024)).toFixed(2)} MB` : "-"}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                          r.trigger_type === "manual"
-                            ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                            : r.trigger_type === "restore"
-                            ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                        }`}
-                      >
-                        {r.trigger_type === "manual"
-                          ? "Manual"
-                          : r.trigger_type === "restore"
-                          ? "Restore"
-                          : "Scheduled"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {r.status === "completed" && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
-                          <CheckCircle2 className="w-4 h-4" /> Successful
-                        </span>
-                      )}
-                      {r.status === "running" && (
-                        <span className="inline-flex items-center gap-1.5 text-xs text-blue-400 font-medium">
-                          <RefreshCw className="w-4 h-4 animate-spin" /> In Progress
-                        </span>
-                      )}
-                      {r.status === "failed" && (
-                        <div className="flex flex-col" title={r.error_message}>
-                          <span className="inline-flex items-center gap-1.5 text-xs text-rose-400 font-medium">
-                            <XCircle className="w-4 h-4 flex-shrink-0" /> Failed
-                          </span>
-                          {r.error_message && (
-                            <span className="text-[11px] text-rose-400/80 font-mono truncate max-w-[180px]">
-                              {r.error_message}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      {r.status === "completed" && r.trigger_type !== "restore" && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenRestoreModal(r)}
-                          className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded transition border border-slate-700"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" /> Restore
-                        </button>
-                      )}
-                    </td>
+
+          <span className="text-xs text-slate-400">
+            {historyTab === "snapshots"
+              ? "Restorable backup archives"
+              : "Linear chronological activity trail"}
+          </span>
+        </div>
+
+        {historyTab === "snapshots" ? (
+          /* AVAILABLE SNAPSHOTS TAB */
+          completedSnapshots.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm">
+              No completed backup snapshots available for restore yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="text-xs uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Creation Date</th>
+                    <th className="py-3 px-4">Archive Name</th>
+                    <th className="py-3 px-4">Size</th>
+                    <th className="py-3 px-4">Type</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {completedSnapshots.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-800/40 transition">
+                      <td className="py-3 px-4 font-mono text-xs text-slate-300">
+                        {new Date(r.started_at).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4 text-xs font-mono">
+                        <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded w-fit text-slate-300">
+                          <FileArchive className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                          <span>{r.s3_key ? r.s3_key.split("/").pop() : `${containerName}.tar.gz`}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-xs font-mono">
+                        {r.file_size_bytes ? `${(r.file_size_bytes / (1024 * 1024)).toFixed(2)} MB` : "-"}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                            r.trigger_type === "manual"
+                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          }`}
+                        >
+                          {r.trigger_type === "manual" ? "Manual" : "Scheduled"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDownload(r.id)}
+                            className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded transition border border-slate-700 hover:border-blue-500/50"
+                            title="Download Backup Archive"
+                          >
+                            <Download className="w-3.5 h-3.5 text-blue-400" /> Download
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenRestoreModal(r)}
+                            className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded transition border border-slate-700 hover:border-amber-500/50"
+                            title="Restore Container Volume"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-amber-400" /> Restore
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        ) : (
+          /* ACTIVITY & AUDIT LOG TAB */
+          records.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 text-sm">
+              No activity records found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="text-xs uppercase bg-slate-950 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th className="py-3 px-4">Date / Time</th>
+                    <th className="py-3 px-4">Action</th>
+                    <th className="py-3 px-4">Performed By</th>
+                    <th className="py-3 px-4">Target / Details</th>
+                    <th className="py-3 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {records.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-800/40 transition">
+                      <td className="py-3 px-4 font-mono text-xs text-slate-300">
+                        {new Date(r.started_at).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1 ${
+                            r.trigger_type === "manual"
+                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                              : r.trigger_type === "restore"
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              : r.trigger_type === "download"
+                              ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          }`}
+                        >
+                          {r.trigger_type === "restore" && <RotateCcw className="w-3 h-3" />}
+                          {r.trigger_type === "download" && <Download className="w-3 h-3" />}
+                          {r.trigger_type === "manual"
+                            ? "Manual Backup"
+                            : r.trigger_type === "restore"
+                            ? "Volume Restore"
+                            : r.trigger_type === "download"
+                            ? "File Download"
+                            : "Scheduled Backup"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {r.trigger_type === "scheduled" ? (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 bg-slate-950 px-2.5 py-1 rounded border border-slate-800 font-medium">
+                            <Bot className="w-3.5 h-3.5 text-slate-400" /> System Automated
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-blue-300 bg-blue-500/10 px-2.5 py-1 rounded border border-blue-500/20 font-medium">
+                            <User className="w-3.5 h-3.5 text-blue-400" /> {r.user_email || "User"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-xs font-mono">
+                        {r.trigger_type === "restore" ? (
+                          <div className="text-amber-300/90 flex items-center gap-1.5">
+                            <span>Restored snapshot from:</span>
+                            <span className="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-[11px] font-semibold">
+                              {formatSnapshotDateFromKey(r.s3_key)}
+                            </span>
+                          </div>
+                        ) : r.trigger_type === "download" ? (
+                          <div className="text-sky-300/90 flex items-center gap-1.5">
+                            <span>Downloaded:</span>
+                            <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded text-[11px] font-semibold">
+                              {r.s3_key ? r.s3_key.split("/").pop() : `${containerName}.tar.gz`}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-slate-300">
+                            <FileArchive className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                            <span>{r.s3_key ? r.s3_key.split("/").pop() : `${containerName}.tar.gz`}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {r.status === "completed" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-medium">
+                            <CheckCircle2 className="w-4 h-4" /> Successful
+                          </span>
+                        )}
+                        {r.status === "running" && (
+                          <span className="inline-flex items-center gap-1.5 text-xs text-blue-400 font-medium">
+                            <RefreshCw className="w-4 h-4 animate-spin" /> In Progress
+                          </span>
+                        )}
+                        {r.status === "failed" && (
+                          <div className="flex flex-col" title={r.error_message}>
+                            <span className="inline-flex items-center gap-1.5 text-xs text-rose-400 font-medium">
+                              <XCircle className="w-4 h-4 flex-shrink-0" /> Failed
+                            </span>
+                            {r.error_message && (
+                              <span className="text-[11px] text-rose-400/80 font-mono truncate max-w-[180px]">
+                                {r.error_message}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
       </div>
 

@@ -38,14 +38,23 @@ interface SidebarProps {
   onClose: () => void
 }
 
-const menuItems = [
+const coreMenuItemsTop = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/" },
   { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
+]
+
+const coreMenuItemsBottom = [
   { id: "marketplace", label: "Marketplace", icon: Store, path: "/marketplace" },
+]
+
+const operationsMenuItems = [
   { id: "alerts", label: "Alerts", icon: AlertTriangle, path: "/alerts" },
   { id: "external-logs", label: "External Logs", icon: FileText, path: "/logs" },
   { id: "reports", label: "Reports", icon: Mail, path: "/reports" },
   { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
+]
+
+const adminMenuItems = [
   { id: "billing", label: "Billing & Plans", icon: CreditCard, path: "/billing" },
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
 ]
@@ -223,9 +232,12 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
     )
   }
 
-  const renderNavItems = (collapsed: boolean) => (
+  const renderNavItemList = (
+    items: Array<{ id: string; label: string; icon: React.ComponentType<{ className?: string }>; path: string }>,
+    collapsed: boolean
+  ) => (
     <>
-      {menuItems.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon
         const active = isActive(item.path)
         return (
@@ -250,23 +262,31 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   )
 
   const renderNav = (collapsed: boolean) => (
-    <nav className="flex-1 overflow-y-auto p-3">
+    <nav className="flex-1 overflow-y-auto p-3 space-y-1">
       {collapsed ? (
-        <div className="space-y-1">
+        <>
           {renderProjectsCollapsed()}
           <div className="my-2 border-t border-border" />
-          {renderNavItems(true)}
-          <div className="my-2 border-t border-border" />
+          {renderNavItemList(coreMenuItemsTop, true)}
           {renderNetworkingSection(true)}
-        </div>
+          {renderNavItemList(coreMenuItemsBottom, true)}
+          <div className="my-2 border-t border-border" />
+          {renderNavItemList(operationsMenuItems, true)}
+          <div className="my-2 border-t border-border" />
+          {renderNavItemList(adminMenuItems, true)}
+        </>
       ) : (
-        <div className="space-y-1">
+        <>
           {renderProjectsSection()}
           <div className="my-2 border-t border-border" />
-          {renderNavItems(false)}
-          <div className="my-2 border-t border-border" />
+          {renderNavItemList(coreMenuItemsTop, false)}
           {renderNetworkingSection(false)}
-        </div>
+          {renderNavItemList(coreMenuItemsBottom, false)}
+          <div className="my-2 border-t border-border" />
+          {renderNavItemList(operationsMenuItems, false)}
+          <div className="my-2 border-t border-border" />
+          {renderNavItemList(adminMenuItems, false)}
+        </>
       )}
     </nav>
   )

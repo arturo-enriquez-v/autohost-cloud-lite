@@ -34,6 +34,7 @@ export interface BackupRecord {
   trigger_type: string;
   status: string;
   error_message?: string;
+  user_email?: string;
   started_at: string;
   completed_at?: string;
 }
@@ -85,5 +86,11 @@ export async function runManualBackupBackend(nodeId: string, containerName: stri
 export async function restoreBackupBackend(recordId: string, accessToken: string) {
   return backendFetch(`/v1/backups/restore/${recordId}`, {
     method: "POST",
+  }, accessToken);
+}
+
+export async function downloadBackupBackend(recordId: string, accessToken: string) {
+  return backendFetch(`/v1/backups/download/${recordId}`, {
+    method: "GET",
   }, accessToken);
 }
