@@ -14,4 +14,5 @@ export { CaddyRoutesCard } from "./CaddyRoutesCard"
 export { LiveMetricsCard } from "./LiveMetricsCard"
 export { MetricChartsGrid } from "./MetricChartsGrid"
 export { ContainerMetricsDialog } from "./ContainerMetricsDialog"
+export { ConnectNodeModal } from "./ConnectNodeModal"
 

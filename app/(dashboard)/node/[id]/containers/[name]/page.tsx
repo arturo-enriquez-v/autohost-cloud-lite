@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeft, Activity, Cpu, MemoryStick, RefreshCw, Server, HardDrive, Box } from "lucide-react";
+import { ArrowLeft, Activity, Cpu, MemoryStick, RefreshCw, Server, HardDrive, Box, ShieldCheck } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -20,6 +20,7 @@ import type { MetricRange } from "@/lib/features/nodes/types";
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
 import { useContainerMetrics } from "@/lib/features/nodes/containers/hooks/useContainerMetrics";
+import { ContainerBackupsTab } from "@/components/backups/ContainerBackupsTab";
 
 const RANGES: { value: MetricRange; label: string }[] = [
   { value: "1d", label: "24h" },
@@ -70,6 +71,9 @@ export default function ContainerMetricsPage({
   const { id: nodeId, name: rawContainerName } = use(params);
   const containerName = decodeURIComponent(rawContainerName);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "backups" ? "backups" : "metrics";
+  const [activeTab, setActiveTab] = useState<"metrics" | "backups">(initialTab);
   const [range, setRange] = useState<MetricRange>("7d");
 
   const { node, isLoading: nodeLoading } = useNodes(nodeId);
@@ -107,7 +111,7 @@ export default function ContainerMetricsPage({
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-2xl font-bold text-foreground truncate flex items-center gap-2">
               <Box className="h-6 w-6 shrink-0 text-primary" />
-              Container Metrics: <span className="font-mono">{containerName}</span>
+              Container: <span className="font-mono">{containerName}</span>
             </h2>
             {liveContainer?.state && <ContainerStateBadge state={liveContainer.state} />}
             {!nodeLoading && node && (
@@ -118,31 +122,61 @@ export default function ContainerMetricsPage({
           </div>
           <p className="text-xs text-muted-foreground mt-1 font-mono">
             {liveContainer?.image ? `Image: ${liveContainer.image}` : `Node ID: ${nodeId}`}
-            {lastUpdated && ` · History updated ${format(lastUpdated, "HH:mm:ss")} (auto-refreshes 30s)`}
+            {lastUpdated && ` · History updated ${format(lastUpdated, "HH:mm:ss")}`}
           </p>
         </div>
 
+        {/* Tab Switcher: Metrics vs Backups */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center rounded-md border bg-background text-sm">
-            {RANGES.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setRange(value)}
-                className={`px-3 py-1.5 transition-colors first:rounded-l-md last:rounded-r-md ${
-                  range === value
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="flex items-center rounded-md border bg-background text-sm p-0.5">
+            <button
+              onClick={() => setActiveTab("metrics")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+                activeTab === "metrics"
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <Activity className="h-4 w-4" /> Metrics
+            </button>
+            <button
+              onClick={() => setActiveTab("backups")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors ${
+                activeTab === "backups"
+                  ? "bg-primary text-primary-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <ShieldCheck className="h-4 w-4" /> Volume Backups
+            </button>
           </div>
-          <Button variant="outline" size="icon" onClick={refresh} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
         </div>
       </div>
+
+      {activeTab === "backups" ? (
+        <ContainerBackupsTab nodeId={nodeId} containerName={containerName} />
+      ) : (
+        <>
+          <div className="flex justify-end gap-2">
+            <div className="flex items-center rounded-md border bg-background text-sm">
+              {RANGES.map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => setRange(value)}
+                  className={`px-3 py-1.5 transition-colors first:rounded-l-md last:rounded-r-md ${
+                    range === value
+                      ? "bg-primary text-primary-foreground font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <Button variant="outline" size="icon" onClick={refresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
 
       {error && (
         <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -398,6 +432,8 @@ export default function ContainerMetricsPage({
           </CardContent>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }
