@@ -15,4 +15,6 @@ export { LiveMetricsCard } from "./LiveMetricsCard"
 export { MetricChartsGrid } from "./MetricChartsGrid"
 export { ContainerMetricsDialog } from "./ContainerMetricsDialog"
 export { ConnectNodeModal } from "./ConnectNodeModal"
+export { LogDiagnosticModal } from "./LogDiagnosticModal"
+
 

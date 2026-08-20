@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowLeft, Box, Eraser, Wifi, WifiOff } from "lucide-react"
+import { ArrowLeft, Box, Eraser, Sparkles, Wifi, WifiOff } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,7 @@ interface LogsToolbarProps {
   onUnitChange: (v: string) => void
   onLinesChange: (v: number) => void
   onClear: () => void
+  onOpenDiagnostics?: () => void
 }
 
 export function LogsToolbar({
@@ -35,6 +36,7 @@ export function LogsToolbar({
   onUnitChange,
   onLinesChange,
   onClear,
+  onOpenDiagnostics,
 }: LogsToolbarProps) {
   const router = useRouter()
   const isContainerMode = containerName !== ""
@@ -109,6 +111,18 @@ export function LogsToolbar({
         <Eraser className="h-3 w-3" />
         Clear
       </Button>
+
+      {onOpenDiagnostics && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onOpenDiagnostics}
+          className="h-8 text-xs gap-1.5 bg-primary/10 hover:bg-primary/20 text-primary border-primary/30 shadow-none font-medium"
+        >
+          <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
+          AI Diagnostics
+        </Button>
+      )}
     </div>
   )
 }

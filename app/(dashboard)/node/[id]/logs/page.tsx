@@ -3,7 +3,7 @@
 import { use, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useNodeLogs } from "@/lib/features/nodes/logs/hooks/useNodeLogs"
-import { LogsToolbar, LogTerminal } from "@/components/features/nodes"
+import { LogsToolbar, LogTerminal, LogDiagnosticModal } from "@/components/features/nodes"
 
 export default function NodeLogsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
@@ -15,6 +15,7 @@ export default function NodeLogsPage({ params }: { params: Promise<{ id: string 
   const [unitSelect, setUnitSelect] = useState("all")
   const unit = isContainerMode ? `docker:${containerName}` : unitSelect === "all" ? "" : unitSelect
   const [lines, setLines] = useState(100)
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState(false)
 
   const { logs, connected, error, clear } = useNodeLogs(nodeId, { unit, lines })
 
@@ -29,6 +30,7 @@ export default function NodeLogsPage({ params }: { params: Promise<{ id: string 
         onUnitChange={setUnitSelect}
         onLinesChange={setLines}
         onClear={clear}
+        onOpenDiagnostics={() => setIsDiagnosticOpen(true)}
       />
 
       {error && (
@@ -38,6 +40,13 @@ export default function NodeLogsPage({ params }: { params: Promise<{ id: string 
       )}
 
       <LogTerminal logs={logs} />
+
+      <LogDiagnosticModal
+        nodeId={nodeId}
+        isOpen={isDiagnosticOpen}
+        onClose={() => setIsDiagnosticOpen(false)}
+        defaultUnit={unit}
+      />
     </div>
   )
 }

@@ -8,6 +8,9 @@ export interface Plan {
   max_custom_commands: number
   retention_days: number
   polling_interval_sec: number
+  max_backup_storage_bytes?: number
+  max_backup_retention_days?: number
+  max_ai_diagnostics_per_month?: number
   is_active: boolean
   created_at: string
   updated_at: string
@@ -29,4 +32,19 @@ export interface Subscription {
 export interface UserPlan {
   subscription: Subscription
   plan: Plan
+}
+
+export interface PlanUsage {
+  plan: Plan
+  nodes_count: number
+  nodes_limit: number
+  projects_count: number
+  projects_limit: number
+  custom_commands_count: number
+  custom_commands_limit: number
+  backup_storage_bytes: number
+  backup_storage_limit_bytes: number
+  backup_retention_days_limit: number
+  ai_diagnostics_this_month: number
+  ai_diagnostics_month_limit: number
 }
