@@ -262,7 +262,8 @@ export function ContainerBackupsTab({
         toast.success(nextEnabled ? "Automatic backups enabled." : "Automatic backups disabled.");
       } else {
         setEnabled(!nextEnabled);
-        toast.error("Failed to update backup status.");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to update backup status.");
       }
     } catch (err) {
       setEnabled(!nextEnabled);
@@ -301,7 +302,8 @@ export function ContainerBackupsTab({
         setConfig(updated);
         toast.success("Backup configuration saved successfully.");
       } else {
-        toast.error("Failed to save backup configuration.");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to save backup configuration.");
       }
     } catch (err) {
       console.error(err);
@@ -931,12 +933,12 @@ export function ContainerBackupsTab({
                           </span>
                         )}
                         {r.status === "failed" && (
-                          <div className="flex flex-col" title={r.error_message}>
+                          <div className="flex flex-col max-w-sm" title={r.error_message}>
                             <span className="inline-flex items-center gap-1.5 text-xs text-rose-400 font-medium">
                               <XCircle className="w-4 h-4 flex-shrink-0" /> Failed
                             </span>
                             {r.error_message && (
-                              <span className="text-[11px] text-rose-400/80 font-mono truncate max-w-[180px]">
+                              <span className="text-[11px] text-rose-400/90 font-mono break-words line-clamp-3 mt-0.5">
                                 {r.error_message}
                               </span>
                             )}
