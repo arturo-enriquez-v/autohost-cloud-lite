@@ -182,7 +182,24 @@ export default function ProjectsPage() {
               onKeyDown={(e) => e.key === "Enter" && handleCreate()}
               autoFocus
             />
-            {formError && <p className="text-sm text-destructive">{formError}</p>}
+            {formError && (
+              <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                <span>{formError}</span>
+                {formError.toLowerCase().includes("limit") && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setCreateOpen(false)
+                      router.push("/billing/plans")
+                    }}
+                    className="h-6 px-2 text-[10px] border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0 font-semibold"
+                  >
+                    Upgrade
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
               <Button onClick={handleCreate} disabled={submitting || !nameInput.trim()}>

@@ -65,14 +65,29 @@ export function createSSEProxyStream(
 
       try {
         while (true) {
+          if (abort.signal.aborted) {
+            break;
+          }
+
           const { done, value } = await Promise.race([
             reader.read(),
             abortPromise,
           ]);
           if (done) {
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              // already closed
+            }
             break;
           }
+
+          // If the downstream client has disconnected without firing signal,
+          // desiredSize will drop to <= 0 and become null once closed/errored.
+          if (controller.desiredSize === null) {
+            break;
+          }
+
           resetIdle(); // data arrived — reset the idle timer
           controller.enqueue(value);
         }

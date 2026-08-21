@@ -120,6 +120,24 @@ export function ConnectNodeModal({
           </div>
         </DialogHeader>
 
+        {/* Error / Plan Limit Alert */}
+        {error && (
+          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-start gap-2.5">
+              <Sparkles className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold text-foreground block text-xs mb-0.5">Node Limit Reached</span>
+                <span className="text-muted-foreground">{error}</span>
+              </div>
+            </div>
+            <a href="/billing" className="shrink-0">
+              <Button size="sm" className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold text-xs h-7 px-3">
+                Upgrade Plan
+              </Button>
+            </a>
+          </div>
+        )}
+
         {/* Tab Switcher & Node Name Input */}
         <div className="space-y-4 pt-1">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

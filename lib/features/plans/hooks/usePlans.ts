@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Plan, UserPlan } from "../types"
+import { Plan, UserPlan, PlanUsage } from "../types"
 
 export function usePlans() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null)
+  const [planUsage, setPlanUsage] = useState<PlanUsage | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -14,9 +15,10 @@ export function usePlans() {
     setIsLoading(true)
     setError(null)
     try {
-      const [plansRes, myPlanRes] = await Promise.all([
+      const [plansRes, myPlanRes, usageRes] = await Promise.all([
         window.fetch("/api/plans", { credentials: "include" }),
         window.fetch("/api/plans/my-plan", { credentials: "include" }),
+        window.fetch("/api/plans/usage", { credentials: "include" }),
       ])
 
       if (plansRes.ok) {
@@ -27,6 +29,11 @@ export function usePlans() {
       if (myPlanRes.ok) {
         const myPlanData = await myPlanRes.json()
         setUserPlan(myPlanData)
+      }
+
+      if (usageRes.ok) {
+        const usageData = await usageRes.json()
+        setPlanUsage(usageData)
       }
     } catch {
       setError("Network error while loading plan information")
@@ -53,6 +60,8 @@ export function usePlans() {
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
         setUserPlan(data)
+        // Refresh usage after switching
+        fetchPlansAndUserPlan()
         return { success: true }
       }
 
@@ -70,6 +79,7 @@ export function usePlans() {
   return {
     plans,
     userPlan,
+    planUsage,
     isLoading,
     isUpdating,
     error,

@@ -16,8 +16,13 @@ export async function GET(
   const { id } = await params;
   const res = await getProjectBackend(id, accessToken);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Unknown error" }));
-    return NextResponse.json(err, { status: res.status });
+    const text = await res.text().catch(() => "");
+    let errMsg = text;
+    try {
+      const json = JSON.parse(text);
+      errMsg = json.error || json.message || text;
+    } catch {}
+    return NextResponse.json({ error: errMsg.trim() || "Failed to fetch project" }, { status: res.status });
   }
   return NextResponse.json(await res.json(), { status: 200 });
 }
@@ -35,8 +40,13 @@ export async function PUT(
 
   const res = await updateProjectBackend(id, body.name, accessToken);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Unknown error" }));
-    return NextResponse.json(err, { status: res.status });
+    const text = await res.text().catch(() => "");
+    let errMsg = text;
+    try {
+      const json = JSON.parse(text);
+      errMsg = json.error || json.message || text;
+    } catch {}
+    return NextResponse.json({ error: errMsg.trim() || "Failed to update project" }, { status: res.status });
   }
   return NextResponse.json(await res.json(), { status: 200 });
 }
@@ -51,8 +61,13 @@ export async function DELETE(
   const { id } = await params;
   const res = await deleteProjectBackend(id, accessToken);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Unknown error" }));
-    return NextResponse.json(err, { status: res.status });
+    const text = await res.text().catch(() => "");
+    let errMsg = text;
+    try {
+      const json = JSON.parse(text);
+      errMsg = json.error || json.message || text;
+    } catch {}
+    return NextResponse.json({ error: errMsg.trim() || "Failed to delete project" }, { status: res.status });
   }
   return new NextResponse(null, { status: 204 });
 }

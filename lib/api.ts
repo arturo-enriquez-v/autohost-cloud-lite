@@ -30,5 +30,6 @@ export async function backendFetch(
   headers.set("Content-Type", headers.get("Content-Type") || "application/json");
 
   // Sin credentials:"include" — Go no usa cookies, no necesita este header
-  return fetch(url, { ...init, headers });
+  // cache: "no-store" por defecto evita que Next.js acumule respuestas dinámicas en el Data Cache en RAM
+  return fetch(url, { cache: "no-store", ...init, headers });
 }

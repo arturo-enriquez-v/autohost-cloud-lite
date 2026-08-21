@@ -91,7 +91,8 @@ export default function StorageSettingsPage() {
       if (res.ok) {
         loadCredentials();
       } else {
-        alert("Error al eliminar la credencial.");
+        const err = await res.json().catch(() => ({}));
+        alert(`Error al eliminar la credencial: ${err.error || "Fallo desconocido"}`);
       }
     } catch (err) {
       console.error(err);

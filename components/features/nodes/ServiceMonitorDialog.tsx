@@ -168,7 +168,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
               <Input
                 ref={serviceInputRef}
                 id="sm-service-name"
-                placeholder="e.g. api-ventas, postgres"
+                placeholder="e.g. web-api, postgres"
                 autoComplete="off"
                 value={form.serviceName}
                 onChange={(e) => {
@@ -328,7 +328,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-[#70AEFF]" />
-                <span className="font-semibold text-sm text-foreground">Auto-Recuperación (Self-Healing)</span>
+                <span className="font-semibold text-sm text-foreground">Auto-Healing & Remediation</span>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
@@ -353,7 +353,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                 {/* General Thresholds */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-xs">Fallos consec. antes de actuar</Label>
+                    <Label className="text-xs">Consecutive failures before action</Label>
                     <Input
                       type="number"
                       min={1}
@@ -368,7 +368,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Periodo de Gracia (segundos)</Label>
+                    <Label className="text-xs">Grace period (seconds)</Label>
                     <Input
                       type="number"
                       min={5}
@@ -389,7 +389,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <RefreshCw className="h-3.5 w-3.5 text-[#70AEFF]" />
-                      Estrategia 1: Reiniciar Contenedor (`docker restart`)
+                      Strategy 1: Restart Container (`docker restart`)
                     </span>
                     <Switch
                       checked={autoHeal.restart.enabled}
@@ -405,7 +405,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   {autoHeal.restart.enabled && (
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Max Intentos</Label>
+                        <Label className="text-[11px] text-muted-foreground">Max Attempts</Label>
                         <Input
                           type="number"
                           min={1}
@@ -420,7 +420,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Ventana de Tiempo (seg)</Label>
+                        <Label className="text-[11px] text-muted-foreground">Time Window (sec)</Label>
                         <Input
                           type="number"
                           min={60}
@@ -443,7 +443,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <Wrench className="h-3.5 w-3.5 text-[#70AEFF]" />
-                      Estrategia 2: Recreación Compose (`docker compose up`)
+                      Strategy 2: Compose Recreate (`docker compose up`)
                     </span>
                     <Switch
                       checked={autoHeal.recreate.enabled}
@@ -459,9 +459,9 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   {autoHeal.recreate.enabled && (
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Ruta a docker-compose.yml</Label>
+                        <Label className="text-[11px] text-muted-foreground">Path to docker-compose.yml</Label>
                         <Input
-                          placeholder="/opt/apps/mi-app/docker-compose.yml"
+                          placeholder="/opt/apps/my-app/docker-compose.yml"
                           value={autoHeal.recreate.compose_file_path}
                           onChange={(e) =>
                             setAutoHeal((ah) => ({
@@ -474,7 +474,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">Nombre de Servicio YAML</Label>
+                          <Label className="text-[11px] text-muted-foreground">YAML Service Name</Label>
                           <Input
                             placeholder="e.g. web"
                             value={autoHeal.recreate.service_name}
@@ -487,7 +487,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">Max Intentos por Incidente</Label>
+                          <Label className="text-[11px] text-muted-foreground">Max Attempts per Incident</Label>
                           <Input
                             type="number"
                             min={1}

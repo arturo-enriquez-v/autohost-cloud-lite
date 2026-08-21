@@ -65,8 +65,8 @@ export function LogTerminal({ logs }: LogTerminalProps) {
           </div>
         ) : (
           <div className="p-4 space-y-0.5">
-            {logs.map((entry) => (
-              <LogLine key={entry.timestamp_us} entry={entry} />
+            {logs.map((entry, index) => (
+              <LogLine key={`${entry.timestamp_us}-${index}`} entry={entry} />
             ))}
           </div>
         )}

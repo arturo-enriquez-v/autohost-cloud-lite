@@ -18,7 +18,8 @@ import {
   FileArchive,
   Download,
   User,
-  Bot
+  Bot,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 import { BackupConfig, BackupRecord } from "@/lib/api/backups";
@@ -27,6 +28,64 @@ interface Props {
   nodeId: string;
   containerName: string;
   detectedVolumes?: string[];
+}
+
+function parseCron(cron: string) {
+  const parts = (cron || "").trim().split(/\s+/);
+  if (parts.length < 5) {
+    return { interval: "daily" as const, time: "03:00", dayOfWeek: "0", dayOfMonth: "1" };
+  }
+  const [min, hour, dom, , dow] = parts;
+  const mm = (parseInt(min, 10) || 0).toString().padStart(2, "0");
+  const hh = (parseInt(hour, 10) || 0).toString().padStart(2, "0");
+  const time = `${hh}:${mm}`;
+
+  if (dow !== "*") {
+    return { interval: "weekly" as const, time, dayOfWeek: dow, dayOfMonth: "1" };
+  }
+  if (dom !== "*") {
+    return { interval: "monthly" as const, time, dayOfWeek: "0", dayOfMonth: dom };
+  }
+  return { interval: "daily" as const, time, dayOfWeek: "0", dayOfMonth: "1" };
+}
+
+function buildCron(
+  interval: "daily" | "weekly" | "monthly",
+  time: string,
+  dayOfWeek: string,
+  dayOfMonth: string
+): string {
+  const [hhStr, mmStr] = (time || "03:00").split(":");
+  const mm = parseInt(mmStr || "0", 10) || 0;
+  const hh = parseInt(hhStr || "0", 10) || 0;
+
+  if (interval === "weekly") {
+    return `${mm} ${hh} * * ${dayOfWeek}`;
+  }
+  if (interval === "monthly") {
+    return `${mm} ${hh} ${dayOfMonth} * *`;
+  }
+  return `${mm} ${hh} * * *`;
+}
+
+function getScheduleSummary(
+  interval: "daily" | "weekly" | "monthly",
+  time: string,
+  dow: string,
+  dom: string
+): string {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayName = days[parseInt(dow, 10)] || "Sunday";
+
+  if (interval === "weekly") {
+    return `Every ${dayName} at ${time || "03:00"} UTC`;
+  }
+  if (interval === "monthly") {
+    const domNum = parseInt(dom, 10) || 1;
+    const suffix = domNum === 1 ? "1st" : domNum === 2 ? "2nd" : domNum === 3 ? "3rd" : `${domNum}th`;
+    return `Every ${suffix} of the month at ${time || "03:00"} UTC`;
+  }
+  return `Every day at ${time || "03:00"} UTC`;
 }
 
 function formatSnapshotDateFromKey(s3Key: string): string {
@@ -67,9 +126,16 @@ export function ContainerBackupsTab({
   // Form State
   const [enabled, setEnabled] = useState(false);
   const [cronExpr, setCronExpr] = useState("0 3 * * *");
+  const [freqInterval, setFreqInterval] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [freqTime, setFreqTime] = useState("03:00");
+  const [freqDayOfWeek, setFreqDayOfWeek] = useState("0");
+  const [freqDayOfMonth, setFreqDayOfMonth] = useState("1");
+
   const [retention, setRetention] = useState(7);
   const [pauseContainer, setPauseContainer] = useState(true);
   const [selectedVolumes, setSelectedVolumes] = useState<string[]>([]);
+  const [backupMethod, setBackupMethod] = useState<"volume" | "pg_dump">("volume");
+  const [pgUser, setPgUser] = useState("postgres");
 
   // Restore Modal State
   const [restoreModalOpen, setRestoreModalOpen] = useState(false);
@@ -85,18 +151,20 @@ export function ContainerBackupsTab({
   // Check if inner configuration fields have unsaved modifications
   const hasChanges = (() => {
     if (!config) {
-      return cronExpr !== "0 3 * * *" || retention !== 7 || pauseContainer !== true;
+      return cronExpr !== "0 3 * * *" || retention !== 7 || pauseContainer !== true || backupMethod !== "volume" || pgUser !== "postgres";
     }
     const cronChanged = (config.cron_expression || "0 3 * * *") !== cronExpr;
     const retentionChanged = (config.retention_count || 7) !== Number(retention);
     const pauseChanged = (config.pause_container ?? true) !== pauseContainer;
+    const methodChanged = (config.backup_method || "volume") !== backupMethod;
+    const pgUserChanged = (config.pg_user || "postgres") !== pgUser;
     
     const configVols = Array.isArray(config.volumes) ? config.volumes : detectedVolumes;
     const volsChanged =
       configVols.length !== selectedVolumes.length ||
       !configVols.every((v: string) => selectedVolumes.includes(v));
 
-    return cronChanged || retentionChanged || pauseChanged || volsChanged;
+    return cronChanged || retentionChanged || pauseChanged || volsChanged || methodChanged || pgUserChanged;
   })();
 
   useEffect(() => {
@@ -130,9 +198,18 @@ export function ContainerBackupsTab({
       if (cfgRes && cfgRes.id) {
         setConfig(cfgRes);
         setEnabled(cfgRes.enabled ?? false);
-        setCronExpr(cfgRes.cron_expression || "0 3 * * *");
+        const expr = cfgRes.cron_expression || "0 3 * * *";
+        setCronExpr(expr);
+        const parsed = parseCron(expr);
+        setFreqInterval(parsed.interval);
+        setFreqTime(parsed.time);
+        setFreqDayOfWeek(parsed.dayOfWeek);
+        setFreqDayOfMonth(parsed.dayOfMonth);
+
         setRetention(cfgRes.retention_count || 7);
         setPauseContainer(cfgRes.pause_container ?? true);
+        setBackupMethod((cfgRes.backup_method as "volume" | "pg_dump") || "volume");
+        setPgUser(cfgRes.pg_user || "postgres");
         if (Array.isArray(cfgRes.volumes)) {
           setSelectedVolumes(cfgRes.volumes);
         } else {
@@ -148,6 +225,20 @@ export function ContainerBackupsTab({
     }
   }
 
+  const handleScheduleChange = (
+    interval: "daily" | "weekly" | "monthly",
+    time: string,
+    dow: string,
+    dom: string
+  ) => {
+    setFreqInterval(interval);
+    setFreqTime(time);
+    setFreqDayOfWeek(dow);
+    setFreqDayOfMonth(dom);
+    const newCron = buildCron(interval, time, dow, dom);
+    setCronExpr(newCron);
+  };
+
   const handleToggleEnabled = async () => {
     const nextEnabled = !enabled;
     setEnabled(nextEnabled);
@@ -161,6 +252,8 @@ export function ContainerBackupsTab({
           cron_expression: cronExpr,
           retention_count: Number(retention),
           pause_container: pauseContainer,
+          backup_method: backupMethod,
+          pg_user: pgUser,
         }),
       });
       if (res.ok) {
@@ -169,7 +262,8 @@ export function ContainerBackupsTab({
         toast.success(nextEnabled ? "Automatic backups enabled." : "Automatic backups disabled.");
       } else {
         setEnabled(!nextEnabled);
-        toast.error("Failed to update backup status.");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to update backup status.");
       }
     } catch (err) {
       setEnabled(!nextEnabled);
@@ -198,6 +292,8 @@ export function ContainerBackupsTab({
           cron_expression: cronExpr,
           retention_count: Number(retention),
           pause_container: pauseContainer,
+          backup_method: backupMethod,
+          pg_user: pgUser,
         }),
       });
 
@@ -206,7 +302,8 @@ export function ContainerBackupsTab({
         setConfig(updated);
         toast.success("Backup configuration saved successfully.");
       } else {
-        toast.error("Failed to save backup configuration.");
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to save backup configuration.");
       }
     } catch (err) {
       console.error(err);
@@ -318,10 +415,10 @@ export function ContainerBackupsTab({
           </div>
           <div>
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              Volume Backups
+              Container Backups
             </h3>
             <p className="text-sm text-slate-400">
-              Automatically store or restore compressed <code>.tar.gz</code> archives of container volumes.
+              Automatically store or restore backups of container data via volume archives or PostgreSQL dumps.
             </p>
           </div>
         </div>
@@ -360,60 +457,205 @@ export function ContainerBackupsTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Storage Managed Badge */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Storage Destination
-            </label>
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-              <Cloud className="w-4 h-4 text-blue-400" />
-              <span>AutoHost Cloud Storage (Included)</span>
+          {/* Storage, Method & Retention */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Storage Destination
+              </label>
+              <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                <Cloud className="w-4 h-4 text-blue-400" />
+                <span>AutoHost Cloud Storage (Included)</span>
+              </div>
             </div>
+
+            {/* Backup Method Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Backup Method
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBackupMethod("volume")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all ${
+                    backupMethod === "volume"
+                      ? "bg-blue-600/10 border-blue-500/50 text-blue-300 shadow-sm shadow-blue-500/10"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <HardDrive className="w-4 h-4" />
+                  <div className="text-left">
+                    <div>Volume Archive</div>
+                    <div className="text-[10px] opacity-70 font-normal">Raw .tar.gz of volumes</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBackupMethod("pg_dump")}
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-sm font-medium transition-all ${
+                    backupMethod === "pg_dump"
+                      ? "bg-emerald-600/10 border-emerald-500/50 text-emerald-300 shadow-sm shadow-emerald-500/10"
+                      : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  <div className="text-left">
+                    <div>PostgreSQL Dump</div>
+                    <div className="text-[10px] opacity-70 font-normal">Logical SQL dump</div>
+                  </div>
+                </button>
+              </div>
+              {backupMethod === "pg_dump" && (
+                <div className="mt-3 p-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-[11px] text-emerald-300/80">
+                  💡 Uses <code className="bg-emerald-500/10 px-1 rounded">pg_dumpall</code> for a portable, version-safe logical backup.
+                </div>
+              )}
+            </div>
+
+            {/* PostgreSQL User (only shown for pg_dump) */}
+            {backupMethod === "pg_dump" && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  PostgreSQL User
+                </label>
+                <input
+                  type="text"
+                  value={pgUser}
+                  onChange={(e) => setPgUser(e.target.value)}
+                  placeholder="postgres"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                Retention (Copies to keep)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={30}
+                value={retention}
+                onChange={(e) => setRetention(Number(e.target.value))}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+              />
+            </div>
+
+            {/* Pause container checkbox (only for volume method) */}
+            {backupMethod === "volume" && (
+              <div className="flex items-center gap-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="pauseCheck"
+                  checked={pauseContainer}
+                  onChange={(e) => setPauseContainer(e.target.checked)}
+                  className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-0"
+                />
+                <label htmlFor="pauseCheck" className="text-sm text-slate-300">
+                  Pause container during archiving (Recommended for DBs)
+                </label>
+              </div>
+            )}
           </div>
 
-          {/* Cron / Frequency */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Frequency (Cron Expression)
+          {/* Backup Schedule Builder */}
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+              Backup Schedule
             </label>
-            <select
-              value={cronExpr}
-              onChange={(e) => setCronExpr(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="0 3 * * *">Daily (03:00 AM UTC)</option>
-              <option value="0 2 * * 0">Weekly (Sundays 02:00 AM UTC)</option>
-              <option value="0 0 1 * *">Monthly (1st day at 00:00 UTC)</option>
-            </select>
-          </div>
 
-          {/* Retention */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-              Retention (Copies to keep)
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={30}
-              value={retention}
-              onChange={(e) => setRetention(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Interval Selection */}
+              <div>
+                <span className="block text-[11px] text-slate-400 mb-1">Frequency</span>
+                <select
+                  value={freqInterval}
+                  onChange={(e) =>
+                    handleScheduleChange(
+                      e.target.value as "daily" | "weekly" | "monthly",
+                      freqTime,
+                      freqDayOfWeek,
+                      freqDayOfMonth
+                    )
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
 
-          {/* Pause container checkbox */}
-          <div className="flex items-center gap-3 pt-6">
-            <input
-              type="checkbox"
-              id="pauseCheck"
-              checked={pauseContainer}
-              onChange={(e) => setPauseContainer(e.target.checked)}
-              className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-0"
-            />
-            <label htmlFor="pauseCheck" className="text-sm text-slate-300">
-              Pause container during archiving (Recommended for DBs)
-            </label>
+              {/* Day Selection (if weekly or monthly) */}
+              {freqInterval === "weekly" && (
+                <div>
+                  <span className="block text-[11px] text-slate-400 mb-1">Day of Week</span>
+                  <select
+                    value={freqDayOfWeek}
+                    onChange={(e) =>
+                      handleScheduleChange(freqInterval, freqTime, e.target.value, freqDayOfMonth)
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </div>
+              )}
+
+              {freqInterval === "monthly" && (
+                <div>
+                  <span className="block text-[11px] text-slate-400 mb-1">Day of Month</span>
+                  <select
+                    value={freqDayOfMonth}
+                    onChange={(e) =>
+                      handleScheduleChange(freqInterval, freqTime, freqDayOfWeek, e.target.value)
+                    }
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  >
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={String(d)}>
+                        {d === 1 ? "1st" : d === 2 ? "2nd" : d === 3 ? "3rd" : `${d}th`} of the month
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Time Picker (UTC) */}
+              <div>
+                <span className="block text-[11px] text-slate-400 mb-1">Time (UTC)</span>
+                <input
+                  type="time"
+                  value={freqTime}
+                  onChange={(e) =>
+                    handleScheduleChange(
+                      freqInterval,
+                      e.target.value,
+                      freqDayOfWeek,
+                      freqDayOfMonth
+                    )
+                  }
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Schedule Preview Badge */}
+            <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-2 rounded-lg text-xs text-slate-300">
+              <Calendar className="w-4 h-4 text-blue-400 shrink-0" />
+              <span className="truncate">{getScheduleSummary(freqInterval, freqTime, freqDayOfWeek, freqDayOfMonth)}</span>
+              <span className="ml-auto font-mono text-[10px] text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 shrink-0">
+                {cronExpr}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -552,15 +794,26 @@ export function ContainerBackupsTab({
                         {r.file_size_bytes ? `${(r.file_size_bytes / (1024 * 1024)).toFixed(2)} MB` : "-"}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                            r.trigger_type === "manual"
-                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
-                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          }`}
-                        >
-                          {r.trigger_type === "manual" ? "Manual" : "Scheduled"}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                              r.trigger_type === "manual"
+                                ? "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+                                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                            }`}
+                          >
+                            {r.trigger_type === "manual" ? "Manual" : "Scheduled"}
+                          </span>
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                              r.backup_method === "pg_dump"
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-slate-800 text-slate-400 border border-slate-700"
+                            }`}
+                          >
+                            {r.backup_method === "pg_dump" ? "SQL" : "VOL"}
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -680,12 +933,12 @@ export function ContainerBackupsTab({
                           </span>
                         )}
                         {r.status === "failed" && (
-                          <div className="flex flex-col" title={r.error_message}>
+                          <div className="flex flex-col max-w-sm" title={r.error_message}>
                             <span className="inline-flex items-center gap-1.5 text-xs text-rose-400 font-medium">
                               <XCircle className="w-4 h-4 flex-shrink-0" /> Failed
                             </span>
                             {r.error_message && (
-                              <span className="text-[11px] text-rose-400/80 font-mono truncate max-w-[180px]">
+                              <span className="text-[11px] text-rose-400/90 font-mono break-words line-clamp-3 mt-0.5">
                                 {r.error_message}
                               </span>
                             )}

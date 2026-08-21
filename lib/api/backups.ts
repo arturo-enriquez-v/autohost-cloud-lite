@@ -20,6 +20,8 @@ export interface BackupConfig {
   cron_expression?: string;
   retention_count?: number;
   pause_container?: boolean;
+  backup_method?: string;
+  pg_user?: string;
   storage_credential_id?: string;
   enabled: boolean;
 }
@@ -31,6 +33,7 @@ export interface BackupRecord {
   container_name: string;
   s3_key: string;
   file_size_bytes: number;
+  backup_method?: string;
   trigger_type: string;
   status: string;
   error_message?: string;
