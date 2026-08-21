@@ -10,6 +10,10 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# jemalloc prevents musl libc memory fragmentation in long-running Node.js containers
+RUN apk add --no-cache jemalloc
+ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
