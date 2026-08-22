@@ -31,5 +31,8 @@ export async function backendFetch(
 
   // Sin credentials:"include" — Go no usa cookies, no necesita este header
   // cache: "no-store" por defecto evita que Next.js acumule respuestas dinámicas en el Data Cache en RAM
-  return fetch(url, { cache: "no-store", ...init, headers });
+  // signal con timeout de 15s por defecto si no se pasa uno explícito (ej. en SSE) para evitar sockets colgados (ETIMEDOUT)
+  const signal = init.signal ?? AbortSignal.timeout(15_000);
+
+  return fetch(url, { cache: "no-store", ...init, headers, signal });
 }
