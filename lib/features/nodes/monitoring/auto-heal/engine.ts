@@ -169,8 +169,8 @@ export async function handleServiceCheck(
     log(`Healthcheck FAILED. Action: RECREATE Compose Service (Attempt ${attemptNum}/${recreateMax})`, 'warn');
 
     try {
-      const composeFile = serviceConfig.recreate.compose_file_path;
-      const targetService = serviceConfig.recreate.service_name || serviceName;
+      const composeFile = serviceConfig.recreate?.compose_file_path || "";
+      const targetService = serviceConfig.recreate?.service_name || serviceName;
       const cmd = `docker compose -f ${composeFile} up -d --force-recreate ${targetService}`;
 
       await executor.exec(cmd);

@@ -138,8 +138,8 @@ function MonitorRow({
         <span>Threshold: {monitor.failureThreshold} failures</span>
         {monitor.autoHealConfig?.enabled && (
           <span className="text-[#70AEFF]">
-            Auto-Heal: {monitor.autoHealConfig.consecutive_failures_threshold} failures → {monitor.autoHealConfig.restart.enabled ? "restart" : "no restart"}
-            {monitor.autoHealConfig.recreate.enabled ? " → compose recreate" : ""}
+            Auto-Heal: {monitor.autoHealConfig.consecutive_failures_threshold ?? 3} failures → {monitor.autoHealConfig.restart?.enabled ? "restart" : "no restart"}
+            {monitor.autoHealConfig.recreate?.enabled ? " → compose recreate" : ""}
           </span>
         )}
         {monitor.lastCheckedAt && (
