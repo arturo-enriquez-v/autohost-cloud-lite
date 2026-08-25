@@ -23,7 +23,6 @@ export async function POST(req: Request) {
 
         const enrollmentTokenResponse: EnrollmentTokenResponse = await res.json();
         const apiUrl = process.env.PUBLIC_API_URL || "http://localhost:8080";
-        console.log("[ENROLLMENT TOKEN] Generated token:", enrollmentTokenResponse.token.substring(0, 20) + "...");
         return NextResponse.json({ ...enrollmentTokenResponse, api_url: apiUrl }, { status: 200 });
 
     } catch (error) {

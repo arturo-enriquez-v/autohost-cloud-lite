@@ -6,10 +6,7 @@ import type { NodeBackendResponse } from "@/lib/types";
 export async function GET() {
   const accessToken = await getAccessTokenFromCookie();
 
-  console.log("[NODES] Access token from cookie:", accessToken ? accessToken.substring(0, 20) + "..." : "null");
-
   if (!accessToken) {
-    console.log("[NODES] No access token, returning 401");
     return NextResponse.json(
       { error: "Unauthorized" },
       { status: 401 }
