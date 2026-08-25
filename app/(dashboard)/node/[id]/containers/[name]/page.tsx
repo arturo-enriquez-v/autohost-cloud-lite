@@ -85,7 +85,8 @@ export default function ContainerMetricsPage({
   const { points, isLoading, error, lastUpdated, refresh } = useContainerMetrics(
     nodeId,
     containerName,
-    range
+    range,
+    activeTab === "metrics"
   );
 
   const chartData = points.map((p) => ({
