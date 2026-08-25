@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import type { BackupConfig, BackupRecord } from "@/lib/api/backups";
 import { parseCron, buildCron } from "../utils";
+
+const EMPTY_VOLUMES: string[] = [];
 
 interface UseContainerBackupsOptions {
   nodeId: string;
@@ -14,7 +16,7 @@ interface UseContainerBackupsOptions {
 export function useContainerBackups({
   nodeId,
   containerName,
-  detectedVolumes = [],
+  detectedVolumes = EMPTY_VOLUMES,
 }: UseContainerBackupsOptions) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,6 +49,11 @@ export function useContainerBackups({
   const [restoreConfirmInput, setRestoreConfirmInput] = useState("");
   const [restoreStatusMsg, setRestoreStatusMsg] = useState("");
 
+  const volumesRef = useRef(detectedVolumes);
+  useEffect(() => {
+    volumesRef.current = detectedVolumes;
+  }, [detectedVolumes]);
+
   const completedSnapshots = useMemo(
     () =>
       records.filter(
@@ -60,6 +67,7 @@ export function useContainerBackups({
 
   // Check if inner configuration fields have unsaved modifications
   const hasChanges = useMemo(() => {
+    const defaultVols = volumesRef.current;
     if (!config) {
       return (
         cronExpr !== "0 3 * * *" ||
@@ -75,7 +83,7 @@ export function useContainerBackups({
     const methodChanged = (config.backup_method || "volume") !== backupMethod;
     const pgUserChanged = (config.pg_user || "postgres") !== pgUser;
 
-    const configVols = Array.isArray(config.volumes) ? config.volumes : detectedVolumes;
+    const configVols = Array.isArray(config.volumes) ? config.volumes : defaultVols;
     const volsChanged =
       configVols.length !== selectedVolumes.length ||
       !configVols.every((v: string) => selectedVolumes.includes(v));
@@ -95,11 +103,11 @@ export function useContainerBackups({
     pauseContainer,
     backupMethod,
     pgUser,
-    detectedVolumes,
     selectedVolumes,
   ]);
 
   const loadRecords = useCallback(async () => {
+    if (!nodeId || !containerName) return;
     try {
       const res = await fetch(`/api/backups/records/${nodeId}/${containerName}`);
       if (res.ok) {
@@ -115,6 +123,7 @@ export function useContainerBackups({
 
   const loadData = useCallback(
     async (isInitial = false) => {
+      if (!nodeId || !containerName) return;
       if (isInitial) setLoading(true);
       try {
         const [cfgRes, recsRes] = await Promise.all([
@@ -130,6 +139,7 @@ export function useContainerBackups({
           setRecords(recsRes);
         }
 
+        const currentVolumes = volumesRef.current;
         if (cfgRes && cfgRes.id) {
           setConfig(cfgRes);
           setEnabled(cfgRes.enabled ?? false);
@@ -145,13 +155,13 @@ export function useContainerBackups({
           setPauseContainer(cfgRes.pause_container ?? true);
           setBackupMethod((cfgRes.backup_method as "volume" | "pg_dump") || "volume");
           setPgUser(cfgRes.pg_user || "postgres");
-          if (Array.isArray(cfgRes.volumes)) {
+          if (Array.isArray(cfgRes.volumes) && cfgRes.volumes.length > 0) {
             setSelectedVolumes(cfgRes.volumes);
           } else {
-            setSelectedVolumes(detectedVolumes);
+            setSelectedVolumes(currentVolumes);
           }
         } else {
-          setSelectedVolumes(detectedVolumes);
+          setSelectedVolumes(currentVolumes);
         }
       } catch (err) {
         console.error("Error loading backup tab data:", err);
@@ -159,7 +169,7 @@ export function useContainerBackups({
         if (isInitial) setLoading(false);
       }
     },
-    [nodeId, containerName, detectedVolumes]
+    [nodeId, containerName]
   );
 
   useEffect(() => {

@@ -9,6 +9,8 @@ import { BackupSnapshotsTable } from "./BackupSnapshotsTable";
 import { BackupActivityLogTable } from "./BackupActivityLogTable";
 import { RestoreConfirmModal } from "./RestoreConfirmModal";
 
+const EMPTY_VOLUMES: string[] = [];
+
 interface Props {
   nodeId: string;
   containerName: string;
@@ -18,7 +20,7 @@ interface Props {
 export function ContainerBackupsTab({
   nodeId,
   containerName,
-  detectedVolumes = [],
+  detectedVolumes = EMPTY_VOLUMES,
 }: Props) {
   const {
     loading,
