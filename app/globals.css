@@ -130,3 +130,35 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Custom Scrollbars ────────────────────────────────────────────────────── */
+
+/* Modern browsers: thin, auto-hiding scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(210 40% 30% / 0.5) transparent;
+}
+
+/* Webkit (Chrome, Edge, Safari) — fine-tuned styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(210 40% 30% / 0.4);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(210 80% 60% / 0.6);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
