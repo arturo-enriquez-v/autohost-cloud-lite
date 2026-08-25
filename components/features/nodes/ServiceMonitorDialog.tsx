@@ -48,6 +48,55 @@ const DEFAULT_AUTO_HEAL: AutoHealConfig = {
   },
 };
 
+export function normalizeAutoHealConfig(
+  raw?: Partial<AutoHealConfig> | null,
+  fallbackServiceName = ""
+): AutoHealConfig {
+  return {
+    enabled: Boolean(raw?.enabled),
+    consecutive_failures_threshold:
+      typeof raw?.consecutive_failures_threshold === "number" && raw.consecutive_failures_threshold > 0
+        ? raw.consecutive_failures_threshold
+        : DEFAULT_AUTO_HEAL.consecutive_failures_threshold,
+    grace_period_seconds:
+      typeof raw?.grace_period_seconds === "number" && raw.grace_period_seconds > 0
+        ? raw.grace_period_seconds
+        : DEFAULT_AUTO_HEAL.grace_period_seconds,
+    restart: {
+      enabled:
+        typeof raw?.restart?.enabled === "boolean"
+          ? raw.restart.enabled
+          : DEFAULT_AUTO_HEAL.restart.enabled,
+      max_attempts:
+        typeof raw?.restart?.max_attempts === "number" && raw.restart.max_attempts > 0
+          ? raw.restart.max_attempts
+          : DEFAULT_AUTO_HEAL.restart.max_attempts,
+      window_seconds:
+        typeof raw?.restart?.window_seconds === "number" && raw.restart.window_seconds > 0
+          ? raw.restart.window_seconds
+          : DEFAULT_AUTO_HEAL.restart.window_seconds,
+    },
+    recreate: {
+      enabled:
+        typeof raw?.recreate?.enabled === "boolean"
+          ? raw.recreate.enabled
+          : DEFAULT_AUTO_HEAL.recreate.enabled,
+      compose_file_path:
+        typeof raw?.recreate?.compose_file_path === "string"
+          ? raw.recreate.compose_file_path
+          : DEFAULT_AUTO_HEAL.recreate.compose_file_path,
+      service_name:
+        typeof raw?.recreate?.service_name === "string" && raw.recreate.service_name.trim() !== ""
+          ? raw.recreate.service_name
+          : fallbackServiceName || DEFAULT_AUTO_HEAL.recreate.service_name,
+      max_attempts:
+        typeof raw?.recreate?.max_attempts === "number" && raw.recreate.max_attempts > 0
+          ? raw.recreate.max_attempts
+          : DEFAULT_AUTO_HEAL.recreate.max_attempts,
+    },
+  };
+}
+
 const DEFAULT_FORM: UpsertServiceMonitorPayload = {
   nodeId: "",
   serviceName: "",
@@ -93,30 +142,28 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   // Populate form when editing an existing monitor.
   useEffect(() => {
     if (monitor) {
-      const autoHeal: AutoHealConfig = monitor.autoHealConfig ?? {
-        ...DEFAULT_AUTO_HEAL,
-        recreate: {
-          ...DEFAULT_AUTO_HEAL.recreate,
-          service_name: monitor.serviceName,
-        },
-      };
+      const autoHeal = normalizeAutoHealConfig(monitor.autoHealConfig, monitor.serviceName);
       setForm({
         nodeId,
-        serviceName: monitor.serviceName,
-        checkType: monitor.checkType,
-        httpUrl: monitor.httpUrl,
-        httpExpectedStatus: monitor.httpExpectedStatus,
-        tcpHost: monitor.tcpHost,
-        tcpPort: monitor.tcpPort,
-        intervalSeconds: monitor.intervalSeconds,
-        failureThreshold: monitor.failureThreshold,
-        notifyTelegram: monitor.notifyTelegram,
-        enabled: monitor.enabled,
+        serviceName: monitor.serviceName ?? "",
+        checkType: monitor.checkType ?? "process",
+        httpUrl: monitor.httpUrl ?? "",
+        httpExpectedStatus: monitor.httpExpectedStatus ?? 200,
+        tcpHost: monitor.tcpHost ?? "",
+        tcpPort: monitor.tcpPort ?? 0,
+        intervalSeconds: monitor.intervalSeconds ?? 30,
+        failureThreshold: monitor.failureThreshold ?? 3,
+        notifyTelegram: monitor.notifyTelegram ?? false,
+        enabled: monitor.enabled ?? true,
         autoHealConfig: autoHeal,
       });
-      if (autoHeal.enabled) setShowAutoHealSection(true);
+      setShowAutoHealSection(Boolean(autoHeal.enabled));
     } else {
-      setForm({ ...DEFAULT_FORM, nodeId });
+      setForm({
+        ...DEFAULT_FORM,
+        nodeId,
+        autoHealConfig: normalizeAutoHealConfig(null),
+      });
       setShowAutoHealSection(false);
     }
     setError(null);
@@ -128,10 +175,13 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   ) => setForm((f) => ({ ...f, [key]: value }));
 
   const setAutoHeal = (updater: (prev: AutoHealConfig) => AutoHealConfig) => {
-    setForm((f) => ({
-      ...f,
-      autoHealConfig: updater(f.autoHealConfig || DEFAULT_AUTO_HEAL),
-    }));
+    setForm((f) => {
+      const current = normalizeAutoHealConfig(f.autoHealConfig, f.serviceName);
+      return {
+        ...f,
+        autoHealConfig: updater(current),
+      };
+    });
   };
 
   const handleSubmit = async () => {
@@ -151,7 +201,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
     }
   };
 
-  const autoHeal = form.autoHealConfig || DEFAULT_AUTO_HEAL;
+  const autoHeal = normalizeAutoHealConfig(form.autoHealConfig, form.serviceName);
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
