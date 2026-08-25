@@ -10,9 +10,6 @@ export async function POST(req: Request) {
 
   const data = await res.json().catch(() => ({}));
 
-  console.log("[REGISTER] Response status:", res.status);
-  console.log("[REGISTER] Has access_token:", !!data?.access_token);
-
   const out = NextResponse.json(data, { status: res.status });
   
   return out;

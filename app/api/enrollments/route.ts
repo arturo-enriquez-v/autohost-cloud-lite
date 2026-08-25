@@ -22,7 +22,6 @@ export async function POST(req: Request) {
         }
 
         const enrollmentTokenResponse: EnrollmentTokenResponse = await res.json();
-        console.log("[ENROLLMENT TOKEN] Generated token:", enrollmentTokenResponse.token.substring(0, 20) + "...");
         return NextResponse.json(enrollmentTokenResponse, { status: 200 });
 
     } catch (error) {
