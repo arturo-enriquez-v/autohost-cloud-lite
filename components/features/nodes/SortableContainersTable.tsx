@@ -40,61 +40,23 @@ import {
 import type { DockerContainer } from "@/lib/types"
 import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
 import { useRouter } from "next/navigation"
-
-function storageKey(nodeId: string) {
-  return `container-order:${nodeId}`
-}
-
-function lockStorageKey(nodeId: string) {
-  return `container-locks:${nodeId}`
-}
-
-function loadOrder(nodeId: string): string[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(storageKey(nodeId))
-    return raw ? (JSON.parse(raw) as string[]) : []
-  } catch {
-    return []
-  }
-}
-
-function saveOrder(nodeId: string, order: string[]) {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(storageKey(nodeId), JSON.stringify(order))
-  } catch {}
-}
-
-function loadLocks(nodeId: string): Record<string, boolean> {
-  if (typeof window === "undefined") return {}
-  try {
-    const raw = localStorage.getItem(lockStorageKey(nodeId))
-    return raw ? (JSON.parse(raw) as Record<string, boolean>) : {}
-  } catch {
-    return {}
-  }
-}
-
-function saveLocks(nodeId: string, locks: Record<string, boolean>) {
-  if (typeof window === "undefined") return
-  try {
-    localStorage.setItem(lockStorageKey(nodeId), JSON.stringify(locks))
-  } catch {}
-}
+import { fetchContainerSettings, saveContainerSettings } from "@/lib/features/nodes/api"
+import { toast } from "sonner"
 
 function applyStoredOrder(containers: DockerContainer[], stored: string[]): DockerContainer[] {
-  if (stored.length === 0) return containers
-  const map = new Map(containers.map((c) => [c.id, c]))
+  if (!stored || stored.length === 0) return containers
+  const byName = new Map(containers.map((c) => [c.name, c]))
+  const byId = new Map(containers.map((c) => [c.id, c]))
   const ordered: DockerContainer[] = []
-  for (const id of stored) {
-    const found = map.get(id)
+  for (const key of stored) {
+    const found = byName.get(key) || byId.get(key)
     if (found) {
       ordered.push(found)
-      map.delete(id)
+      byName.delete(found.name)
+      byId.delete(found.id)
     }
   }
-  return [...ordered, ...Array.from(map.values())]
+  return [...ordered, ...Array.from(byName.values())]
 }
 
 function ContainerStateBadge({ state }: { state: string }) {
@@ -287,7 +249,7 @@ interface Props {
   containers: DockerContainer[]
   actionState: { name: string; action: ContainerAction } | null
   onLog: (name: string) => void
-  onAction: (name: string, action: ContainerAction) => void
+  onAction: (name: string, action: ContainerAction) => Promise<void> | void
 }
 
 interface ConfirmModalState {
@@ -305,40 +267,104 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
     containerName: "",
     action: null,
   })
-  const initialised = useRef(false)
 
+  const orderRef = useRef<string[]>([])
+  const locksRef = useRef<Record<string, boolean>>({})
+
+  // Load persisted settings from backend API
   useEffect(() => {
-    const stored = loadOrder(nodeId)
-    setSorted(applyStoredOrder(containers, stored))
-    setLocks(loadLocks(nodeId))
-    initialised.current = true
-  }, [nodeId, containers])
+    let cancelled = false
+
+    fetchContainerSettings(nodeId)
+      .then((settings) => {
+        if (cancelled) return
+        const loadedOrder = settings?.sort_order ?? []
+        const loadedLocks = settings?.locked_containers ?? {}
+        orderRef.current = loadedOrder
+        locksRef.current = loadedLocks
+        setLocks(loadedLocks)
+        setSorted((curr) => applyStoredOrder(containers.length > 0 ? containers : curr, loadedOrder))
+      })
+      .catch((err) => {
+        console.error("Failed to load container settings:", err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [nodeId])
+
+  // When live container list updates from gRPC streaming/polling, preserve user order
+  useEffect(() => {
+    setSorted(applyStoredOrder(containers, orderRef.current))
+  }, [containers])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
+
+    let nextOrder: string[] = []
     setSorted((prev) => {
       const oldIndex = prev.findIndex((c) => c.id === active.id)
       const newIndex = prev.findIndex((c) => c.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return prev
       const next = arrayMove(prev, oldIndex, newIndex)
-      saveOrder(nodeId, next.map((c) => c.id))
+      nextOrder = next.map((c) => c.name)
       return next
     })
+
+    if (nextOrder.length > 0) {
+      orderRef.current = nextOrder
+      try {
+        await saveContainerSettings(nodeId, {
+          sort_order: nextOrder,
+          locked_containers: locksRef.current,
+        })
+      } catch (err) {
+        console.error("Failed to save container order:", err)
+        toast.error("No se pudo guardar el orden de los contenedores en el servidor")
+      }
+    }
   }
 
-  const handleToggleLock = (containerId: string) => {
-    setLocks((prev) => {
-      const next = { ...prev, [containerId]: !prev[containerId] }
-      saveLocks(nodeId, next)
-      return next
-    })
+  const handleToggleLock = async (containerName: string) => {
+    const currentLocked = Boolean(locksRef.current[containerName])
+    const nextLocked = !currentLocked
+    const nextLocks = { ...locksRef.current, [containerName]: nextLocked }
+
+    // Optimistic update
+    locksRef.current = nextLocks
+    setLocks(nextLocks)
+
+    try {
+      await saveContainerSettings(nodeId, {
+        sort_order: orderRef.current,
+        locked_containers: nextLocks,
+      })
+      toast.success(
+        nextLocked
+          ? `Acciones bloqueadas para ${containerName}`
+          : `Acciones desbloqueadas para ${containerName}`
+      )
+    } catch (err) {
+      console.error("Failed to save container lock:", err)
+      // Revert optimistic update
+      const revertedLocks = { ...locksRef.current, [containerName]: currentLocked }
+      locksRef.current = revertedLocks
+      setLocks(revertedLocks)
+      toast.error("No se pudo guardar la configuración de bloqueo")
+    }
   }
 
   const handleRequestAction = (containerName: string, action: ContainerAction) => {
+    if (locksRef.current[containerName]) {
+      toast.error(`Acción bloqueada: el contenedor "${containerName}" está protegido por candado`)
+      return
+    }
     setConfirmModal({
       open: true,
       containerName,
@@ -346,10 +372,15 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
     })
   }
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (!confirmModal.action || !confirmModal.containerName) return
-    onAction(confirmModal.containerName, confirmModal.action)
+    const { containerName, action } = confirmModal
     setConfirmModal({ open: false, containerName: "", action: null })
+    try {
+      await onAction(containerName, action)
+    } catch (err: any) {
+      toast.error(err?.message || `Error al ejecutar acción en ${containerName}`)
+    }
   }
 
   if (sorted.length === 0) return null
@@ -376,8 +407,8 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                     key={ctr.id}
                     ctr={ctr}
                     actionState={actionState}
-                    isLocked={Boolean(locks[ctr.id])}
-                    onToggleLock={() => handleToggleLock(ctr.id)}
+                    isLocked={Boolean(locks[ctr.name] || locks[ctr.id])}
+                    onToggleLock={() => handleToggleLock(ctr.name)}
                     onMetricsAndBackups={() =>
                       router.push(`/node/${nodeId}/containers/${encodeURIComponent(ctr.name)}`)
                     }

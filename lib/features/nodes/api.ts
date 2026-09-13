@@ -149,6 +149,35 @@ export async function runContainerAction(
   await dispatchAndPoll(nodeId, `container.${action}.${name}`);
 }
 
+export interface ContainerSettings {
+  id?: string;
+  node_id: string;
+  sort_order: string[];
+  locked_containers: Record<string, boolean>;
+}
+
+export async function fetchContainerSettings(nodeId: string): Promise<ContainerSettings | null> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/containers/settings`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function saveContainerSettings(
+  nodeId: string,
+  data: { sort_order: string[]; locked_containers: Record<string, boolean> }
+): Promise<ContainerSettings | null> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/containers/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error || "Failed to save container settings");
+  }
+  return res.json();
+}
+
 // ── Alerts ───────────────────────────────────────────────────────────────────
 
 export async function fetchNodeAlertConfig(nodeId: string): Promise<NodeAlertConfig | null> {

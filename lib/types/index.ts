@@ -10,3 +10,4 @@ export * from "./alert-event";
 export * from "./project";
 export * from "./service-monitor";
 export * from "./caddy-route";
+export * from "./cluster";
