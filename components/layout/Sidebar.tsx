@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { AutohostLogo } from "@/components/ui/AutohostLogo"
+import { useNotifications } from "@/lib/context/notifications-context"
 
 interface SidebarProps {
   isCollapsed: boolean
@@ -44,6 +45,7 @@ interface SidebarProps {
 const coreMenuItemsTop = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/" },
   { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
+  { id: "clusters", label: "Clusters", icon: Layers, path: "/clusters" },
 ]
 
 const coreMenuItemsBottom = [
@@ -66,6 +68,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const pathname = usePathname()
   const { projects, createProject } = useProjects()
   const { selectedProject, setSelectedProject } = useProjectContext()
+  const { unreadAlerts, unreadLogs } = useNotifications()
   const [projectsOpen, setProjectsOpen] = useState(true)
   const [networkingOpen, setNetworkingOpen] = useState(false)
   const [billingOpen, setBillingOpen] = useState(true)
@@ -321,11 +324,23 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
       {items.map((item) => {
         const Icon = item.icon
         const active = isActive(item.path)
+        const count =
+          item.id === "alerts"
+            ? unreadAlerts
+            : item.id === "external-logs"
+            ? unreadLogs
+            : 0
+
+        const badgeStyle =
+          item.id === "alerts"
+            ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+            : "bg-[#70AEFF]/20 text-[#70AEFF] border border-[#70AEFF]/30"
+
         return (
           <button
             key={item.id}
             onClick={() => navigate(item.path)}
-            title={collapsed ? item.label : undefined}
+            title={collapsed ? (count > 0 ? `${item.label} (${count})` : item.label) : undefined}
             className={cn(
               "flex w-full items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
               collapsed ? "justify-center gap-0" : "gap-3",
@@ -334,8 +349,36 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
                 : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]",
             )}
           >
-            <Icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>{item.label}</span>}
+            <div className="relative shrink-0 flex items-center justify-center">
+              <Icon className="h-5 w-5" />
+              {collapsed && count > 0 && (
+                <span
+                  className={cn(
+                    "absolute -top-1.5 -right-1.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full text-[9px] font-bold shadow-sm ring-1 ring-sidebar px-0.5",
+                    item.id === "alerts"
+                      ? "bg-rose-500 text-white"
+                      : "bg-[#70AEFF] text-black"
+                  )}
+                >
+                  {count > 9 ? "9+" : count}
+                </span>
+              )}
+            </div>
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left truncate">{item.label}</span>
+                {count > 0 && (
+                  <span
+                    className={cn(
+                      "ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded-full transition-all animate-in fade-in-50",
+                      badgeStyle
+                    )}
+                  >
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+              </>
+            )}
           </button>
         )
       })}

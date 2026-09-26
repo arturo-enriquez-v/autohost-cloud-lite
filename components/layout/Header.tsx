@@ -12,6 +12,7 @@ import {
 import { logout } from "@/lib/api/fetch-client"
 import { useRouter } from "next/navigation"
 import { useProfile } from "@/lib/features/auth/hooks/useProfile"
+import { NotificationBell } from "@/components/features/notifications/NotificationBell"
 
 interface HeaderProps {
   onMobileMenu: () => void
@@ -43,13 +44,16 @@ export function Header({ onMobileMenu }: HeaderProps) {
         </Button>
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 hover:bg-accent focus-visible:ring-0"
-            suppressHydrationWarning
-          >
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-3 hover:bg-accent focus-visible:ring-0"
+              suppressHydrationWarning
+            >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs ring-2 ring-primary/20 overflow-hidden">
               {user?.avatar_url ? (
                 <img
@@ -101,6 +105,7 @@ export function Header({ onMobileMenu }: HeaderProps) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   )
 }
