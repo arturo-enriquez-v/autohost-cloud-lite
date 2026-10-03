@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Terminal, RefreshCw, Loader2, Play, CheckCircle2, XCircle, Clock, Zap } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,8 +34,16 @@ interface CommandsPanelProps {
 export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
   const { commands, isLoading, error, refresh } = useNodeCommands(nodeId)
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
+  const [filter, setFilter] = useState<"all" | "custom" | "system">("all")
 
-  const customCommands = commands.filter((c) => c.type === "custom")
+  const displayedCommands = commands.filter((c) => {
+    if (filter === "custom") return c.type === "custom"
+    if (filter === "system") return c.type === "default"
+    return true
+  })
+
+  const customCount = commands.filter((c) => c.type === "custom").length
+  const systemCount = commands.filter((c) => c.type === "default").length
 
   const handleExecute = async (cmd: NodeCommand) => {
     try {
@@ -48,12 +57,43 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
   return (
     <>
       <Card className="overflow-hidden">
-        <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Terminal className="h-5 w-5 shrink-0" />
-            Commands
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={refresh} className="gap-2">
+        <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <Terminal className="h-5 w-5 shrink-0" />
+              Commands
+            </CardTitle>
+            <div className="flex items-center rounded-lg border bg-muted/40 p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  filter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All ({commands.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("custom")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  filter === "custom" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Custom ({customCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("system")}
+                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                  filter === "system" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                System ({systemCount})
+              </button>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={refresh} className="gap-2 self-start sm:self-auto">
             <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Refresh</span>
           </Button>
@@ -65,24 +105,38 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
             </div>
           ) : error ? (
             <p className="text-destructive text-sm">{error}</p>
-          ) : customCommands.length === 0 ? (
+          ) : displayedCommands.length === 0 ? (
             <p className="text-muted-foreground text-sm py-4">
-              No custom commands on this node. Use{" "}
-              <code className="bg-muted px-1 rounded">autohost cc create</code> on the node to add commands.
+              {filter === "custom"
+                ? "No custom commands on this node. Use autohost cc create on the node to add scripts."
+                : "No commands found for this filter."}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Type</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {customCommands.map((cmd) => (
+                  {displayedCommands.map((cmd) => (
                     <TableRow key={cmd.id}>
+                      <TableCell className="w-20">
+                        <Badge
+                          variant="outline"
+                          className={
+                            cmd.type === "custom"
+                              ? "bg-purple-500/10 text-purple-600 border-purple-500/30 text-xs"
+                              : "bg-blue-500/10 text-blue-600 border-blue-500/30 text-xs"
+                          }
+                        >
+                          {cmd.type === "custom" ? "custom" : "system"}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="font-mono font-medium text-xs sm:text-sm">{cmd.name}</TableCell>
                       <TableCell className="text-xs sm:text-sm text-muted-foreground">{cmd.description || "—"}</TableCell>
                       <TableCell className="text-right">
