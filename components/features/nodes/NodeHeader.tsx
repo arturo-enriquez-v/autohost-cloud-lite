@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText } from "lucide-react"
+import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText, Cpu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
@@ -83,6 +83,10 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-start md:justify-end">
+        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/vms`)} className="gap-1.5 flex-1 sm:flex-initial">
+          <Cpu className="h-4 w-4 text-indigo-400" />
+          <span>VMs</span>
+        </Button>
         <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/monitoring`)} className="gap-1.5 flex-1 sm:flex-initial">
           <Activity className="h-4 w-4" />
           <span>Monitoring</span>

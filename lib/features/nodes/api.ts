@@ -19,6 +19,9 @@ import type {
   ServiceMonitor,
   UpsertServiceMonitorPayload,
   UptimePoint,
+  HypervisorResponse,
+  VirtualMachine,
+  CreateVMRequest,
 } from "./types";
 import { METRIC_RANGE_CONFIG } from "./types";
 
@@ -363,4 +366,54 @@ export async function fetchNodeNetworkStats(nodeId: string): Promise<NodeNetwork
   if (!res.ok) return null;
   return res.json();
 }
+
+export async function fetchHypervisorInfo(nodeId: string): Promise<HypervisorResponse | null> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/hypervisor`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+// ── Virtual Machines ──────────────────────────────────────────────────────────
+
+export async function fetchNodeVMs(nodeId: string): Promise<VirtualMachine[]> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/vms`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+export async function createVM(nodeId: string, payload: CreateVMRequest): Promise<VirtualMachine> {
+  const res = await fetchWithAuth(`/api/nodes/${nodeId}/vms`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to create VM" }));
+    throw new Error(err.error || "Failed to create VM");
+  }
+  return res.json();
+}
+
+export async function actionVM(vmId: string, action: "start" | "stop" | "reboot" | "destroy"): Promise<void> {
+  const res = await fetchWithAuth(`/api/vms/${vmId}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `Failed to ${action} VM` }));
+    throw new Error(err.error || `Failed to ${action} VM`);
+  }
+}
+
+export async function deleteVM(vmId: string): Promise<void> {
+  const res = await fetchWithAuth(`/api/vms/${vmId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to delete VM" }));
+    throw new Error(err.error || "Failed to delete VM");
+  }
+}
+
 

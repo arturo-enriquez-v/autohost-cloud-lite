@@ -16,5 +16,7 @@ export { MetricChartsGrid } from "./MetricChartsGrid"
 export { ContainerMetricsDialog } from "./ContainerMetricsDialog"
 export { ConnectNodeModal } from "./ConnectNodeModal"
 export { LogDiagnosticModal } from "./LogDiagnosticModal"
+export { VirtualMachinesPanel } from "./VirtualMachinesPanel"
+export { CreateVMDialog } from "./CreateVMDialog"
 
 
