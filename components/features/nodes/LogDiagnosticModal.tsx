@@ -325,22 +325,12 @@ export function LogDiagnosticModal({
 
             {planUsage && (
               <div className="ml-auto flex items-center gap-1.5 text-xs">
-                {planUsage.ai_diagnostics_month_limit === -1 ? (
-                  <Badge variant="outline" className="bg-purple-500/10 border-purple-500/30 text-purple-400 text-[11px] font-medium">
-                    Unlimited AI Diagnostics (Pro)
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className={`text-[11px] font-mono ${
-                      planUsage.ai_diagnostics_this_month >= planUsage.ai_diagnostics_month_limit
-                        ? "bg-amber-500/10 border-amber-500/30 text-amber-400 font-semibold"
-                        : "bg-[#70AEFF]/10 border-[#70AEFF]/30 text-[#70AEFF]"
-                    }`}
-                  >
-                    Quota: {planUsage.ai_diagnostics_this_month} / {planUsage.ai_diagnostics_month_limit} this month
-                  </Badge>
-                )}
+                <Badge
+                  variant="outline"
+                  className="text-[11px] font-mono bg-[#70AEFF]/10 border-[#70AEFF]/30 text-[#70AEFF]"
+                >
+                  Used this month: {planUsage.ai_diagnostics_this_month}
+                </Badge>
               </div>
             )}
           </div>
@@ -645,36 +635,9 @@ export function LogDiagnosticModal({
                 </div>
               </div>
 
-              {/* Quota Exceeded Alert */}
-              {planUsage &&
-                planUsage.ai_diagnostics_month_limit !== -1 &&
-                planUsage.ai_diagnostics_this_month >= planUsage.ai_diagnostics_month_limit && (
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                    <div className="flex items-start gap-2.5">
-                      <Sparkles className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-semibold text-foreground block text-xs mb-0.5">Monthly AI Diagnostics Quota Exhausted</span>
-                        <span className="text-muted-foreground">
-                          You have used {planUsage.ai_diagnostics_this_month} of {planUsage.ai_diagnostics_month_limit} diagnostic reports for this billing cycle.
-                        </span>
-                      </div>
-                    </div>
-                    <a href="/billing" className="shrink-0">
-                      <Button size="sm" className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold text-xs h-7 px-3">
-                        Upgrade Plan
-                      </Button>
-                    </a>
-                  </div>
-                )}
-
               <div className="pt-2 flex justify-end">
                 <Button
                   onClick={handleStartDiagnostics}
-                  disabled={Boolean(
-                    planUsage &&
-                    planUsage.ai_diagnostics_month_limit !== -1 &&
-                    planUsage.ai_diagnostics_this_month >= planUsage.ai_diagnostics_month_limit
-                  )}
                   className="gap-2 h-10 px-5 text-sm font-semibold shadow-md shadow-primary/20"
                 >
                   <Sparkles className="size-4" />

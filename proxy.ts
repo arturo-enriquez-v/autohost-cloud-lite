@@ -24,6 +24,13 @@ function publicOrigin(req: NextRequest): string {
 
 export function proxy(req: NextRequest) {
   const origin = publicOrigin(req)
+  const path = req.nextUrl.pathname
+  if (
+    process.env.NEXT_PUBLIC_EDITION === "community" &&
+    (path.startsWith("/billing/plans") || path.startsWith("/billing/invoices"))
+  ) {
+    return NextResponse.redirect(new URL("/billing", origin))
+  }
   const access  = req.cookies.get("access_token")?.value
   const refresh = req.cookies.get("refresh_token")?.value
   const isPublic = req.nextUrl.pathname.startsWith("/login")

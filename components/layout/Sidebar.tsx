@@ -63,6 +63,8 @@ const adminMenuItems = [
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
 ]
 
+const IS_COMMUNITY = process.env.NEXT_PUBLIC_EDITION === "community"
+
 export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -239,79 +241,37 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   }
 
   const renderBillingSection = (collapsed: boolean) => {
+    const active = pathname?.startsWith("/billing")
     if (collapsed) {
       return (
         <button
-          title="Billing"
+          title="Usage"
           onClick={() => navigate("/billing")}
           className={cn(
             "flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            pathname?.startsWith("/billing")
+            active
               ? "bg-[#70AEFF]/20 text-[#70AEFF]"
               : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
           )}
         >
-          <CreditCard className="h-5 w-5" />
+          <Activity className="h-5 w-5" />
         </button>
       )
     }
     return (
       <div className="mb-1">
         <button
-          onClick={() => setBillingOpen((o) => !o)}
+          onClick={() => navigate("/billing")}
           className={cn(
             "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            pathname?.startsWith("/billing")
+            active
               ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
               : "text-sidebar-foreground hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
           )}
         >
-          <CreditCard className="h-5 w-5 shrink-0" />
-          <span className="flex-1 text-left">Billing</span>
-          <ChevronDown
-            className={cn("h-3.5 w-3.5 transition-transform duration-200", billingOpen && "rotate-180")}
-          />
+          <Activity className="h-5 w-5 shrink-0" />
+          <span className="flex-1 text-left">Usage</span>
         </button>
-        {billingOpen && (
-          <div className="mt-0.5 space-y-0.5 pl-4">
-            <button
-              onClick={() => navigate("/billing")}
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname === "/billing" || pathname === "/billing/usage"
-                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
-                  : "text-sidebar-foreground/80 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
-              )}
-            >
-              <Activity className="h-4 w-4 shrink-0 opacity-70" />
-              <span>Usage</span>
-            </button>
-            <button
-              onClick={() => navigate("/billing/plans")}
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname === "/billing/plans"
-                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
-                  : "text-sidebar-foreground/80 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
-              )}
-            >
-              <Zap className="h-4 w-4 shrink-0 opacity-70" />
-              <span>Plans</span>
-            </button>
-            <button
-              onClick={() => navigate("/billing/invoices")}
-              className={cn(
-                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname === "/billing/invoices"
-                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
-                  : "text-sidebar-foreground/80 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
-              )}
-            >
-              <Receipt className="h-4 w-4 shrink-0 opacity-70" />
-              <span>Invoices</span>
-            </button>
-          </div>
-        )}
       </div>
     )
   }
@@ -503,19 +463,6 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
             {formError && (
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
                 <span>{formError}</span>
-                {formError.toLowerCase().includes("limit") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setCreateOpen(false)
-                      navigate("/billing/plans")
-                    }}
-                    className="h-6 px-2 text-[10px] border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0 font-semibold"
-                  >
-                    Upgrade
-                  </Button>
-                )}
               </div>
             )}
             <div className="flex justify-end gap-2">
