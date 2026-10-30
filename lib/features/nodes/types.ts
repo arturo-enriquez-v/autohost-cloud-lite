@@ -364,7 +364,7 @@ export interface HypervisorResponse {
 
 // ─── Virtual Machines ────────────────────────────────────────────────────────
 
-export type VMStatus = "provisioning" | "running" | "stopped" | "error";
+export type VMStatus = "provisioning" | "running" | "stopped" | "error" | 'creating';
 
 export interface VirtualMachine {
   id: string;
