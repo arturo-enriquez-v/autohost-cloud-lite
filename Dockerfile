@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 COPY . .
+# NEXT_PUBLIC_* se incrusta en build time
+ARG NEXT_PUBLIC_EDITION=community
+ENV NEXT_PUBLIC_EDITION=$NEXT_PUBLIC_EDITION
 RUN npm run build
 
 # Production stage
@@ -26,6 +29,7 @@ COPY --from=builder --chown=node:node /app/public ./public
 # 2. Cambiar al usuario sin privilegios antes de arrancar la app
 USER node
 
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 EXPOSE 3000
 
 CMD ["node", "server.js"]

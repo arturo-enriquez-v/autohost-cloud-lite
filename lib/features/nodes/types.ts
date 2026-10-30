@@ -340,3 +340,57 @@ export interface LogEntry {
   unit: string;
   message: string;
 }
+
+// ─── Hypervisor (Virtualization capacity) ─────────────────────────────────────
+
+export interface HypervisorInfo {
+  capable: boolean;
+  kvm_available: boolean;
+  libvirt_available: boolean;
+  libvirt_version: string;
+  reason?: string;
+  network_name: string;
+  cpu_cores: number;
+  ram_total_bytes: number;
+  storage_total_bytes: number;
+  storage_available_bytes: number;
+  reported_at: string;
+}
+
+export interface HypervisorResponse {
+  reported: boolean;
+  info?: HypervisorInfo;
+}
+
+// ─── Virtual Machines ────────────────────────────────────────────────────────
+
+export type VMStatus = "provisioning" | "running" | "stopped" | "error";
+
+export interface VirtualMachine {
+  id: string;
+  host_node_id: string;
+  node_id?: string | null;
+  owner_id: string;
+  name: string;
+  vcpus: number;
+  ram_mb: number;
+  disk_gb: number;
+  image: string;
+  status: VMStatus;
+  ip_address?: string | null;
+  cloud_init_user?: string | null;
+  error_message?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateVMRequest {
+  name: string;
+  vcpus: number;
+  ram_mb: number;
+  disk_gb: number;
+  image: string;
+  cloud_init_user?: string;
+  ssh_keys?: string[];
+}
+
