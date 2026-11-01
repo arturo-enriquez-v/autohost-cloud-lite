@@ -80,6 +80,11 @@ export function LiveMetricsCard({ nodeId }: LiveMetricsCardProps) {
             <LiveStat
               label="CPU"
               value={`${live.cpu_usage_percent.toFixed(1)}%`}
+              sub={
+                live.cpu_temp_celsius && live.cpu_temp_celsius > 0
+                  ? `Temp: ${live.cpu_temp_celsius.toFixed(1)}°C`
+                  : undefined
+              }
               icon={<Cpu className="h-4 w-4 text-blue-400" />}
               pct={live.cpu_usage_percent}
               color="bg-blue-400"

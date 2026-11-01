@@ -33,21 +33,28 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
               )}
             </h2>
             {!isLoading && node && (
-              <Badge
-                variant="outline"
-                className={
-                  node.status === "online"
-                    ? "bg-green-500/15 text-green-600 border-green-500/30 shrink-0"
-                    : "bg-muted text-muted-foreground shrink-0"
-                }
-              >
-                {node.status === "online" ? (
-                  <Wifi className="h-3 w-3 mr-1" />
-                ) : (
-                  <WifiOff className="h-3 w-3 mr-1" />
+              <>
+                <Badge
+                  variant="outline"
+                  className={
+                    node.status === "online"
+                      ? "bg-green-500/15 text-green-600 border-green-500/30 shrink-0"
+                      : "bg-muted text-muted-foreground shrink-0"
+                  }
+                >
+                  {node.status === "online" ? (
+                    <Wifi className="h-3 w-3 mr-1" />
+                  ) : (
+                    <WifiOff className="h-3 w-3 mr-1" />
+                  )}
+                  {node.status}
+                </Badge>
+                {node.isLocal && (
+                  <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 shrink-0">
+                    Nodo Local / Master
+                  </Badge>
                 )}
-                {node.status}
-              </Badge>
+              </>
             )}
           </div>
 

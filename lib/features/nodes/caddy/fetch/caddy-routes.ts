@@ -1,5 +1,5 @@
 import { API_CADDY_ENDPOINTS } from "./constants";
-import type { CaddyRoute, CaddyRouteBackendResponse } from "../interfaces/caddy";
+import type { CaddyRoute, CaddyRouteBackendResponse, CaddyTLSMode } from "../interfaces/caddy";
 import { backendFetch } from "@/lib/api";
 
 export async function listCaddyRoutesBackend(nodeId: string, accessToken: string) {
@@ -8,7 +8,7 @@ export async function listCaddyRoutesBackend(nodeId: string, accessToken: string
 
 export async function upsertCaddyRouteBackend(
   nodeId: string,
-  data: { domain: string; upstream: string },
+  data: { domain: string; upstream: string; tls_mode?: CaddyTLSMode },
   accessToken: string
 ) {
   return backendFetch(
@@ -41,6 +41,7 @@ export function mapCaddyRouteFromBackend(r: CaddyRouteBackendResponse): CaddyRou
     userId: r.user_id,
     domain: r.domain,
     upstream: r.upstream,
+    tlsMode: r.tls_mode ?? "auto",
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };

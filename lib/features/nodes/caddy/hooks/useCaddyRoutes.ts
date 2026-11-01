@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { CaddyRoute } from "../interfaces/caddy";
+import type { CaddyRoute, CaddyTLSMode } from "../interfaces/caddy";
 import { CaddyService } from "../services/caddy.service";
 
 export function useCaddyRoutes(nodeId: string) {
@@ -27,8 +27,8 @@ export function useCaddyRoutes(nodeId: string) {
   }, [fetchRoutes]);
 
   const upsert = useCallback(
-    async (domain: string, upstream: string) => {
-      const saved = await CaddyService.upsertRoute(nodeId, domain, upstream);
+    async (domain: string, upstream: string, tlsMode: CaddyTLSMode = "auto") => {
+      const saved = await CaddyService.upsertRoute(nodeId, domain, upstream, tlsMode);
       setRoutes((prev) => {
         const idx = prev.findIndex((r) => r.domain === saved.domain);
         if (idx >= 0) {

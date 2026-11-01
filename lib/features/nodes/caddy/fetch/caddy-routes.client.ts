@@ -10,12 +10,13 @@ export async function fetchCaddyRoutes(nodeId: string): Promise<Response> {
 export async function fetchUpsertCaddyRoute(
   nodeId: string,
   domain: string,
-  upstream: string
+  upstream: string,
+  tlsMode: string = "auto"
 ): Promise<Response> {
   return fetchWithAuth(CLIENT_API_CADDY_ENDPOINTS.CADDY_ROUTES.BY_NODE(nodeId), {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain, upstream }),
+    body: JSON.stringify({ domain, upstream, tls_mode: tlsMode }),
   });
 }
 

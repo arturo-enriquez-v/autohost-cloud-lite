@@ -3,7 +3,7 @@ import {
   fetchUpsertCaddyRoute,
   fetchDeleteCaddyRoute,
 } from "../fetch/caddy-routes.client";
-import type { CaddyRoute } from "../interfaces/caddy";
+import type { CaddyRoute, CaddyTLSMode } from "../interfaces/caddy";
 
 export const CaddyService = {
   async getRoutes(nodeId: string): Promise<CaddyRoute[]> {
@@ -13,8 +13,13 @@ export const CaddyService = {
     return data ?? [];
   },
 
-  async upsertRoute(nodeId: string, domain: string, upstream: string): Promise<CaddyRoute> {
-    const res = await fetchUpsertCaddyRoute(nodeId, domain, upstream);
+  async upsertRoute(
+    nodeId: string,
+    domain: string,
+    upstream: string,
+    tlsMode: CaddyTLSMode = "auto"
+  ): Promise<CaddyRoute> {
+    const res = await fetchUpsertCaddyRoute(nodeId, domain, upstream, tlsMode);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as { error?: string }).error ?? "Failed to save route");

@@ -16,6 +16,8 @@ export interface Node {
   cpu: number;
   ram: number;
   disk: number;
+  cpuTempCelsius?: number;
+  isLocal?: boolean;
   containers: Container[];
   ipLocal?: string;
   ipVpn?: string;
@@ -37,6 +39,7 @@ export interface NodeBackendResponse {
   Arch: string;
   VersionAgent: string;
   OwnerID: string;
+  IsLocal?: boolean;
   LastSeenAt: string;
   CreatedAt: string;
   UpdatedAt: string;
@@ -46,6 +49,7 @@ export interface NodeMetric {
   cpu_usage_percent: number;
   memory_usage_percent: number;
   disk_usage_percent: number;
+  cpu_temp_celsius?: number;
   collected_at: string;
 }
 
@@ -54,6 +58,7 @@ export interface NodeMetricHistoryPoint {
   cpu_usage_percent: number;
   memory_usage_percent: number;
   disk_usage_percent: number;
+  cpu_temp_celsius?: number;
 }
 
 export interface NodeWithMetricsBackendResponse {
@@ -66,6 +71,7 @@ export interface NodeWithMetricsBackendResponse {
   version_agent: string;
   owner_id: string;
   project_id?: string;
+  is_local?: boolean;
   last_seen_at: string;
   created_at: string;
   updated_at: string;
@@ -85,6 +91,7 @@ export interface LiveMetric {
   disk_available_bytes: number;
   disk_usage_percent: number;
   uptime_seconds: number;
+  cpu_temp_celsius?: number;
   collected_at: string;
 }
 
@@ -213,12 +220,15 @@ export interface NodeAlertConfigBackendResponse {
 
 // ─── Caddy routes ─────────────────────────────────────────────────────────────
 
+export type CaddyTLSMode = "auto" | "internal" | "http_only";
+
 export interface CaddyRoute {
   id: string;
   nodeId: string;
   userId: string;
   domain: string;
   upstream: string;
+  tlsMode?: CaddyTLSMode;
   createdAt: string;
   updatedAt: string;
 }
@@ -229,6 +239,7 @@ export interface CaddyRouteBackendResponse {
   user_id: string;
   domain: string;
   upstream: string;
+  tls_mode?: CaddyTLSMode;
   created_at: string;
   updated_at: string;
 }

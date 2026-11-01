@@ -131,7 +131,15 @@ export default function ExternalLogsPage() {
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
-          setNodes(data.map((n: { id: string; hostname?: string }) => ({ id: n.id, hostname: n.hostname || n.id })))
+          setNodes(
+            data
+              .map((n: { id?: string; ID?: string; hostname?: string; name?: string; Hostname?: string }) => {
+                const id = n.id || n.ID || ""
+                const hostname = n.hostname || n.name || n.Hostname || id || "Unknown"
+                return { id, hostname }
+              })
+              .filter((n) => Boolean(n.id))
+          )
         }
       }
     } catch (e) {
@@ -829,7 +837,7 @@ print(response.json())`
                     <SelectItem value="none">No Node (Global / Standalone)</SelectItem>
                     {nodes.map((n) => (
                       <SelectItem key={n.id} value={n.id}>
-                        {n.hostname} ({n.id.substring(0, 8)})
+                        {n.hostname} ({n.id ? n.id.substring(0, 8) : ""})
                       </SelectItem>
                     ))}
                   </SelectContent>
