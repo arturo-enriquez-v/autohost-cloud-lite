@@ -1,7 +1,7 @@
 "use client"
 
 import { format } from "date-fns"
-import { Cpu, HardDrive, MemoryStick } from "lucide-react"
+import { Cpu, HardDrive, MemoryStick, Thermometer } from "lucide-react"
 import {
   AreaChart,
   Area,
@@ -44,13 +44,14 @@ interface MetricChartProps {
   description: string
   dataKey: string
   color: string
+  unit?: string
   icon: React.ReactNode
   data: ChartPoint[]
   range: MetricRange
   isLoading: boolean
 }
 
-function MetricChart({ title, description, dataKey, color, icon, data, range, isLoading }: MetricChartProps) {
+function MetricChart({ title, description, dataKey, color, unit = "%", icon, data, range, isLoading }: MetricChartProps) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -89,15 +90,15 @@ function MetricChart({ title, description, dataKey, color, icon, data, range, is
               />
               <YAxis
                 domain={[0, 100]}
-                tickFormatter={(v) => `${v}%`}
+                tickFormatter={(v) => `${v}${unit}`}
                 tick={{ fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
-                width={40}
+                width={44}
               />
               <Tooltip
                 labelFormatter={(v) => formatTooltipLabel(String(v), range)}
-                formatter={(value: number) => [`${value.toFixed(1)}%`, title]}
+                formatter={(value: number) => [`${value.toFixed(1)}${unit}`, title]}
                 contentStyle={{
                   backgroundColor: "hsl(var(--popover))",
                   border: "1px solid hsl(var(--border))",
@@ -129,6 +130,8 @@ export interface MetricChartsGridProps {
 }
 
 export function MetricChartsGrid({ data, range, isLoading }: MetricChartsGridProps) {
+  const hasTempData = data.some((p) => Number(p.cpu_temp_celsius) > 0)
+
   return (
     <div className="grid gap-6 lg:grid-cols-1">
       <MetricChart
@@ -141,6 +144,19 @@ export function MetricChartsGrid({ data, range, isLoading }: MetricChartsGridPro
         range={range}
         isLoading={isLoading}
       />
+      {hasTempData && (
+        <MetricChart
+          title="CPU Temperature"
+          description="Hardware thermal sensor temperature (°C)"
+          dataKey="cpu_temp_celsius"
+          color="#ef4444"
+          unit="°C"
+          icon={<Thermometer className="h-4 w-4 text-red-400" />}
+          data={data}
+          range={range}
+          isLoading={isLoading}
+        />
+      )}
       <MetricChart
         title="RAM Usage"
         description="Average memory utilization"

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Cpu, HardDrive, MemoryStick, Clock } from "lucide-react"
+import { Cpu, HardDrive, MemoryStick, Clock, Thermometer } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 
@@ -19,6 +19,8 @@ interface Server {
   cpu: number
   ram: number
   disk: number
+  cpuTempCelsius?: number
+  isLocal?: boolean
   containers: Container[]
   lastSeenAt?: string
 }
@@ -36,11 +38,18 @@ export function ServerCard({ server }: ServerCardProps) {
       onClick={() => router.push(`/node/${server.id}`)}
     >
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">{server.name}</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <CardTitle className="text-lg font-semibold truncate">{server.name}</CardTitle>
+            {server.isLocal && (
+              <Badge variant="outline" className="text-[10px] border-primary/40 text-primary shrink-0">
+                Local / Master
+              </Badge>
+            )}
+          </div>
           <Badge
             variant={server.status === "online" ? "default" : "destructive"}
-            className={server.status === "online" ? "bg-success text-black" : ""}
+            className={server.status === "online" ? "bg-success text-black shrink-0" : "shrink-0"}
           >
             <span className="mr-1.5">{server.status === "online" ? "🟢" : "🔴"}</span>
             {server.status}
@@ -54,6 +63,12 @@ export function ServerCard({ server }: ServerCardProps) {
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Cpu className="h-4 w-4" />
                 <span>CPU</span>
+                {server.cpuTempCelsius && server.cpuTempCelsius > 0 ? (
+                  <span className="flex items-center gap-0.5 text-xs text-amber-500">
+                    <Thermometer className="h-3 w-3" />
+                    {server.cpuTempCelsius.toFixed(1)}°C
+                  </span>
+                ) : null}
               </div>
               <span className="font-medium text-foreground">{server.cpu}%</span>
             </div>

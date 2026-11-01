@@ -1,4 +1,5 @@
 export type {
+  CaddyTLSMode,
   CaddyRoute,
   CaddyRouteBackendResponse,
   LiveCaddyRoute,

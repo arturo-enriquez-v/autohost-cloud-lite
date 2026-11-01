@@ -1,6 +1,6 @@
 "use client"
 
-import { Radio, Cpu, MemoryStick, HardDrive, Activity } from "lucide-react"
+import { Radio, Cpu, MemoryStick, HardDrive, Activity, Thermometer } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useNodeMetricsLive } from "@/lib/features/nodes/hooks/useNodeMetricsLive"
 
@@ -42,6 +42,16 @@ export function LiveMetricsBar({ nodeId }: LiveMetricsBarProps) {
                 <span className="font-medium">{live.cpu_usage_percent.toFixed(1)}%</span>
                 <span className="text-xs text-muted-foreground">CPU</span>
               </span>
+              {live.cpu_temp_celsius && live.cpu_temp_celsius > 0 ? (
+                <>
+                  <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
+                  <span className="flex items-center gap-1.5">
+                    <Thermometer className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                    <span className="font-medium">{live.cpu_temp_celsius.toFixed(1)}°C</span>
+                    <span className="text-xs text-muted-foreground">Temp</span>
+                  </span>
+                </>
+              ) : null}
               <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
               <span className="flex items-center gap-1.5">
                 <MemoryStick className="h-3.5 w-3.5 text-green-400 shrink-0" />

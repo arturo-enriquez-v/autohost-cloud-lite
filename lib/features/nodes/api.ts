@@ -214,12 +214,13 @@ export async function fetchCaddyRoutes(nodeId: string): Promise<CaddyRoute[]> {
 export async function upsertCaddyRoute(
   nodeId: string,
   domain: string,
-  upstream: string
+  upstream: string,
+  tlsMode: string = "auto"
 ): Promise<CaddyRoute> {
   const res = await fetchWithAuth(`/api/nodes/${nodeId}/caddy-routes`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain, upstream }),
+    body: JSON.stringify({ domain, upstream, tls_mode: tlsMode }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
