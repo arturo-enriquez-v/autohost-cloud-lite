@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Bell,
@@ -36,8 +36,13 @@ function formatTimeAgo(dateStr: string): string {
 
 export function NotificationBell() {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<"all" | "alerts" | "logs">("all")
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const {
     unreadAlerts,
@@ -96,6 +101,20 @@ export function NotificationBell() {
     }
   }
 
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-0"
+        title="Notificaciones"
+        suppressHydrationWarning
+      >
+        <Bell className="h-5 w-5" />
+      </Button>
+    )
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -104,6 +123,7 @@ export function NotificationBell() {
           size="icon"
           className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-0"
           title="Notificaciones"
+          suppressHydrationWarning
         >
           <Bell className="h-5 w-5" />
           {totalUnread > 0 && (

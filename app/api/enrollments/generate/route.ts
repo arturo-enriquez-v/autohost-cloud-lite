@@ -22,8 +22,18 @@ export async function POST(req: Request) {
         }
 
         const enrollmentTokenResponse: EnrollmentTokenResponse = await res.json();
-        const apiUrl = process.env.PUBLIC_API_URL || "http://localhost:8080";
-        return NextResponse.json({ ...enrollmentTokenResponse, api_url: apiUrl }, { status: 200 });
+        const apiUrl =
+            enrollmentTokenResponse.api_url ||
+            process.env.PUBLIC_API_URL ||
+            process.env.NEXT_PUBLIC_API_URL ||
+            "";
+        return NextResponse.json(
+            {
+                ...enrollmentTokenResponse,
+                ...(apiUrl ? { api_url: apiUrl } : {}),
+            },
+            { status: 200 }
+        );
 
     } catch (error) {
         return NextResponse.json(

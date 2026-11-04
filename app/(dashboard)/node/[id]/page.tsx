@@ -1,7 +1,7 @@
 "use client"
 
 import { use, useState } from "react"
-import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel, VirtualMachinesPanel } from "@/components/features/nodes"
+import { NodeHeader, LiveMetricsBar, ContainersPanel, CommandsPanel, JobHistoryPanel, VirtualMachinesPanel, NodeFileManager } from "@/components/features/nodes"
 import { ServiceMonitorsPanel } from "@/components/features/nodes/ServiceMonitorsPanel"
 
 export default function NodeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,6 +12,8 @@ export default function NodeDetailPage({ params }: { params: Promise<{ id: strin
     <div className="space-y-6">
       <NodeHeader nodeId={nodeId} />
       <LiveMetricsBar nodeId={nodeId} />
+
+      <NodeFileManager nodeId={nodeId} />
 
       <VirtualMachinesPanel nodeId={nodeId} />
 

@@ -18,5 +18,7 @@ export { ConnectNodeModal } from "./ConnectNodeModal"
 export { LogDiagnosticModal } from "./LogDiagnosticModal"
 export { VirtualMachinesPanel } from "./VirtualMachinesPanel"
 export { CreateVMDialog } from "./CreateVMDialog"
+export { NodeWebTerminal } from "./NodeWebTerminal"
+export { NodeFileManager } from "./NodeFileManager"
 
 

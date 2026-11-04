@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText, Cpu } from "lucide-react"
+import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText, Cpu, Terminal, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
@@ -90,6 +90,14 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-start md:justify-end">
+        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/terminal`)} className="gap-1.5 flex-1 sm:flex-initial border-emerald-500/30 hover:bg-emerald-500/10">
+          <Terminal className="h-4 w-4 text-emerald-400" />
+          <span>Terminal</span>
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/files`)} className="gap-1.5 flex-1 sm:flex-initial border-[#70AEFF]/30 hover:bg-[#70AEFF]/10">
+          <FolderOpen className="h-4 w-4 text-[#70AEFF]" />
+          <span>Files</span>
+        </Button>
         <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/vms`)} className="gap-1.5 flex-1 sm:flex-initial">
           <Cpu className="h-4 w-4 text-indigo-400" />
           <span>VMs</span>

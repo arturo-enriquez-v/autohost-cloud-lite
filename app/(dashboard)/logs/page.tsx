@@ -69,6 +69,7 @@ export default function ExternalLogsPage() {
   const [logs, setLogs] = useState<ExternalLog[]>([])
   const [totalLogs, setTotalLogs] = useState(0)
   const [tokens, setTokens] = useState<ExternalLogToken[]>([])
+  const [ingestUrl, setIngestUrl] = useState<string>("")
   const [nodes, setNodes] = useState<NodeItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -119,6 +120,9 @@ export default function ExternalLogsPage() {
       if (res.ok) {
         const data = await res.json()
         setTokens(data.tokens || [])
+        if (data.ingest_url) {
+          setIngestUrl(data.ingest_url)
+        }
       }
     } catch (e) {
       console.error("Failed to fetch external log tokens:", e)
@@ -131,6 +135,12 @@ export default function ExternalLogsPage() {
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
+          const masterNode = data.find(
+            (n: { is_local?: boolean; ip_vpn?: string }) => n.is_local && n.ip_vpn
+          ) || data.find((n: { ip_vpn?: string }) => Boolean(n.ip_vpn))
+          if (masterNode?.ip_vpn) {
+            setIngestUrl((prev) => prev || `http://${masterNode.ip_vpn}:8080/v1/external-logs/ingest`)
+          }
           setNodes(
             data
               .map((n: { id?: string; ID?: string; hostname?: string; name?: string; Hostname?: string }) => {
@@ -295,7 +305,15 @@ export default function ExternalLogsPage() {
   const activeTokenSample = tokens.find((t) => !t.revoked_at)
   const sampleTokenStr = rawTokenCreated || (activeTokenSample ? `${activeTokenSample.token_prefix}secret` : "ahl_sec_YOUR_SECRET_TOKEN")
 
-  const curlSnippet = `curl -X POST https://api.autohst.dev/v1/external-logs/ingest \\
+  const resolvedIngestUrl =
+    ingestUrl ||
+    (process.env.NEXT_PUBLIC_API_URL
+      ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "")}/v1/external-logs/ingest`
+      : typeof window !== "undefined"
+        ? `${window.location.protocol}//${window.location.hostname}:8080/v1/external-logs/ingest`
+        : "http://localhost:8080/v1/external-logs/ingest")
+
+  const curlSnippet = `curl -X POST ${resolvedIngestUrl} \\
   -H "Authorization: Bearer ${sampleTokenStr}" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -310,7 +328,7 @@ export default function ExternalLogsPage() {
     }
   }'`
 
-  const jsSnippet = `await fetch("https://api.autohst.dev/v1/external-logs/ingest", {
+  const jsSnippet = `await fetch("${resolvedIngestUrl}", {
   method: "POST",
   headers: {
     "Authorization": "Bearer ${sampleTokenStr}",
@@ -327,7 +345,7 @@ export default function ExternalLogsPage() {
 
   const pythonSnippet = `import requests
 
-url = "https://api.autohst.dev/v1/external-logs/ingest"
+url = "${resolvedIngestUrl}"
 headers = {
     "Authorization": "Bearer ${sampleTokenStr}",
     "Content-Type": "application/json"
@@ -726,7 +744,7 @@ print(response.json())`
                 How to Send External Logs
               </CardTitle>
               <CardDescription>
-                Send structured JSON payloads to <code className="text-[#70AEFF] font-mono">POST https://api.autohst.dev/v1/external-logs/ingest</code> using your API token.
+                Send structured JSON payloads to <code className="text-[#70AEFF] font-mono">POST {resolvedIngestUrl}</code> using your API token.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

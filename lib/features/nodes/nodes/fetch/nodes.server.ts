@@ -77,25 +77,35 @@ export async function getContainerMetricsHistoryBackend(
 /**
  * Mapea un nodo del backend al formato de la UI
  */
-export function mapNodeFromBackend(node: NodeBackendResponse) {
+export function mapNodeFromBackend(node: any) {
+  const id = node?.id || node?.ID || "";
+  const hostname = node?.hostname || node?.Hostname || node?.name || "Node";
+  const lastSeen = node?.last_seen_at || node?.LastSeenAt;
+  const isLocal = Boolean(node?.is_local ?? node?.IsLocal);
+  const ipLocal = node?.ip_local || node?.IPLocal;
+  const ipVpn = node?.ip_vpn || node?.ipVpn || node?.IPVPN;
+  const os = node?.os || node?.OS;
+  const arch = node?.arch || node?.Arch;
+  const versionAgent = node?.version_agent || node?.VersionAgent;
+
   return {
-    id: node.ID,
-    name: node.Hostname,
-    hostname: node.Hostname,
-    status: calculateNodeStatus(node.LastSeenAt),
+    id,
+    name: hostname,
+    hostname,
+    status: calculateNodeStatus(lastSeen),
     cpu: 0,
     ram: 0,
     disk: 0,
-    isLocal: Boolean(node.IsLocal),
+    isLocal,
     containers: [],
-    ipLocal: node.IPLocal,
-    ipVpn: node.IPVPN,
-    os: node.OS,
-    arch: node.Arch,
-    versionAgent: node.VersionAgent,
-    lastSeenAt: node.LastSeenAt,
-    createdAt: node.CreatedAt,
-    updatedAt: node.UpdatedAt,
+    ipLocal,
+    ipVpn,
+    os,
+    arch,
+    versionAgent,
+    lastSeenAt: lastSeen,
+    createdAt: node?.created_at || node?.CreatedAt,
+    updatedAt: node?.updated_at || node?.UpdatedAt,
   };
 }
 
