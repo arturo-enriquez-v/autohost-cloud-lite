@@ -209,21 +209,50 @@ export function NodeWebTerminal({ nodeId, nodeName, ipVpn }: NodeWebTerminalProp
       const { token, api_url } = await res.json()
 
       let wsBase = ""
-      if (api_url && !api_url.includes("://api:")) {
-        wsBase = api_url.replace(/^http:/, "ws:").replace(/^https:/, "wss:").replace(/\/+$/, "")
-      } else if (typeof window !== "undefined") {
+      if (typeof window !== "undefined") {
         const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-        wsBase = `${proto}//${window.location.hostname}:8080`
+        // Always default to the hostname the browser used to load the dashboard (LAN IP, Tailscale IP, or domain)
+        let host = window.location.hostname
+        let port = window.location.port === "3000" ? "8080" : (window.location.port || (window.location.protocol === "https:" ? "443" : "80"))
+
+        if (api_url) {
+          try {
+            const u = new URL(api_url)
+            // If api_url defines a custom port and web is on port 3000
+            if (u.port && window.location.port === "3000") {
+              port = u.port
+            }
+            // If api_url is a public domain matching the browser's current host
+            if (u.hostname && !u.hostname.includes("api:") && !u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1") && !u.hostname.startsWith("100.")) {
+              if (window.location.hostname === u.hostname) {
+                host = u.hostname
+              }
+            }
+          } catch {}
+        }
+
+        wsBase = `${proto}//${host}:${port}`
       }
 
       const cols = 120
       const rows = 34
       const wsUrl = `${wsBase}/v1/nodes/${nodeId}/terminal?token=${encodeURIComponent(token)}&cols=${cols}&rows=${rows}`
+      console.log(`[Terminal] Connecting to WebSocket: ${wsUrl}`)
 
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws
 
+      // Connection timeout: transition out of connecting if no response in 8 seconds
+      const connTimer = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          ws.close()
+          setStatus("error")
+          setErrorMsg(`Tiempo de espera agotado al conectar a ${wsBase}. Verifica que el puerto 8080 esté abierto y accesible desde tu red.`)
+        }
+      }, 8000)
+
       ws.onopen = () => {
+        clearTimeout(connTimer)
         setStatus("connected")
         setErrorMsg(null)
       }
@@ -251,12 +280,14 @@ export function NodeWebTerminal({ nodeId, nodeName, ipVpn }: NodeWebTerminalProp
         }
       }
 
-      ws.onerror = () => {
+      ws.onerror = (err) => {
+        clearTimeout(connTimer)
         setStatus("error")
-        setErrorMsg("WebSocket connection error — verify the node agent is online.")
+        setErrorMsg(`Error de conexión WebSocket (${wsBase}). Verifica que el puerto 8080 esté abierto y accesible.`)
       }
 
       ws.onclose = () => {
+        clearTimeout(connTimer)
         setStatus((prev) => (prev === "error" ? "error" : "disconnected"))
       }
     } catch (err) {
