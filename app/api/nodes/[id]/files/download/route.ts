@@ -25,7 +25,7 @@ export async function GET(
           Authorization: `Bearer ${accessToken}`,
         },
         cache: "no-store",
-        signal: AbortSignal.timeout(600_000),
+        signal: req.signal,
       }
     );
 
@@ -47,12 +47,16 @@ export async function GET(
     if (contentLength) {
       headers.set("Content-Length", contentLength);
     }
+    headers.set("Cache-Control", "no-cache, no-transform");
 
     return new NextResponse(res.body, {
       status: 200,
       headers,
     });
   } catch (err) {
+    if (req.signal.aborted) {
+      return new NextResponse(null, { status: 499 });
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Download failed" },
       { status: 500 }

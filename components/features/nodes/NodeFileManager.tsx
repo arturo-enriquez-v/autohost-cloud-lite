@@ -18,6 +18,7 @@ import {
   AlertCircle,
   Shield,
   Server,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -56,6 +57,17 @@ interface TargetNodeOption {
   is_local?: boolean
 }
 
+export interface ActiveTransfer {
+  id: string
+  type: "upload" | "download"
+  filename: string
+  progress: number // 0 to 100
+  loadedBytes: number
+  totalBytes: number
+  speedStr: string
+  cancel: () => void
+}
+
 interface NodeFileManagerProps {
   nodeId: string
   nodeName?: string
@@ -84,6 +96,9 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
   // Upload state
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  // Active transfers (uploads & downloads with progress and cancel support)
+  const [activeTransfers, setActiveTransfers] = useState<ActiveTransfer[]>([])
 
   // Node-to-node transfer modal state
   const [transferEntry, setTransferEntry] = useState<NodeFileEntry | null>(null)
@@ -207,36 +222,109 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
+        const transferId = `upload-${Date.now()}-${i}`
+        let lastLoaded = 0
+        let lastTime = Date.now()
+        let speedStr = ""
+
         const formData = new FormData()
         formData.append("file", file)
         formData.append("path", currentPath)
 
-        const res = await fetch(
-          `/api/nodes/${nodeId}/files/upload?path=${encodeURIComponent(currentPath)}`,
+        const xhr = new XMLHttpRequest()
+        const cancel = () => {
+          xhr.abort()
+          setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+          setStatusBanner({ type: "err", text: `Upload of "${file.name}" cancelled.` })
+        }
+
+        setActiveTransfers((prev) => [
+          ...prev,
           {
-            method: "POST",
-            credentials: "include",
-            body: formData,
+            id: transferId,
+            type: "upload",
+            filename: file.name,
+            progress: 0,
+            loadedBytes: 0,
+            totalBytes: file.size,
+            speedStr: "Starting…",
+            cancel,
+          },
+        ])
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            xhr.upload.onprogress = (evt) => {
+              if (evt.lengthComputable) {
+                const now = Date.now()
+                const elapsedSec = (now - lastTime) / 1000
+                if (elapsedSec >= 0.5) {
+                  const bytesDiff = evt.loaded - lastLoaded
+                  const bytesPerSec = bytesDiff / elapsedSec
+                  speedStr = `${formatBytes(bytesPerSec)}/s`
+                  lastLoaded = evt.loaded
+                  lastTime = now
+                }
+
+                const pct = Math.min(100, Math.round((evt.loaded / evt.total) * 100))
+                setActiveTransfers((prev) =>
+                  prev.map((t) =>
+                    t.id === transferId
+                      ? {
+                          ...t,
+                          progress: pct,
+                          loadedBytes: evt.loaded,
+                          totalBytes: evt.total,
+                          speedStr: speedStr || t.speedStr,
+                        }
+                      : t
+                  )
+                )
+              }
+            }
+
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve()
+              } else {
+                try {
+                  const data = JSON.parse(xhr.responseText)
+                  reject(new Error(data.error || `Upload failed (HTTP ${xhr.status})`))
+                } catch {
+                  reject(new Error(`Upload failed (HTTP ${xhr.status})`))
+                }
+              }
+            }
+
+            xhr.onerror = () => reject(new Error("Network error during upload"))
+            xhr.onabort = () => reject(new Error("Upload aborted"))
+
+            xhr.open(
+              "POST",
+              `/api/nodes/${nodeId}/files/upload?path=${encodeURIComponent(currentPath)}`
+            )
+            xhr.withCredentials = true
+            xhr.send(formData)
+          })
+
+          setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+          setStatusBanner({
+            type: "ok",
+            text: `Uploaded "${file.name}" (${formatBytes(file.size)}) successfully.`,
+          })
+        } catch (err) {
+          setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+          if (err instanceof Error && err.message === "Upload aborted") {
+            // Already handled
+          } else {
+            setStatusBanner({
+              type: "err",
+              text: err instanceof Error ? err.message : `Failed to upload ${file.name}`,
+            })
           }
-        )
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          throw new Error(data.error || `Failed to upload ${file.name}`)
         }
       }
-      setStatusBanner({
-        type: "ok",
-        text:
-          files.length === 1
-            ? `Uploaded "${files[0].name}" successfully.`
-            : `Uploaded ${files.length} files successfully.`,
-      })
       await fetchFiles(currentPath)
-    } catch (err) {
-      setStatusBanner({
-        type: "err",
-        text: err instanceof Error ? err.message : "Upload failed",
-      })
     } finally {
       setUploading(false)
       if (fileInputRef.current) {
@@ -277,14 +365,119 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
     }
   }
 
-  const handleDownload = (entry: NodeFileEntry) => {
-    const url = `/api/nodes/${nodeId}/files/download?path=${encodeURIComponent(entry.path)}`
-    const a = document.createElement("a")
-    a.href = url
-    a.download = entry.name
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
+  const handleDownload = async (entry: NodeFileEntry) => {
+    const transferId = `download-${Date.now()}`
+    const abortController = new AbortController()
+    let lastLoaded = 0
+    let lastTime = Date.now()
+    let speedStr = ""
+
+    const cancel = () => {
+      abortController.abort()
+      setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+      setStatusBanner({ type: "err", text: `Download of "${entry.name}" cancelled.` })
+    }
+
+    setActiveTransfers((prev) => [
+      ...prev,
+      {
+        id: transferId,
+        type: "download",
+        filename: entry.name,
+        progress: 0,
+        loadedBytes: 0,
+        totalBytes: entry.size_bytes || 0,
+        speedStr: "Connecting…",
+        cancel,
+      },
+    ])
+
+    try {
+      const url = `/api/nodes/${nodeId}/files/download?path=${encodeURIComponent(entry.path)}`
+      const res = await fetch(url, {
+        signal: abortController.signal,
+        credentials: "include",
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Download failed (HTTP ${res.status})`)
+      }
+
+      const totalHeader = res.headers.get("Content-Length")
+      const totalBytes = totalHeader ? parseInt(totalHeader, 10) : entry.size_bytes || 0
+
+      if (!res.body) {
+        throw new Error("No response body received")
+      }
+
+      const reader = res.body.getReader()
+      const chunks: Uint8Array[] = []
+      let receivedBytes = 0
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        if (value) {
+          chunks.push(value)
+          receivedBytes += value.length
+
+          const now = Date.now()
+          const elapsedSec = (now - lastTime) / 1000
+          if (elapsedSec >= 0.5) {
+            const bytesDiff = receivedBytes - lastLoaded
+            const bytesPerSec = bytesDiff / elapsedSec
+            speedStr = `${formatBytes(bytesPerSec)}/s`
+            lastLoaded = receivedBytes
+            lastTime = now
+          }
+
+          const pct = totalBytes > 0 ? Math.min(100, Math.round((receivedBytes / totalBytes) * 100)) : 0
+
+          setActiveTransfers((prev) =>
+            prev.map((t) =>
+              t.id === transferId
+                ? {
+                    ...t,
+                    progress: pct,
+                    loadedBytes: receivedBytes,
+                    totalBytes: totalBytes > 0 ? totalBytes : receivedBytes,
+                    speedStr: speedStr || t.speedStr,
+                  }
+                : t
+            )
+          )
+        }
+      }
+
+      // Trigger browser file save
+      const blob = new Blob(chunks as BlobPart[], { type: "application/octet-stream" })
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = downloadUrl
+      a.download = entry.name
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(downloadUrl)
+
+      setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+      setStatusBanner({
+        type: "ok",
+        text: `Downloaded "${entry.name}" (${formatBytes(receivedBytes)}) successfully.`,
+      })
+    } catch (err) {
+      setActiveTransfers((prev) => prev.filter((t) => t.id !== transferId))
+      if (err instanceof Error && err.name === "AbortError") {
+        // Cancelled by user
+      } else {
+        setStatusBanner({
+          type: "err",
+          text: err instanceof Error ? err.message : `Download failed for "${entry.name}"`,
+        })
+      }
+    }
   }
 
   const openTransferDialog = (entry: NodeFileEntry) => {
@@ -736,6 +929,60 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Floating Active Transfers Widget (Progress Bar & Cancel) */}
+      {activeTransfers.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 w-96 max-w-[calc(100vw-3rem)]">
+          {activeTransfers.map((t) => (
+            <div
+              key={t.id}
+              className="rounded-xl border border-white/10 bg-[#0B0F17]/95 p-4 shadow-2xl backdrop-blur-md text-white transition-all animate-in fade-in slide-in-from-bottom-4"
+            >
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 truncate">
+                  {t.type === "upload" ? (
+                    <Upload className="h-4 w-4 text-[#70AEFF] shrink-0" />
+                  ) : (
+                    <Download className="h-4 w-4 text-[#0DF8A2] shrink-0" />
+                  )}
+                  <span className="text-sm font-semibold truncate" title={t.filename}>
+                    {t.filename}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={t.cancel}
+                  className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
+                  title="Cancelar transferencia"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+                </Button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="w-full bg-white/10 rounded-full h-2 mb-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    t.type === "upload" ? "bg-[#70AEFF]" : "bg-[#0DF8A2]"
+                  }`}
+                  style={{ width: `${Math.max(2, t.progress)}%` }}
+                />
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>
+                  {t.totalBytes > 0
+                    ? `${formatBytes(t.loadedBytes)} / ${formatBytes(t.totalBytes)} (${t.progress}%)`
+                    : `${formatBytes(t.loadedBytes)}`}
+                </span>
+                <span className="font-mono text-gray-300">{t.speedStr}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   )
 }
