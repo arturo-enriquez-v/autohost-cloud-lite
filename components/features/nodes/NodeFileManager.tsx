@@ -275,7 +275,7 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                           progress: pct,
                           loadedBytes: evt.loaded,
                           totalBytes: evt.total,
-                          speedStr: speedStr || t.speedStr,
+                          speedStr: pct >= 100 ? "Guardando en nodo…" : (speedStr || t.speedStr),
                         }
                       : t
                   )
