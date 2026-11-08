@@ -19,6 +19,8 @@ import {
   Shield,
   Server,
   X,
+  Play,
+  Film,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -109,6 +111,14 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
 
   // Delete loading state
   const [deletingPath, setDeletingPath] = useState<string | null>(null)
+
+  // Media streaming player state
+  const [streamingEntry, setStreamingEntry] = useState<NodeFileEntry | null>(null)
+
+  const isMediaFile = (filename: string): boolean => {
+    const ext = filename.split(".").pop()?.toLowerCase() || ""
+    return ["mp4", "webm", "mov", "mkv", "avi", "m4v", "ogg", "ogv", "mp3", "wav", "flac", "aac"].includes(ext)
+  }
 
   const fetchFiles = useCallback(
     async (pathToLoad: string = currentPath) => {
@@ -738,6 +748,18 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                           <Folder className="h-4 w-4 text-amber-400 fill-amber-400/20 shrink-0" />
                           <span className="font-mono">{entry.name}/</span>
                         </button>
+                      ) : isMediaFile(entry.name) ? (
+                        <button
+                          type="button"
+                          onClick={() => setStreamingEntry(entry)}
+                          className="flex items-center gap-2.5 text-foreground hover:text-emerald-400 transition-colors text-left group/item"
+                          title="Reproducir stream de video"
+                        >
+                          <Film className="h-4 w-4 text-emerald-400 shrink-0 group-hover/item:scale-110 transition-transform" />
+                          <span className="font-mono break-all underline-offset-2 hover:underline text-emerald-300">
+                            {entry.name}
+                          </span>
+                        </button>
                       ) : (
                         <div className="flex items-center gap-2.5 text-foreground">
                           <FileText className="h-4 w-4 text-[#70AEFF] shrink-0" />
@@ -760,6 +782,18 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                       <div className="flex items-center justify-end gap-1">
                         {!entry.is_dir && (
                           <>
+                            {isMediaFile(entry.name) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setStreamingEntry(entry)}
+                                className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-1 font-medium"
+                                title="Reproducir stream directo"
+                              >
+                                <Play className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
+                                <span className="hidden lg:inline">Play</span>
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
@@ -926,6 +960,44 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                 </Button>
               </DialogFooter>
             </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Media Streaming Player Dialog */}
+      <Dialog
+        open={!!streamingEntry}
+        onOpenChange={(open) => {
+          if (!open) setStreamingEntry(null)
+        }}
+      >
+        <DialogContent className="max-w-4xl p-0 overflow-hidden bg-slate-950 border-white/10 text-white shadow-2xl">
+          <DialogHeader className="p-4 bg-slate-900/90 border-b border-white/10 flex flex-row items-center justify-between">
+            <div className="min-w-0 pr-4">
+              <DialogTitle className="flex items-center gap-2 text-base font-semibold truncate text-white">
+                <Film className="h-4 w-4 text-emerald-400 shrink-0" />
+                <span className="truncate">{streamingEntry?.name}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-400 mt-1">
+                Streaming directo vía Tailscale ({streamingEntry ? formatBytes(streamingEntry.size_bytes) : ""})
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          {streamingEntry && (
+            <div className="relative aspect-video w-full bg-black flex items-center justify-center">
+              <video
+                key={streamingEntry.path}
+                controls
+                autoPlay
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-contain"
+                src={`/api/nodes/${nodeId}/files/stream?path=${encodeURIComponent(streamingEntry.path)}`}
+              >
+                Tu navegador no soporta reproducción de video HTML5.
+              </video>
+            </div>
           )}
         </DialogContent>
       </Dialog>
