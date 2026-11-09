@@ -8,6 +8,7 @@ import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useCaddyStatus } from "@/lib/features/nodes/caddy/hooks/useCaddyStatus"
 import { CaddyStatusBanner } from "@/components/features/nodes/CaddyStatusBanner"
 import { CaddyRoutesCard } from "@/components/features/nodes/CaddyRoutesCard"
+import { CloudflareTunnelCard } from "@/components/features/nodes/CloudflareTunnelCard"
 
 export default function NodeProxyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
@@ -27,7 +28,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Globe className="h-6 w-6" />
-            Reverse Proxy
+            Reverse Proxy &amp; Cloudflare Tunnel
           </h2>
           <p className="text-sm text-muted-foreground">
             {nodeLoading ? "Loading…" : node?.name ?? nodeId}
@@ -35,6 +36,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
         </div>
       </div>
 
+      <CloudflareTunnelCard defaultNodeId={nodeId} />
       <CaddyStatusBanner status={caddyStatus} onRetry={checkCaddy} />
       <CaddyRoutesCard nodeId={nodeId} caddyStatus={caddyStatus} liveRoutes={liveRoutes} />
     </div>
