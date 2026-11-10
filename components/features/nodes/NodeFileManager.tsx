@@ -21,6 +21,12 @@ import {
   X,
   Play,
   Film,
+  LayoutGrid,
+  List,
+  Search,
+  FileArchive,
+  Image as ImageIcon,
+  FileCode,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -73,6 +79,10 @@ export interface ActiveTransfer {
 interface NodeFileManagerProps {
   nodeId: string
   nodeName?: string
+  externalPath?: string
+  onPathChange?: (path: string, entries: NodeFileEntry[]) => void
+  onBackToAllNodes?: () => void
+  defaultViewMode?: "grid" | "list"
 }
 
 function formatBytes(bytes: number): string {
@@ -83,12 +93,21 @@ function formatBytes(bytes: number): string {
   return `${val.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
 }
 
-export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
-  const [currentPath, setCurrentPath] = useState<string>("/")
+export function NodeFileManager({
+  nodeId,
+  nodeName,
+  externalPath,
+  onPathChange,
+  onBackToAllNodes,
+  defaultViewMode = "list",
+}: NodeFileManagerProps) {
+  const [currentPath, setCurrentPath] = useState<string>(externalPath || "/")
   const [entries, setEntries] = useState<NodeFileEntry[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
   const [statusBanner, setStatusBanner] = useState<{ type: "ok" | "err"; text: string } | null>(null)
+  const [viewMode, setViewMode] = useState<"grid" | "list">(defaultViewMode)
+  const [searchQuery, setSearchQuery] = useState<string>("")
 
   // Mkdir dialog state
   const [mkdirOpen, setMkdirOpen] = useState(false)
@@ -133,15 +152,18 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
         if (!res.ok) {
           throw new Error(data.error || `Failed to list files (HTTP ${res.status})`)
         }
-        setEntries(Array.isArray(data.entries) ? data.entries : [])
-        setCurrentPath(data.path || pathToLoad || "/")
+        const nextEntries: NodeFileEntry[] = Array.isArray(data.entries) ? data.entries : []
+        const resolvedPath = data.path || pathToLoad || "/"
+        setEntries(nextEntries)
+        setCurrentPath(resolvedPath)
+        onPathChange?.(resolvedPath, nextEntries)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load shared folder")
       } finally {
         setLoading(false)
       }
     },
-    [nodeId, currentPath]
+    [nodeId, currentPath, onPathChange]
   )
 
   const fetchAvailableNodes = useCallback(async () => {
@@ -173,9 +195,16 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
   }, [nodeId])
 
   useEffect(() => {
-    fetchFiles("/")
+    const startPath = externalPath || "/"
+    fetchFiles(startPath)
     fetchAvailableNodes()
   }, [nodeId])
+
+  useEffect(() => {
+    if (externalPath && externalPath !== currentPath) {
+      fetchFiles(externalPath)
+    }
+  }, [externalPath])
 
   const navigateTo = (nextPath: string) => {
     setStatusBanner(null)
@@ -537,6 +566,29 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
 
   const breadcrumbs = currentPath.split("/").filter(Boolean)
 
+  const filteredEntries = entries.filter((e) =>
+    searchQuery.trim()
+      ? e.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      : true
+  )
+
+  const getFileIcon = (filename: string) => {
+    if (isMediaFile(filename)) {
+      return <Film className="h-7 w-7 text-emerald-400" />
+    }
+    const ext = filename.split(".").pop()?.toLowerCase() || ""
+    if (["zip", "tar", "gz", "7z", "rar", "iso", "rvz", "wbfs", "cso", "chd"].includes(ext)) {
+      return <FileArchive className="h-7 w-7 text-purple-400" />
+    }
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg", "ico"].includes(ext)) {
+      return <ImageIcon className="h-7 w-7 text-pink-400" />
+    }
+    if (["json", "yml", "yaml", "sh", "py", "ts", "js", "go", "sql", "md", "conf"].includes(ext)) {
+      return <FileCode className="h-7 w-7 text-sky-400" />
+    }
+    return <FileText className="h-7 w-7 text-[#70AEFF]" />
+  }
+
   return (
     <Card className="border-border/80 bg-card/80 shadow-lg">
       <CardHeader className="pb-4 border-b border-border/60">
@@ -546,8 +598,8 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
               <HardDrive className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                Node Shared Storage
+              <CardTitle className="text-lg font-bold flex items-center gap-2 flex-wrap">
+                {nodeName ? `${nodeName} — Shared Storage` : "Node Shared Storage"}
                 <Badge
                   variant="outline"
                   className="font-mono text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
@@ -556,12 +608,49 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                 </Badge>
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                Upload, download, organize, and transfer files directly between nodes over your Tailscale network.
+                Upload, download, organize, stream media, and transfer files directly between nodes over Tailscale.
               </CardDescription>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <Search className="h-3.5 w-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar en esta carpeta…"
+                className="h-8 pl-8 pr-3 text-xs w-44 sm:w-52 bg-background/60"
+              />
+            </div>
+
+            <div className="inline-flex items-center rounded-lg border border-border bg-background/60 p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "grid"
+                    ? "bg-[#70AEFF]/20 text-[#70AEFF]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Vista de cuadrícula"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "list"
+                    ? "bg-[#70AEFF]/20 text-[#70AEFF]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Vista de lista"
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -609,15 +698,34 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
           <Button
             variant="ghost"
             size="sm"
-            disabled={currentPath === "/"}
-            onClick={navigateUp}
+            disabled={currentPath === "/" && !onBackToAllNodes}
+            onClick={() => {
+              if (currentPath === "/" && onBackToAllNodes) {
+                onBackToAllNodes()
+              } else {
+                navigateUp()
+              }
+            }}
             className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            title="Up one directory"
+            title="Subir un nivel"
           >
             <ArrowUpLeft className="h-3.5 w-3.5 mr-1" />
             Up
           </Button>
           <span className="text-border">|</span>
+          {onBackToAllNodes && (
+            <>
+              <button
+                type="button"
+                onClick={onBackToAllNodes}
+                className="px-2 py-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center gap-1"
+              >
+                <Server className="h-3 w-3 text-[#70AEFF]" />
+                Nodos
+              </button>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            </>
+          )}
           <button
             type="button"
             onClick={() => navigateTo("/")}
@@ -625,7 +733,7 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
               currentPath === "/" ? "text-[#70AEFF] font-semibold" : "text-muted-foreground"
             }`}
           >
-            shared
+            {nodeName || "shared"}
           </button>
           {breadcrumbs.map((part, idx) => {
             const subPath = "/" + breadcrumbs.slice(0, idx + 1).join("/")
@@ -720,7 +828,105 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
           </div>
         )}
 
-        {!error && !loading && entries.length > 0 && (
+        {!error && !loading && entries.length > 0 && viewMode === "grid" && (
+          <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+            {filteredEntries.map((entry) => (
+              <div
+                key={entry.path}
+                onDoubleClick={() => {
+                  if (entry.is_dir) navigateTo(entry.path)
+                  else if (isMediaFile(entry.name)) setStreamingEntry(entry)
+                }}
+                onClick={() => {
+                  if (entry.is_dir) navigateTo(entry.path)
+                }}
+                className={`group relative rounded-xl border border-border/60 bg-background/40 hover:bg-muted/30 hover:border-[#70AEFF]/40 p-3.5 transition-all flex flex-col justify-between gap-3 ${
+                  entry.is_dir ? "cursor-pointer" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 group-hover:scale-105 transition-transform">
+                    {entry.is_dir ? (
+                      <Folder className="h-7 w-7 text-amber-400 fill-amber-400/20" />
+                    ) : (
+                      getFileIcon(entry.name)
+                    )}
+                  </div>
+                  <div
+                    className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {!entry.is_dir && isMediaFile(entry.name) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setStreamingEntry(entry)}
+                        className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/15"
+                        title="Reproducir stream"
+                      >
+                        <Play className="h-3.5 w-3.5 fill-emerald-400" />
+                      </Button>
+                    )}
+                    {!entry.is_dir && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(entry)}
+                          className="h-7 w-7 text-[#70AEFF] hover:bg-[#70AEFF]/15"
+                          title="Descargar"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openTransferDialog(entry)}
+                          className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/15"
+                          title="Transferir a otro nodo"
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      disabled={deletingPath === entry.path}
+                      onClick={() => handleDelete(entry)}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      title="Eliminar"
+                    >
+                      {deletingPath === entry.path ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-1 min-w-0">
+                  <p
+                    className="text-xs font-medium font-mono truncate text-foreground group-hover:text-[#70AEFF] transition-colors"
+                    title={entry.name}
+                  >
+                    {entry.name}
+                    {entry.is_dir ? "/" : ""}
+                  </p>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
+                    <span>{entry.is_dir ? "Carpeta" : formatBytes(entry.size_bytes)}</span>
+                    {entry.modified_at && (
+                      <span>{new Date(entry.modified_at).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!error && !loading && entries.length > 0 && viewMode === "list" && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -733,7 +939,7 @@ export function NodeFileManager({ nodeId, nodeName }: NodeFileManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {entries.map((entry) => (
+                {filteredEntries.map((entry) => (
                   <tr
                     key={entry.path}
                     className="hover:bg-muted/20 transition-colors group"

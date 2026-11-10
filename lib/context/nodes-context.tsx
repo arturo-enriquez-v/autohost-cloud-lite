@@ -23,6 +23,7 @@ function useIsMetricsPage(): boolean {
     pathname === "/" ||
     pathname === "/nodes" ||
     pathname.startsWith("/node/") ||
+    pathname.startsWith("/files") ||
     pathname.startsWith("/networking")
   );
 }

@@ -23,6 +23,7 @@ import {
   Activity,
   Zap,
   Receipt,
+  FolderOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -45,6 +46,7 @@ interface SidebarProps {
 const coreMenuItemsTop = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/" },
   { id: "nodes", label: "Nodes", icon: Server, path: "/nodes" },
+  { id: "files", label: "Files", icon: FolderOpen, path: "/files" },
   { id: "clusters", label: "Clusters", icon: Layers, path: "/clusters" },
 ]
 
