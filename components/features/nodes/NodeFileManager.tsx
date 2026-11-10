@@ -27,7 +27,9 @@ import {
   FileArchive,
   Image as ImageIcon,
   FileCode,
+  Share2,
 } from "lucide-react"
+import { FolderShareDialog } from "./FolderShareDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -133,6 +135,15 @@ export function NodeFileManager({
 
   // Media streaming player state
   const [streamingEntry, setStreamingEntry] = useState<NodeFileEntry | null>(null)
+
+  // Share folder dialog state
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareTargetFolder, setShareTargetFolder] = useState<string>("/")
+
+  const openShareDialogForPath = (folderPath: string) => {
+    setShareTargetFolder(folderPath || "/")
+    setShareDialogOpen(true)
+  }
 
   const isMediaFile = (filename: string): boolean => {
     const ext = filename.split(".").pop()?.toLowerCase() || ""
@@ -671,6 +682,15 @@ export function NodeFileManager({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => openShareDialogForPath(currentPath)}
+              className="h-8 text-xs gap-1.5 border-[#70AEFF]/40 text-[#70AEFF] hover:bg-[#70AEFF]/15"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Compartir Carpeta
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setMkdirOpen(true)}
               className="h-8 text-xs gap-1.5"
             >
@@ -856,6 +876,17 @@ export function NodeFileManager({
                     className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
+                    {entry.is_dir && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openShareDialogForPath(entry.path)}
+                        className="h-7 w-7 text-[#70AEFF] hover:bg-[#70AEFF]/15"
+                        title="Compartir carpeta con contraseña"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     {!entry.is_dir && isMediaFile(entry.name) && (
                       <Button
                         variant="ghost"
@@ -986,6 +1017,18 @@ export function NodeFileManager({
                     </td>
                     <td className="py-2.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {entry.is_dir && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openShareDialogForPath(entry.path)}
+                            className="h-7 px-2 text-xs text-[#70AEFF] hover:bg-[#70AEFF]/15 gap-1"
+                            title="Compartir esta carpeta con contraseña"
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                            <span className="hidden lg:inline">Compartir</span>
+                          </Button>
+                        )}
                         {!entry.is_dir && (
                           <>
                             {isMediaFile(entry.name) && (
@@ -1045,6 +1088,15 @@ export function NodeFileManager({
           </div>
         )}
       </CardContent>
+
+      {/* Drive-style Folder Share Dialog */}
+      <FolderShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        nodeId={nodeId}
+        nodeName={nodeName}
+        initialFolderPath={shareTargetFolder}
+      />
 
       {/* Create Folder Modal */}
       <Dialog open={mkdirOpen} onOpenChange={setMkdirOpen}>

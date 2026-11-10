@@ -9,6 +9,7 @@ import { useCaddyStatus } from "@/lib/features/nodes/caddy/hooks/useCaddyStatus"
 import { CaddyStatusBanner } from "@/components/features/nodes/CaddyStatusBanner"
 import { CaddyRoutesCard } from "@/components/features/nodes/CaddyRoutesCard"
 import { CloudflareTunnelCard } from "@/components/features/nodes/CloudflareTunnelCard"
+import { TailscaleFunnelCard } from "@/components/features/nodes/TailscaleFunnelCard"
 
 export default function NodeProxyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
@@ -28,7 +29,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
         <div className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Globe className="h-6 w-6" />
-            Reverse Proxy &amp; Cloudflare Tunnel
+            Reverse Proxy · Cloudflare Tunnel &amp; Tailscale Funnel
           </h2>
           <p className="text-sm text-muted-foreground">
             {nodeLoading ? "Loading…" : node?.name ?? nodeId}
@@ -37,6 +38,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
       </div>
 
       <CloudflareTunnelCard defaultNodeId={nodeId} />
+      <TailscaleFunnelCard defaultNodeId={nodeId} />
       <CaddyStatusBanner status={caddyStatus} onRetry={checkCaddy} />
       <CaddyRoutesCard nodeId={nodeId} caddyStatus={caddyStatus} liveRoutes={liveRoutes} />
     </div>

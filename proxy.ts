@@ -33,6 +33,10 @@ export function proxy(req: NextRequest) {
   }
   const access  = req.cookies.get("access_token")?.value
   const refresh = req.cookies.get("refresh_token")?.value
+  const isSharePortal = req.nextUrl.pathname.startsWith("/share/")
+  if (isSharePortal) {
+    return NextResponse.next()
+  }
   const isPublic = req.nextUrl.pathname.startsWith("/login")
                 || req.nextUrl.pathname.startsWith("/register")
 
