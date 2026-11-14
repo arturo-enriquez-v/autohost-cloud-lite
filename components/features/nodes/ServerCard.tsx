@@ -21,6 +21,9 @@ interface Server {
   disk: number
   cpuTempCelsius?: number
   isLocal?: boolean
+  isVm?: boolean
+  hostNodeId?: string
+  hostHostname?: string
   containers: Container[]
   lastSeenAt?: string
 }
@@ -44,6 +47,15 @@ export function ServerCard({ server }: ServerCardProps) {
             {server.isLocal && (
               <Badge variant="outline" className="text-[10px] border-primary/40 text-primary shrink-0">
                 Local / Master
+              </Badge>
+            )}
+            {server.isVm && (
+              <Badge
+                variant="outline"
+                className="text-[10px] border-indigo-500/40 text-indigo-400 bg-indigo-500/10 shrink-0"
+                title={server.hostHostname ? `VM alojada en ${server.hostHostname}` : "Máquina Virtual"}
+              >
+                VM{server.hostHostname ? ` · ${server.hostHostname}` : ""}
               </Badge>
             )}
           </div>

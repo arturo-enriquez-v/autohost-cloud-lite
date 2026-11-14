@@ -20,4 +20,10 @@ export interface User {
   email: string;
   name?: string;
   avatar_url?: string | null;
+  /** Global platform role ("admin" has full access). */
+  role?: "admin" | "member";
+  is_admin?: boolean;
+  is_active?: boolean;
+  projects?: import("@/lib/features/users/interfaces/user").ProjectMembership[];
+  node_permissions?: import("@/lib/features/users/interfaces/user").NodePermissionGrant[];
 }

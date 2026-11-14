@@ -18,6 +18,10 @@ export interface Node {
   disk: number;
   cpuTempCelsius?: number;
   isLocal?: boolean;
+  isVm?: boolean;
+  vmId?: string;
+  hostNodeId?: string;
+  hostHostname?: string;
   containers: Container[];
   ipLocal?: string;
   ipVpn?: string;
@@ -28,6 +32,10 @@ export interface Node {
   lastSeenAt?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** RBAC: effective preset of the current user on this node (viewer/operator/editor/custom/admin). */
+  rolePreset?: string;
+  /** RBAC: effective granular permissions of the current user on this node ("*" = all). */
+  permissions?: string[];
 }
 
 export interface NodeBackendResponse {
@@ -72,10 +80,16 @@ export interface NodeWithMetricsBackendResponse {
   owner_id: string;
   project_id?: string;
   is_local?: boolean;
+  is_vm?: boolean;
+  vm_id?: string;
+  host_node_id?: string;
+  host_hostname?: string;
   last_seen_at: string;
   created_at: string;
   updated_at: string;
   last_metric?: NodeMetric;
+  role_preset?: string;
+  permissions?: string[];
 }
 
 // ─── Live metric (SSE feed) ───────────────────────────────────────────────────

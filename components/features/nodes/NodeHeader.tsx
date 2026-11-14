@@ -5,6 +5,8 @@ import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 
 interface NodeHeaderProps {
   nodeId: string
@@ -13,6 +15,7 @@ interface NodeHeaderProps {
 export function NodeHeader({ nodeId }: NodeHeaderProps) {
   const router = useRouter()
   const { node, isLoading } = useNodes(nodeId)
+  const { can, isAdmin } = useNodePermissions(nodeId)
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
@@ -54,6 +57,24 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
                     Nodo Local / Master
                   </Badge>
                 )}
+                {node.isVm && (
+                  <Badge
+                    variant="outline"
+                    className={`border-indigo-500/40 text-indigo-400 bg-indigo-500/10 shrink-0 ${
+                      node.hostNodeId ? "cursor-pointer hover:bg-indigo-500/20" : ""
+                    }`}
+                    onClick={() => node.hostNodeId && router.push(`/node/${node.hostNodeId}/vms`)}
+                    title={node.hostHostname ? `VM alojada en ${node.hostHostname}` : "Máquina Virtual"}
+                  >
+                    <Cpu className="h-3 w-3 mr-1" />
+                    VM{node.hostHostname ? ` · ${node.hostHostname}` : ""}
+                  </Badge>
+                )}
+                {!isAdmin && node.rolePreset && node.rolePreset !== "admin" && (
+                  <Badge variant="outline" className="border-[#70AEFF]/40 text-[#70AEFF] bg-[#70AEFF]/10 shrink-0 capitalize">
+                    Rol: {node.rolePreset}
+                  </Badge>
+                )}
               </>
             )}
           </div>
@@ -90,34 +111,48 @@ export function NodeHeader({ nodeId }: NodeHeaderProps) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 shrink-0 w-full md:w-auto justify-start md:justify-end">
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/terminal`)} className="gap-1.5 flex-1 sm:flex-initial border-emerald-500/30 hover:bg-emerald-500/10">
-          <Terminal className="h-4 w-4 text-emerald-400" />
-          <span>Terminal</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/files`)} className="gap-1.5 flex-1 sm:flex-initial border-[#70AEFF]/30 hover:bg-[#70AEFF]/10">
-          <FolderOpen className="h-4 w-4 text-[#70AEFF]" />
-          <span>Files</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/vms`)} className="gap-1.5 flex-1 sm:flex-initial">
-          <Cpu className="h-4 w-4 text-indigo-400" />
-          <span>VMs</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/monitoring`)} className="gap-1.5 flex-1 sm:flex-initial">
-          <Activity className="h-4 w-4" />
-          <span>Monitoring</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/proxy`)} className="gap-1.5 flex-1 sm:flex-initial">
-          <Network className="h-4 w-4" />
-          <span>Proxy</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/config`)} className="gap-1.5 flex-1 sm:flex-initial">
-          <Settings className="h-4 w-4" />
-          <span>Config</span>
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/logs`)} className="gap-1.5 flex-1 sm:flex-initial">
-          <ScrollText className="h-4 w-4" />
-          <span>Live Logs</span>
-        </Button>
+        {can(PERMS.TERMINAL_EXEC) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/terminal`)} className="gap-1.5 flex-1 sm:flex-initial border-emerald-500/30 hover:bg-emerald-500/10">
+            <Terminal className="h-4 w-4 text-emerald-400" />
+            <span>Terminal</span>
+          </Button>
+        )}
+        {can(PERMS.FILES_READ) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/files`)} className="gap-1.5 flex-1 sm:flex-initial border-[#70AEFF]/30 hover:bg-[#70AEFF]/10">
+            <FolderOpen className="h-4 w-4 text-[#70AEFF]" />
+            <span>Files</span>
+          </Button>
+        )}
+        {can(PERMS.VMS_READ) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/vms`)} className="gap-1.5 flex-1 sm:flex-initial">
+            <Cpu className="h-4 w-4 text-indigo-400" />
+            <span>VMs</span>
+          </Button>
+        )}
+        {(can(PERMS.MONITORS_READ) || can(PERMS.METRICS_READ)) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/monitoring`)} className="gap-1.5 flex-1 sm:flex-initial">
+            <Activity className="h-4 w-4" />
+            <span>Monitoring</span>
+          </Button>
+        )}
+        {can(PERMS.NETWORK_READ) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/proxy`)} className="gap-1.5 flex-1 sm:flex-initial">
+            <Network className="h-4 w-4" />
+            <span>Proxy</span>
+          </Button>
+        )}
+        {(can(PERMS.NODE_UPDATE) || can(PERMS.NODE_DELETE) || can(PERMS.ALERTS_READ)) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/config`)} className="gap-1.5 flex-1 sm:flex-initial">
+            <Settings className="h-4 w-4" />
+            <span>Config</span>
+          </Button>
+        )}
+        {can(PERMS.LOGS_READ) && (
+          <Button variant="outline" size="sm" onClick={() => router.push(`/node/${nodeId}/logs`)} className="gap-1.5 flex-1 sm:flex-initial">
+            <ScrollText className="h-4 w-4" />
+            <span>Live Logs</span>
+          </Button>
+        )}
       </div>
     </div>
   )

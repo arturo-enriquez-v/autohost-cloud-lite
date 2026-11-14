@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { NodeCommand, JobStatus } from "../../../lib/features/nodes/types"
 import { useNodeCommands } from "@/lib/features/nodes/commands/hooks/useNodeCommands"
 import { useJobDispatch } from "@/lib/features/nodes/jobs/hooks/useNodeJobs"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 
 function StatusBadge({ status }: { status: JobStatus }) {
   const config: Record<JobStatus, { icon: React.ReactNode; label: string; className: string }> = {
@@ -34,6 +36,8 @@ interface CommandsPanelProps {
 export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
   const { commands, isLoading, error, refresh } = useNodeCommands(nodeId)
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
+  const { can } = useNodePermissions(nodeId)
+  const canRun = can(PERMS.JOBS_RUN)
   const [filter, setFilter] = useState<"all" | "custom" | "system">("all")
 
   const displayedCommands = commands.filter((c) => {
@@ -140,19 +144,23 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
                       <TableCell className="font-mono font-medium text-xs sm:text-sm">{cmd.name}</TableCell>
                       <TableCell className="text-xs sm:text-sm text-muted-foreground">{cmd.description || "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          onClick={() => handleExecute(cmd)}
-                          disabled={isDispatching}
-                          className="gap-1 text-xs"
-                        >
-                          {isDispatching ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5" />
-                          )}
-                          Execute
-                        </Button>
+                        {canRun ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleExecute(cmd)}
+                            disabled={isDispatching}
+                            className="gap-1 text-xs"
+                          >
+                            {isDispatching ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Play className="h-3.5 w-3.5" />
+                            )}
+                            Execute
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Solo lectura</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

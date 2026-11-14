@@ -10,6 +10,7 @@ import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import { FolderKanban, Loader2 } from "lucide-react"
 import { NodeActions } from "@/components/features/nodes/NodeActions"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
+import { useCurrentUser } from "@/lib/context/current-user-context"
 import { ConnectNodeModal } from "@/components/features/nodes"
 
 export default function NodesPage() {
@@ -17,6 +18,7 @@ export default function NodesPage() {
   const { nodes, allNodes, isLoading, isUpdating, error, updateNode, deleteNode, refresh: refreshNodes } = useNodes()
   const { projects, assignNode, removeNode } = useProjects()
   const { selectedProject } = useProjectContext()
+  const { isAdmin } = useCurrentUser()
 
   const handleMoveToProject = async (nodeId: string, projectId: string | null) => {
     if (projectId) {
@@ -60,7 +62,7 @@ export default function NodesPage() {
               <span>{selectedProject.name}</span>
             </div>
           )}
-          <ConnectNodeModal />
+          {isAdmin && <ConnectNodeModal />}
         </div>
       </div>
 

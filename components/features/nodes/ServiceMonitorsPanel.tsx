@@ -10,6 +10,8 @@ import { ServiceMonitorDialog } from "./ServiceMonitorDialog";
 import type { ServiceMonitor, MonitorStatus, UptimeBucket, ServiceHealthState, AutoHealConfig } from "@/lib/types";
 import { Activity, Plus, Pencil, Trash2, ShieldCheck, RefreshCw } from "lucide-react";
 import { useServiceMonitors, useUptimeHistory } from "@/lib/features/nodes/monitoring/hooks/useServiceMonitors";
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions";
+import { PERMS } from "@/lib/features/users/permissions";
 
 // ─── Status indicator ─────────────────────────────────────────────────────────
 
@@ -80,12 +82,14 @@ function UptimeBar({ nodeId, monitorId }: { nodeId: string; monitorId: string })
 function MonitorRow({
   nodeId,
   monitor,
+  canManage,
   onEdit,
   onDelete,
   onToggle,
 }: {
   nodeId: string;
   monitor: ServiceMonitor;
+  canManage: boolean;
   onEdit: (m: ServiceMonitor) => void;
   onDelete: (m: ServiceMonitor) => void;
   onToggle: (m: ServiceMonitor, enabled: boolean) => void;
@@ -107,29 +111,31 @@ function MonitorRow({
           </Badge>
           <AutoHealBadge config={monitor.autoHealConfig} state={monitor.autoHealState} />
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Switch
-            checked={monitor.enabled}
-            onCheckedChange={(v) => onToggle(monitor, v)}
-            aria-label="Enable monitoring"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => onEdit(monitor)}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-destructive hover:text-destructive"
-            onClick={() => onDelete(monitor)}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        {canManage && (
+          <div className="flex items-center gap-1 shrink-0">
+            <Switch
+              checked={monitor.enabled}
+              onCheckedChange={(v) => onToggle(monitor, v)}
+              aria-label="Enable monitoring"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => onEdit(monitor)}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={() => onDelete(monitor)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Details */}
@@ -161,6 +167,8 @@ interface Props {
 
 export function ServiceMonitorsPanel({ nodeId }: Props) {
   const { monitors, isLoading, create, update, remove } = useServiceMonitors(nodeId);
+  const { can } = useNodePermissions(nodeId);
+  const canManage = can(PERMS.MONITORS_MANAGE);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ServiceMonitor | null>(null);
@@ -214,17 +222,19 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
             <Activity className="h-4 w-4 shrink-0" />
             Monitoring &amp; Health
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
+          {canManage && (
+            <Button size="sm" variant="outline" onClick={openCreate}>
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : monitors.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No health checks configured. Click <strong>Add</strong> to start monitoring a service.
+              No health checks configured.{canManage ? <> Click <strong>Add</strong> to start monitoring a service.</> : ""}
             </p>
           ) : (
             <div className="space-y-2">
@@ -233,6 +243,7 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
                   key={m.id}
                   nodeId={nodeId}
                   monitor={m}
+                  canManage={canManage}
                   onEdit={openEdit}
                   onDelete={handleDelete}
                   onToggle={handleToggle}

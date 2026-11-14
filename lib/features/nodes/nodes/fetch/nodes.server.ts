@@ -97,6 +97,10 @@ export function mapNodeFromBackend(node: any) {
     ram: 0,
     disk: 0,
     isLocal,
+    isVm: Boolean(node?.is_vm ?? node?.IsVM),
+    vmId: node?.vm_id || node?.VMID || undefined,
+    hostNodeId: node?.host_node_id || node?.HostNodeID || undefined,
+    hostHostname: node?.host_hostname || node?.HostHostname || undefined,
     containers: [],
     ipLocal,
     ipVpn,
@@ -106,6 +110,8 @@ export function mapNodeFromBackend(node: any) {
     lastSeenAt: lastSeen,
     createdAt: node?.created_at || node?.CreatedAt,
     updatedAt: node?.updated_at || node?.UpdatedAt,
+    rolePreset: node?.role_preset || node?.RolePreset || undefined,
+    permissions: node?.permissions || node?.Permissions || undefined,
   };
 }
 
@@ -123,6 +129,10 @@ export function mapNodeWithMetricsFromBackend(node: import("@/lib/types").NodeWi
     disk: node.last_metric?.disk_usage_percent || 0,
     cpuTempCelsius: node.last_metric?.cpu_temp_celsius || undefined,
     isLocal: Boolean(node.is_local),
+    isVm: Boolean(node.is_vm),
+    vmId: node.vm_id || undefined,
+    hostNodeId: node.host_node_id || undefined,
+    hostHostname: node.host_hostname || undefined,
     containers: [],
     ipLocal: node.ip_local,
     ipVpn: node.ip_vpn,
@@ -133,5 +143,7 @@ export function mapNodeWithMetricsFromBackend(node: import("@/lib/types").NodeWi
     lastSeenAt: node.last_seen_at,
     createdAt: node.created_at,
     updatedAt: node.updated_at,
+    rolePreset: node.role_preset || undefined,
+    permissions: node.permissions || undefined,
   };
 }

@@ -61,6 +61,8 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Excluir _next, api y assets — el middleware no intercepta API routes
-  matcher: ["/((?!_next|api|favicon.ico|assets).*)"],
+  // Excluir _next, api y archivos estáticos (imágenes, fuentes, scripts, etc.)
+  matcher: [
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff2?|ttf|otf)$).*)",
+  ],
 }

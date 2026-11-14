@@ -41,6 +41,8 @@ import type { DockerContainer } from "@/lib/types"
 import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
 import { useRouter } from "next/navigation"
 import { fetchContainerSettings, saveContainerSettings } from "@/lib/features/nodes/api"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 import { toast } from "sonner"
 
 function applyStoredOrder(containers: DockerContainer[], stored: string[]): DockerContainer[] {
@@ -78,6 +80,9 @@ interface SortableRowProps {
   ctr: DockerContainer
   actionState: { name: string; action: ContainerAction } | null
   isLocked: boolean
+  canAction: boolean
+  canSettings: boolean
+  canLogs: boolean
   onToggleLock: () => void
   onLog: () => void
   onMetricsAndBackups: () => void
@@ -88,6 +93,9 @@ function SortableRow({
   ctr,
   actionState,
   isLocked,
+  canAction,
+  canSettings,
+  canLogs,
   onToggleLock,
   onLog,
   onMetricsAndBackups,
@@ -162,82 +170,90 @@ function SortableRow({
           </Button>
 
           {/* Logs */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            title="Logs"
-            onClick={onLog}
-          >
-            <FileText className="h-4 w-4" />
-          </Button>
+          {canLogs && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              title="Logs"
+              onClick={onLog}
+            >
+              <FileText className="h-4 w-4" />
+            </Button>
+          )}
 
           {/* Candado de protección contra acciones */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-8 w-8 transition-colors ${
-              isLocked
-                ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
-                : "text-muted-foreground/30 hover:text-muted-foreground hover:bg-secondary/50"
-            }`}
-            title={
-              isLocked
-                ? "Acciones bloqueadas por candado (clic para desbloquear)"
-                : "Acciones desbloqueadas (clic para bloquear y proteger)"
-            }
-            onClick={onToggleLock}
-          >
-            {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-          </Button>
+          {canSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-8 w-8 transition-colors ${
+                isLocked
+                  ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+                  : "text-muted-foreground/30 hover:text-muted-foreground hover:bg-secondary/50"
+              }`}
+              title={
+                isLocked
+                  ? "Acciones bloqueadas por candado (clic para desbloquear)"
+                  : "Acciones desbloqueadas (clic para bloquear y proteger)"
+              }
+              onClick={onToggleLock}
+            >
+              {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+            </Button>
+          )}
 
-          {/* Iniciar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10 disabled:opacity-30"
-            title={isLocked ? "Acción protegida por candado" : "Iniciar contenedor"}
-            disabled={anyActing || isRunning || isLocked}
-            onClick={() => onRequestAction("start")}
-          >
-            {isActing && actionState?.action === "start" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
-          </Button>
+          {canAction && (
+            <>
+              {/* Iniciar */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10 disabled:opacity-30"
+                title={isLocked ? "Acción protegida por candado" : "Iniciar contenedor"}
+                disabled={anyActing || isRunning || isLocked}
+                onClick={() => onRequestAction("start")}
+              >
+                {isActing && actionState?.action === "start" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
 
-          {/* Apagar / Detener */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30"
-            title={isLocked ? "Acción protegida por candado" : "Detener contenedor"}
-            disabled={anyActing || isExited || isLocked}
-            onClick={() => onRequestAction("stop")}
-          >
-            {isActing && actionState?.action === "stop" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Square className="h-4 w-4" />
-            )}
-          </Button>
+              {/* Apagar / Detener */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30"
+                title={isLocked ? "Acción protegida por candado" : "Detener contenedor"}
+                disabled={anyActing || isExited || isLocked}
+                onClick={() => onRequestAction("stop")}
+              >
+                {isActing && actionState?.action === "stop" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+              </Button>
 
-          {/* Reiniciar */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-30"
-            title={isLocked ? "Acción protegida por candado" : "Reiniciar contenedor"}
-            disabled={anyActing || isLocked}
-            onClick={() => onRequestAction("restart")}
-          >
-            {isActing && actionState?.action === "restart" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCcw className="h-4 w-4" />
-            )}
-          </Button>
+              {/* Reiniciar */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-30"
+                title={isLocked ? "Acción protegida por candado" : "Reiniciar contenedor"}
+                disabled={anyActing || isLocked}
+                onClick={() => onRequestAction("restart")}
+              >
+                {isActing && actionState?.action === "restart" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-4 w-4" />
+                )}
+              </Button>
+            </>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -260,6 +276,10 @@ interface ConfirmModalState {
 
 export function SortableContainersTable({ nodeId, containers, actionState, onLog, onAction }: Props) {
   const router = useRouter()
+  const { can } = useNodePermissions(nodeId)
+  const canAction = can(PERMS.CONTAINERS_ACTION)
+  const canSettings = can(PERMS.CONTAINERS_SETTINGS)
+  const canLogs = can(PERMS.LOGS_READ)
   const [sorted, setSorted] = useState<DockerContainer[]>([])
   const [locks, setLocks] = useState<Record<string, boolean>>({})
   const [confirmModal, setConfirmModal] = useState<ConfirmModalState>({
@@ -408,6 +428,9 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                     ctr={ctr}
                     actionState={actionState}
                     isLocked={Boolean(locks[ctr.name] || locks[ctr.id])}
+                    canAction={canAction}
+                    canSettings={canSettings}
+                    canLogs={canLogs}
                     onToggleLock={() => handleToggleLock(ctr.name)}
                     onMetricsAndBackups={() =>
                       router.push(`/node/${nodeId}/containers/${encodeURIComponent(ctr.name)}`)

@@ -10,7 +10,17 @@ import { loginBackend } from "@/lib/features/auth/fech/api";
 export async function POST(req: Request) {
   const body = await req.json();
 
-  const res = await loginBackend(body);
+  let res: Response;
+  try {
+    res = await loginBackend(body);
+  } catch (err) {
+    console.error("[AUTH] Error connecting to backend API:", err);
+    return NextResponse.json(
+      { error: "No se pudo conectar con el servidor backend. Asegúrate de que el backend esté en ejecución." },
+      { status: 503 }
+    );
+  }
+
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok || !data.access_token) {

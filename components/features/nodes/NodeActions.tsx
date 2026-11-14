@@ -27,6 +27,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Pencil, Trash2, Loader2, FolderKanban, FolderMinus } from "lucide-react"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 import type { Node, Project } from "@/lib/types"
 
 interface NodeActionsProps {
@@ -39,6 +41,11 @@ interface NodeActionsProps {
 }
 
 export function NodeActions({ node, onUpdate, onDelete, isUpdating, projects, onMoveToProject }: NodeActionsProps) {
+  const { can, isAdmin } = useNodePermissions(node.id)
+  const canEdit = can(PERMS.NODE_UPDATE)
+  const canDelete = can(PERMS.NODE_DELETE)
+  const canMove = Boolean(isAdmin && onMoveToProject && projects)
+
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showMoveDialog, setShowMoveDialog] = useState(false)
@@ -90,6 +97,10 @@ export function NodeActions({ node, onUpdate, onDelete, isUpdating, projects, on
     }
   }
 
+  if (!canEdit && !canDelete && !canMove) {
+    return null
+  }
+
   return (
     <>
       <DropdownMenu modal={false}>
@@ -100,29 +111,33 @@ export function NodeActions({ node, onUpdate, onDelete, isUpdating, projects, on
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            <span>Editar</span>
-          </DropdownMenuItem>
-          {onMoveToProject && projects && (
+          {canEdit && (
+            <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              <span>Editar</span>
+            </DropdownMenuItem>
+          )}
+          {canMove && (
             <DropdownMenuItem onClick={() => { setError(null); setShowMoveDialog(true) }}>
               <FolderKanban className="mr-2 h-4 w-4" />
               <span>Mover a proyecto</span>
             </DropdownMenuItem>
           )}
-          {onMoveToProject && node.projectId && (
+          {canMove && node.projectId && (
             <DropdownMenuItem onClick={() => handleMove(null)}>
               <FolderMinus className="mr-2 h-4 w-4" />
               <span>Quitar del proyecto</span>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            <span>Eliminar</span>
-          </DropdownMenuItem>
+          {canDelete && (
+            <DropdownMenuItem
+              onClick={() => setShowDeleteDialog(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              <span>Eliminar</span>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Server,
   Cpu,
@@ -16,11 +17,14 @@ import {
   CheckCircle2,
   Network,
   Clock,
+  ExternalLink,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useVirtualMachines } from "@/lib/features/nodes/hooks/useVirtualMachines"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 import { CreateVMDialog } from "./CreateVMDialog"
 import type { VirtualMachine, VMStatus } from "@/lib/features/nodes/types"
 
@@ -78,6 +82,7 @@ function getStatusBadge(status: VMStatus) {
 }
 
 export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
+  const router = useRouter()
   const {
     hypervisor,
     vms,
@@ -90,6 +95,9 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<Record<string, string | null>>({})
+  const { can } = useNodePermissions(nodeId)
+  const canAction = can(PERMS.VMS_ACTION)
+  const canManage = can(PERMS.VMS_MANAGE)
 
   const info = hypervisor?.info
   const isCapable = Boolean(info?.capable)
@@ -155,7 +163,7 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
             <span className="hidden sm:inline">Refresh</span>
           </Button>
 
-          {isCapable && (
+          {isCapable && canManage && (
             <Button
               size="sm"
               onClick={() => setDialogOpen(true)}
@@ -226,7 +234,7 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
                 ? "No guest VMs are currently running on this hypervisor host. Click 'Provision VM' to deploy an isolated instance with auto-enrollment."
                 : "Once the hypervisor is active, you can provision and manage guest VMs right from this dashboard."}
             </p>
-            {isCapable && (
+            {isCapable && canManage && (
               <Button
                 size="sm"
                 onClick={() => setDialogOpen(true)}
@@ -283,7 +291,19 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
 
                   {/* VM Action Controls */}
                   <div className="flex items-center gap-1.5 shrink-0 self-end md:self-center">
-                    {vm.status === "stopped" && (
+                    {vm.node_id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push(`/node/${vm.node_id}`)}
+                        className="h-8 px-2.5 text-xs gap-1 border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10"
+                        title="Open VM as Node"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        <span>Open Node</span>
+                      </Button>
+                    )}
+                    {canAction && vm.status === "stopped" && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -297,7 +317,7 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
                       </Button>
                     )}
 
-                    {vm.status === "running" && (
+                    {canAction && vm.status === "running" && (
                       <>
                         <Button
                           variant="outline"
@@ -325,16 +345,18 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
                       </>
                     )}
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleAction(vm.id, "destroy")}
-                      disabled={Boolean(currentAction)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                      title="Destroy VM"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAction(vm.id, "destroy")}
+                        disabled={Boolean(currentAction)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                        title="Destroy VM"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               )

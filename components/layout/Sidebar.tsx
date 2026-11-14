@@ -24,11 +24,13 @@ import {
   Zap,
   Receipt,
   FolderOpen,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
+import { useCurrentUser } from "@/lib/context/current-user-context"
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -65,6 +67,10 @@ const adminMenuItems = [
   { id: "settings", label: "Settings", icon: Settings, path: "/settings" },
 ]
 
+const platformAdminMenuItems = [
+  { id: "users", label: "Users & Permissions", icon: Users, path: "/users" },
+]
+
 const IS_COMMUNITY = process.env.NEXT_PUBLIC_EDITION === "community"
 
 export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: SidebarProps) {
@@ -73,6 +79,8 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const { projects, createProject } = useProjects()
   const { selectedProject, setSelectedProject } = useProjectContext()
   const { unreadAlerts, unreadLogs } = useNotifications()
+  const { isAdmin } = useCurrentUser()
+  const settingsItems = isAdmin ? [...platformAdminMenuItems, ...adminMenuItems] : []
   const [projectsOpen, setProjectsOpen] = useState(true)
   const [networkingOpen, setNetworkingOpen] = useState(false)
   const [billingOpen, setBillingOpen] = useState(true)
@@ -161,13 +169,15 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
             </button>
           ))}
 
-          <button
-            onClick={() => { setNameInput(""); setFormError(null); setCreateOpen(true) }}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF] transition-colors"
-          >
-            <Plus className="h-4 w-4 shrink-0" />
-            <span>New Project</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setNameInput(""); setFormError(null); setCreateOpen(true) }}
+              className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/60 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF] transition-colors"
+            >
+              <Plus className="h-4 w-4 shrink-0" />
+              <span>New Project</span>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -360,7 +370,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           {renderNavItemList(operationsMenuItems, true)}
           <div className="my-2 border-t border-border" />
           {renderBillingSection(true)}
-          {renderNavItemList(adminMenuItems, true)}
+          {renderNavItemList(settingsItems, true)}
         </>
       ) : (
         <>
@@ -373,7 +383,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
           {renderNavItemList(operationsMenuItems, false)}
           <div className="my-2 border-t border-border" />
           {renderBillingSection(false)}
-          {renderNavItemList(adminMenuItems, false)}
+          {renderNavItemList(settingsItems, false)}
         </>
       )}
     </nav>

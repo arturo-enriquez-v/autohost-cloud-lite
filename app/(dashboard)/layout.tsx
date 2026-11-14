@@ -5,6 +5,7 @@ import { Header, Sidebar } from "@/components/layout"
 import { ProjectProvider } from "@/lib/context/project-context"
 import { NodesProvider } from "@/lib/context/nodes-context"
 import { NotificationsProvider } from "@/lib/context/notifications-context"
+import { CurrentUserProvider } from "@/lib/context/current-user-context"
 import { useTokenRefresh } from "@/lib/hooks/useTokenRefresh"
 
 export default function DashboardLayout({
@@ -18,6 +19,7 @@ export default function DashboardLayout({
   useTokenRefresh()
 
   return (
+    <CurrentUserProvider>
     <ProjectProvider>
       <NodesProvider>
         <NotificationsProvider>
@@ -48,5 +50,6 @@ export default function DashboardLayout({
         </NotificationsProvider>
       </NodesProvider>
     </ProjectProvider>
+    </CurrentUserProvider>
   )
 }

@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
+import { useCurrentUser } from "@/lib/context/current-user-context"
+import { ProjectMembersCard } from "@/components/features/projects/ProjectMembersCard"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import type { Node } from "@/lib/types"
 
@@ -44,6 +46,7 @@ export default function ProjectDetailPage({
   const router = useRouter()
   const { allNodes, isLoading: nodesLoading, refresh: refreshNodes } = useNodes()
   const { projects, isLoading: projectsLoading, assignNode, removeNode, updateProject, deleteProject } = useProjects()
+  const { isAdmin } = useCurrentUser()
   const [addNodeOpen, setAddNodeOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -141,7 +144,7 @@ export default function ProjectDetailPage({
         </Badge>
       </TableCell>
       <TableCell>
-        {inProject ? (
+        {isAdmin && (inProject ? (
           <button
             title="Remove from project"
             onClick={() => handleRemove(node.id)}
@@ -157,7 +160,7 @@ export default function ProjectDetailPage({
           >
             <UserPlus className="h-4 w-4" />
           </button>
-        )}
+        ))}
       </TableCell>
     </TableRow>
   )
@@ -175,22 +178,24 @@ export default function ProjectDetailPage({
             <h2 className="text-2xl font-bold text-foreground">{project.name}</h2>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            title="Rename project"
-            onClick={() => { setNameInput(project.name); setActionError(null); setRenameOpen(true) }}
-            className="rounded p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button
-            title="Delete project"
-            onClick={() => setDeleteOpen(true)}
-            className="rounded p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="flex items-center gap-1">
+            <button
+              title="Rename project"
+              onClick={() => { setNameInput(project.name); setActionError(null); setRenameOpen(true) }}
+              className="rounded p-1.5 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+            <button
+              title="Delete project"
+              onClick={() => setDeleteOpen(true)}
+              className="rounded p-1.5 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {actionError && (
@@ -203,10 +208,12 @@ export default function ProjectDetailPage({
             Nodes in this project{" "}
             <span className="text-muted-foreground font-normal">({projectNodes.length})</span>
           </CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setAddNodeOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add node
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => setAddNodeOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add node
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {projectNodes.length === 0 ? (
@@ -234,6 +241,14 @@ export default function ProjectDetailPage({
           )}
         </CardContent>
       </Card>
+
+      {isAdmin && (
+        <ProjectMembersCard
+          projectId={id}
+          projectName={project.name}
+          projectNodes={projectNodes}
+        />
+      )}
 
       {/* Add node dialog */}
       <Dialog open={addNodeOpen} onOpenChange={setAddNodeOpen}>

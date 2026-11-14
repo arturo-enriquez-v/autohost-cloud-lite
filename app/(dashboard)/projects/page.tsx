@@ -24,12 +24,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
+import { useCurrentUser } from "@/lib/context/current-user-context"
 import type { Project } from "@/lib/types"
 
 export default function ProjectsPage() {
   const router = useRouter()
   const { projects, isLoading, error, createProject, updateProject, deleteProject } = useProjects()
   const { setSelectedProject } = useProjectContext()
+  const { isAdmin } = useCurrentUser()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [editProject, setEditProject] = useState<Project | null>(null)
@@ -108,21 +110,27 @@ export default function ProjectsPage() {
             Organise your nodes into projects
           </p>
         </div>
-        <Button onClick={() => { setNameInput(""); setCreateOpen(true) }}>
-          <Plus className="h-4 w-4 mr-2" />
-          New project
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => { setNameInput(""); setCreateOpen(true) }}>
+            <Plus className="h-4 w-4 mr-2" />
+            New project
+          </Button>
+        )}
       </div>
 
       {projects.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-4">
             <FolderKanban className="h-12 w-12 text-muted-foreground/50" />
-            <p className="text-muted-foreground">No projects yet. Create one to start grouping nodes.</p>
-            <Button variant="outline" onClick={() => { setNameInput(""); setCreateOpen(true) }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create first project
-            </Button>
+            <p className="text-muted-foreground">
+              {isAdmin ? "No projects yet. Create one to start grouping nodes." : "No tienes proyectos asignados todavía."}
+            </p>
+            {isAdmin && (
+              <Button variant="outline" onClick={() => { setNameInput(""); setCreateOpen(true) }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create first project
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -137,26 +145,28 @@ export default function ProjectsPage() {
                 <CardTitle className="text-base font-semibold truncate">
                   {project.name}
                 </CardTitle>
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    title="Edit"
-                    onClick={() => {
-                      setEditProject(project)
-                      setNameInput(project.name)
-                      setFormError(null)
-                    }}
-                    className="rounded p-1 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    title="Delete"
-                    onClick={() => setDeleteTarget(project)}
-                    className="rounded p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      title="Edit"
+                      onClick={() => {
+                        setEditProject(project)
+                        setNameInput(project.name)
+                        setFormError(null)
+                      }}
+                      className="rounded p-1 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      title="Delete"
+                      onClick={() => setDeleteTarget(project)}
+                      className="rounded p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">

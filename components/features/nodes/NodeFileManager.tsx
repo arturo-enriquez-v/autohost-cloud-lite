@@ -30,6 +30,8 @@ import {
   Share2,
 } from "lucide-react"
 import { FolderShareDialog } from "./FolderShareDialog"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -103,6 +105,11 @@ export function NodeFileManager({
   onBackToAllNodes,
   defaultViewMode = "list",
 }: NodeFileManagerProps) {
+  const { can } = useNodePermissions(nodeId)
+  const canWrite = can(PERMS.FILES_WRITE)
+  const canDelete = can(PERMS.FILES_DELETE)
+  const canShare = can(PERMS.FILES_SHARE)
+
   const [currentPath, setCurrentPath] = useState<string>(externalPath || "/")
   const [entries, setEntries] = useState<NodeFileEntry[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -679,37 +686,43 @@ export function NodeFileManager({
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => openShareDialogForPath(currentPath)}
-              className="h-8 text-xs gap-1.5 border-[#70AEFF]/40 text-[#70AEFF] hover:bg-[#70AEFF]/15"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              Compartir Carpeta
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMkdirOpen(true)}
-              className="h-8 text-xs gap-1.5"
-            >
-              <FolderPlus className="h-3.5 w-3.5 text-amber-400" />
-              New Folder
-            </Button>
-            <Button
-              size="sm"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="h-8 text-xs gap-1.5 bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
-            >
-              {uploading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-              {uploading ? "Uploading…" : "Upload Files"}
-            </Button>
+            {canShare && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openShareDialogForPath(currentPath)}
+                className="h-8 text-xs gap-1.5 border-[#70AEFF]/40 text-[#70AEFF] hover:bg-[#70AEFF]/15"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Compartir Carpeta
+              </Button>
+            )}
+            {canWrite && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMkdirOpen(true)}
+                  className="h-8 text-xs gap-1.5"
+                >
+                  <FolderPlus className="h-3.5 w-3.5 text-amber-400" />
+                  New Folder
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-8 text-xs gap-1.5 bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
+                >
+                  {uploading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {uploading ? "Uploading…" : "Upload Files"}
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
@@ -831,20 +844,22 @@ export function NodeFileManager({
                 Files placed in <code className="font-mono text-[#70AEFF]">/var/lib/autohost/shared</code> on this node or uploaded here are immediately accessible.
               </p>
             </div>
-            <div className="flex items-center justify-center gap-2 pt-1">
-              <Button variant="outline" size="sm" onClick={() => setMkdirOpen(true)} className="text-xs">
-                <FolderPlus className="h-3.5 w-3.5 mr-1.5 text-amber-400" />
-                Create Folder
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-xs bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
-              >
-                <Upload className="h-3.5 w-3.5 mr-1.5" />
-                Upload File
-              </Button>
-            </div>
+            {canWrite && (
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setMkdirOpen(true)} className="text-xs">
+                  <FolderPlus className="h-3.5 w-3.5 mr-1.5 text-amber-400" />
+                  Create Folder
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
+                >
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  Upload File
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -876,7 +891,7 @@ export function NodeFileManager({
                     className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {entry.is_dir && (
+                    {canShare && entry.is_dir && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -920,20 +935,22 @@ export function NodeFileManager({
                         </Button>
                       </>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      disabled={deletingPath === entry.path}
-                      onClick={() => handleDelete(entry)}
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                      title="Eliminar"
-                    >
-                      {deletingPath === entry.path ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    {canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={deletingPath === entry.path}
+                        onClick={() => handleDelete(entry)}
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        title="Eliminar"
+                      >
+                        {deletingPath === entry.path ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1017,7 +1034,7 @@ export function NodeFileManager({
                     </td>
                     <td className="py-2.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {entry.is_dir && (
+                        {canShare && entry.is_dir && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1065,20 +1082,22 @@ export function NodeFileManager({
                             </Button>
                           </>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deletingPath === entry.path}
-                          onClick={() => handleDelete(entry)}
-                          className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                          title="Delete"
-                        >
-                          {deletingPath === entry.path ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingPath === entry.path}
+                            onClick={() => handleDelete(entry)}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                            title="Delete"
+                          >
+                            {deletingPath === entry.path ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </td>
                   </tr>

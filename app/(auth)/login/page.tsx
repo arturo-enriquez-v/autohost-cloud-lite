@@ -39,7 +39,9 @@ function LoginForm() {
       }
 
       // Hard redirect para que el middleware reciba las cookies en la primera request
-      window.location.replace(searchParams?.get("next") ?? "/")
+      const nextParam = searchParams?.get("next")
+      const targetUrl = nextParam && !/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/i.test(nextParam) ? nextParam : "/"
+      window.location.replace(targetUrl)
     } catch {
       setError("Network error")
     } finally {

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 import {
   NodeAlertsCard,
   NodeRenameCard,
@@ -15,6 +17,7 @@ export default function NodeConfigPage({ params }: { params: Promise<{ id: strin
   const { id: nodeId } = use(params)
   const router = useRouter()
   const { node, isLoading } = useNodes(nodeId)
+  const { can } = useNodePermissions(nodeId)
 
   return (
     <div className="space-y-6">
@@ -30,9 +33,9 @@ export default function NodeConfigPage({ params }: { params: Promise<{ id: strin
         </div>
       </div>
 
-      <NodeAlertsCard nodeId={nodeId} />
-      <NodeRenameCard nodeId={nodeId} />
-      <NodeDangerZoneCard nodeId={nodeId} />
+      {can(PERMS.ALERTS_READ) && <NodeAlertsCard nodeId={nodeId} />}
+      {can(PERMS.NODE_UPDATE) && <NodeRenameCard nodeId={nodeId} />}
+      {can(PERMS.NODE_DELETE) && <NodeDangerZoneCard nodeId={nodeId} />}
     </div>
   )
 }
