@@ -174,12 +174,12 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo guardar el dominio MagicDNS");
+        throw new Error(data.error || "Could not save MagicDNS domain");
       }
       setDnsInput(data.funnel_dns_name || "");
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar MagicDNS");
+      setError(err instanceof Error ? err.message : "Failed to save MagicDNS");
     } finally {
       setSavingDns(false);
     }
@@ -188,7 +188,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
   const handleUpsertRoute = async () => {
     const portNum = parseInt(containerPort, 10);
     if (!selectedNodeId || isNaN(portNum) || portNum <= 0 || portNum > 65535) {
-      setError("Selecciona un nodo y un puerto válido (1-65535).");
+      setError("Select a node and a valid port (1-65535).");
       return;
     }
 
@@ -215,13 +215,13 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo publicar en Tailscale Funnel");
+        throw new Error(data.error || "Could not publish to Tailscale Funnel");
       }
       setRouteSaved(true);
       setTimeout(() => setRouteSaved(false), 2500);
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear ruta Funnel");
+      setError(err instanceof Error ? err.message : "Failed to create Funnel route");
     } finally {
       setSavingRoute(false);
     }
@@ -238,7 +238,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
       });
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar ruta");
+      setError(err instanceof Error ? err.message : "Failed to delete route");
     } finally {
       setDeletingId(null);
     }
@@ -261,14 +261,14 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                 <Radio className="h-4 w-4" />
               </div>
-              Tailscale Funnel — Exponer Contenedores Docker (*.ts.net)
+              Tailscale Funnel — Expose Docker Containers (*.ts.net)
               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
                 <Shield className="h-3 w-3" />
                 Mesh + Funnel HTTPS
               </Badge>
             </CardTitle>
             <CardDescription>
-              Expón contenedores Docker de cualquier nodo directamente hacia Internet usando tu dominio MagicDNS de Tailscale Funnel (puertos HTTPS <code>443</code>, <code>8443</code> o <code>10000</code>).
+              Expose Docker containers from any node directly to the Internet using your Tailscale Funnel MagicDNS domain (HTTPS ports <code>443</code>, <code>8443</code>, or <code>10000</code>).
             </CardDescription>
           </div>
 
@@ -279,7 +279,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
             className="gap-1.5 text-xs text-muted-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Actualizar
+            Refresh
           </Button>
         </div>
       </CardHeader>
@@ -294,7 +294,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
             {/* MagicDNS Hostname Bar */}
             <div className="rounded-xl border bg-card/60 p-4 space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Dominio MagicDNS de tu Nodo Tailscale Funnel
+                Your Tailscale Funnel Node MagicDNS Domain
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -314,7 +314,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                   ) : (
                     <Check className="h-4 w-4" />
                   )}
-                  Guardar DNS
+                  Save DNS
                 </Button>
               </div>
             </div>
@@ -324,10 +324,10 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
               <div>
                 <h4 className="text-sm font-semibold flex items-center gap-2">
                   <Network className="h-4 w-4 text-emerald-400" />
-                  Exponer Contenedor con Tailscale Funnel
+                  Expose Container with Tailscale Funnel
                 </h4>
                 <p className="text-xs text-muted-foreground">
-                  Selecciona el nodo, elige el contenedor activo y asigna el puerto HTTPS o sub-ruta de Funnel.
+                  Select the node, choose the active container, and assign the HTTPS port or Funnel sub-path.
                 </p>
               </div>
 
@@ -336,7 +336,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Server className="h-3.5 w-3.5 text-muted-foreground" />
-                    1. Nodo Destino
+                    1. Target Node
                   </Label>
                   <select
                     value={selectedNodeId}
@@ -361,7 +361,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Box className="h-3.5 w-3.5 text-muted-foreground" />
-                    2. Contenedor Docker
+                    2. Docker Container
                   </Label>
                   <select
                     value={selectedContainerId}
@@ -370,10 +370,10 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                   >
                     <option value="">
                       {runningContainers.length > 0
-                        ? `Seleccionar (${runningContainers.length} activos)…`
+                        ? `Select (${runningContainers.length} active)…`
                         : containersConnected
-                        ? "Puerto manual"
-                        : "Cargando…"}
+                        ? "Manual port"
+                        : "Loading…"}
                     </option>
                     {runningContainers.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -385,13 +385,13 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
 
                 {/* 3. Funnel HTTPS Port */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">3. Puerto HTTPS Funnel</Label>
+                  <Label className="text-xs">3. Funnel HTTPS Port</Label>
                   <select
                     value={funnelPort}
                     onChange={(e) => setFunnelPort(Number(e.target.value))}
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm font-mono shadow-xs"
                   >
-                    <option value={443}>:443 (HTTPS Estándar)</option>
+                    <option value={443}>:443 (Standard HTTPS)</option>
                     <option value={8443}>:8443 (HTTPS Alt 1)</option>
                     <option value={10000}>:10000 (HTTPS Alt 2)</option>
                   </select>
@@ -399,9 +399,9 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
 
                 {/* 4. Path Prefix */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">4. Ruta (Path)</Label>
+                  <Label className="text-xs">4. Path</Label>
                   <Input
-                    placeholder="/ o /app"
+                    placeholder="/ or /app"
                     value={pathPrefix}
                     onChange={(e) => setPathPrefix(e.target.value)}
                     className="font-mono text-sm"
@@ -410,7 +410,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
 
                 {/* 5. Container Port & Submit */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">5. Puerto Interno</Label>
+                  <Label className="text-xs">5. Internal Port</Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -432,7 +432,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                       ) : (
                         <Plus className="h-4 w-4" />
                       )}
-                      {savingRoute ? "Creando…" : routeSaved ? "¡Listo!" : "Exponer"}
+                      {savingRoute ? "Creating…" : routeSaved ? "Done!" : "Expose"}
                     </Button>
                   </div>
                 </div>
@@ -445,7 +445,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                 <span>Tailscale Funnel</span>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-[#70AEFF]">
-                  {selectedNode?.name ?? "Nodo"} (http://{selectedNodeIP}:{containerPort || "8080"})
+                  {selectedNode?.name ?? "Node"} (http://{selectedNodeIP}:{containerPort || "8080"})
                 </span>
               </div>
 
@@ -455,7 +455,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
             {/* Active Funnel Routes */}
             <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Contenedores Expuestos en Tailscale Funnel ({status?.routes?.length ?? 0})
+                Exposed Containers on Tailscale Funnel ({status?.routes?.length ?? 0})
               </h4>
 
               {status?.routes && status.routes.length > 0 ? (
@@ -502,7 +502,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                             setTimeout(() => setCopiedUrl(null), 2000);
                           }}
                           className="h-8 w-8 text-muted-foreground"
-                          title="Copiar enlace Funnel"
+                          title="Copy Funnel link"
                         >
                           {copiedUrl === rt.id ? (
                             <Check className="h-4 w-4 text-emerald-400" />
@@ -529,7 +529,7 @@ export function TailscaleFunnelCard({ defaultNodeId }: { defaultNodeId: string }
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-6 gap-1 rounded-xl border border-dashed text-muted-foreground text-xs">
-                  <p>No hay contenedores expuestos por Tailscale Funnel todavía.</p>
+                  <p>No containers exposed via Tailscale Funnel yet.</p>
                 </div>
               )}
             </div>

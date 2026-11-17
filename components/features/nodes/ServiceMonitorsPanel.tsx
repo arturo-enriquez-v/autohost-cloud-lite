@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ServiceMonitorDialog } from "./ServiceMonitorDialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import type { ServiceMonitor, MonitorStatus, UptimeBucket, ServiceHealthState, AutoHealConfig } from "@/lib/types";
 import { Activity, Plus, Pencil, Trash2, ShieldCheck, RefreshCw } from "lucide-react";
@@ -192,8 +193,21 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
   };
 
   const handleDelete = async (m: ServiceMonitor) => {
-    if (!confirm(`Remove monitoring for "${m.serviceName}"?`)) return;
-    await remove(m.id);
+    setDeleteTarget(m);
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState<ServiceMonitor | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await remove(deleteTarget.id);
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleToggle = async (m: ServiceMonitor, enabled: boolean) => {
@@ -260,6 +274,16 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
         monitor={editTarget}
         onClose={() => setDialogOpen(false)}
         onSave={handleSave}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Remove Service Monitor?"
+        description={`Are you sure you want to remove monitoring for "${deleteTarget?.serviceName ?? ""}"?`}
+        confirmLabel="Remove"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
       />
     </>
   );

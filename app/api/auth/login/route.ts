@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("[AUTH] Error connecting to backend API:", err);
     return NextResponse.json(
-      { error: "No se pudo conectar con el servidor backend. Asegúrate de que el backend esté en ejecución." },
+      { error: "Could not connect to the backend server. Make sure the backend is running." },
       { status: 503 }
     );
   }

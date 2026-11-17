@@ -108,7 +108,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
       setCreateOpen(false)
       setNameInput("")
     } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : "Error al crear proyecto")
+      setFormError(e instanceof Error ? e.message : "Failed to create project")
     } finally {
       setSubmitting(false)
     }

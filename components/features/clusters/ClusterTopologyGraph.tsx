@@ -127,7 +127,7 @@ export function ClusterNodeCard({ data }: NodeProps) {
       <div className="mt-2.5 flex items-center justify-between text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Layers className="h-3.5 w-3.5 text-primary" />
-          Réplicas activas:
+          Active replicas:
         </span>
         <span className="font-bold text-foreground bg-white/5 px-2 py-0.5 rounded border border-white/10">
           {d.replicasCount}
@@ -190,7 +190,7 @@ export function ReplicaCard({ data }: NodeProps) {
         </div>
         {d.ports && (
           <div className="text-zinc-400">
-            Puerto: <span className="font-mono text-purple-300">{d.ports}</span>
+            Port: <span className="font-mono text-purple-300">{d.ports}</span>
           </div>
         )}
       </div>
@@ -467,16 +467,16 @@ export function ClusterTopologyGraph({ clusterData, onRefresh }: ClusterTopology
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-card/60 p-3 rounded-lg border border-border/60 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold">Filtrar por Servicio:</span>
+          <span className="text-xs font-semibold">Filter by Service:</span>
           <select
             value={selectedServiceFilter}
             onChange={(e) => setSelectedServiceFilter(e.target.value)}
             className="h-7 text-xs rounded-md border border-input bg-background px-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="all">⚡ Todos los Servicios ({services.length})</option>
+            <option value="all">⚡ All Services ({services.length})</option>
             {services.map((svc) => (
               <option key={svc.id} value={svc.name}>
-                📦 {svc.name} ({svc.replicas} réplicas)
+                📦 {svc.name} ({svc.replicas} replicas)
               </option>
             ))}
           </select>
@@ -492,7 +492,7 @@ export function ClusterTopologyGraph({ clusterData, onRefresh }: ClusterTopology
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${liveAutoRefresh ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`} />
-            {liveAutoRefresh ? "En Vivo (15s)" : "En Vivo Pausado"}
+            {liveAutoRefresh ? "Live (15s)" : "Live Paused"}
           </Button>
 
           {onRefresh && (
@@ -503,7 +503,7 @@ export function ClusterTopologyGraph({ clusterData, onRefresh }: ClusterTopology
               className="h-7 px-2.5 text-xs gap-1"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Actualizar
+              Refresh
             </Button>
           )}
         </div>

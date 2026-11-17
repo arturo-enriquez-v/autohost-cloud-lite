@@ -239,14 +239,14 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo iniciar Cloudflare Login");
+        throw new Error(data.error || "Could not start Cloudflare Login");
       }
       if (data.login_url) {
         window.open(data.login_url, "_blank", "noopener,noreferrer");
       }
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar sesión con Cloudflare");
+      setError(err instanceof Error ? err.message : "Failed to sign in with Cloudflare");
     } finally {
       setActionLoading(null);
     }
@@ -264,11 +264,11 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo iniciar Quick Tunnel");
+        throw new Error(data.error || "Could not start Quick Tunnel");
       }
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al iniciar Quick Tunnel");
+      setError(err instanceof Error ? err.message : "Failed to start Quick Tunnel");
     } finally {
       setActionLoading(null);
     }
@@ -289,12 +289,12 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo guardar el dominio base");
+        throw new Error(data.error || "Could not save base domain");
       }
       setBaseDomainInput(data.base_domain || "");
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar dominio base");
+      setError(err instanceof Error ? err.message : "Failed to save base domain");
     } finally {
       setSavingDomain(false);
     }
@@ -312,7 +312,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al desconectar túnel");
+      setError(err instanceof Error ? err.message : "Failed to disconnect tunnel");
     } finally {
       setActionLoading(null);
     }
@@ -328,18 +328,18 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
     if (status?.quick_tunnel_url) {
       return status.quick_tunnel_url.replace(/^https?:\/\//, "");
     }
-    return cleanSub ? `${cleanSub}.tudominio.com` : "app.tudominio.com";
+    return cleanSub ? `${cleanSub}.yourdomain.com` : "app.yourdomain.com";
   }, [cleanSub, effectiveBaseDomain, status?.quick_tunnel_url]);
 
   // Publish Multi-Node Route
   const handleUpsertRoute = async () => {
     const portNum = parseInt(port, 10);
     if (!selectedNodeId || isNaN(portNum) || portNum <= 0 || portNum > 65535) {
-      setError("Selecciona un nodo válido y un puerto entre 1 y 65535.");
+      setError("Select a valid node and a port between 1 and 65535.");
       return;
     }
     if (!effectiveBaseDomain && !status?.quick_tunnel_url && !cleanSub) {
-      setError("Ingresa un dominio base (ej. tudominio.com) o un subdominio.");
+      setError("Enter a base domain (e.g. yourdomain.com) or a subdomain.");
       return;
     }
 
@@ -366,7 +366,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo publicar la ruta en el túnel");
+        throw new Error(data.error || "Could not publish route to tunnel");
       }
       setRouteSaved(true);
       setTimeout(() => setRouteSaved(false), 2500);
@@ -374,7 +374,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       setSelectedContainerId("");
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar la ruta");
+      setError(err instanceof Error ? err.message : "Failed to save route");
     } finally {
       setSavingRoute(false);
     }
@@ -391,11 +391,11 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
       });
       if (!res.ok && res.status !== 204) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Error al eliminar ruta");
+        throw new Error(data.error || "Failed to delete route");
       }
       await fetchStatus();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar ruta");
+      setError(err instanceof Error ? err.message : "Failed to delete route");
     } finally {
       setDeletingDomain(null);
     }
@@ -420,21 +420,21 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
               {status?.authenticated ? (
                 <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 gap-1">
                   <ShieldCheck className="h-3 w-3" />
-                  Conectado
+                  Connected
                 </Badge>
               ) : status?.quick_tunnel_url ? (
                 <Badge className="bg-sky-500/15 text-sky-400 border-sky-500/30 gap-1">
                   <Sparkles className="h-3 w-3" />
-                  Quick Tunnel Activo
+                  Quick Tunnel Active
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-muted-foreground">
-                  Sin autenticar
+                  Not authenticated
                 </Badge>
               )}
             </CardTitle>
             <CardDescription>
-              Conecta el nodo Master (<code>{status?.master_hostname || "m-storage"}</code>) con tu cuenta de Cloudflare en 1 clic (sin API keys manuales) y enruta subdominios hacia contenedores Docker de cualquier nodo a través de Tailscale.
+              Connect the Master node (<code>{status?.master_hostname || "m-storage"}</code>) to your Cloudflare account in 1 click (no manual API keys) and route subdomains to Docker containers on any node via Tailscale.
             </CardDescription>
           </div>
 
@@ -446,7 +446,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
               className="gap-1.5 text-xs text-muted-foreground"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Actualizar
+              Refresh
             </Button>
             {(status?.authenticated || status?.running) && (
               <Button
@@ -461,7 +461,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 ) : (
                   <Unplug className="h-3.5 w-3.5" />
                 )}
-                Desconectar
+                Disconnect
               </Button>
             )}
           </div>
@@ -482,10 +482,10 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                   <div className="space-y-1">
                     <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Cloud className="h-4 w-4 text-orange-400" />
-                      Paso 1: Vincula tu dominio de Cloudflare (1-Click OAuth)
+                      Step 1: Link your Cloudflare domain (1-Click OAuth)
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Al hacer clic se abrirá la página oficial de Cloudflare donde solo eliges tu dominio y pulsas <strong>Authorize</strong>. El nodo Master descargará el certificado y creará el túnel automáticamente.
+                      Clicking will open the official Cloudflare page where you just pick your domain and click <strong>Authorize</strong>. The Master node will download the certificate and create the tunnel automatically.
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -500,8 +500,8 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                         <ExternalLink className="h-4 w-4" />
                       )}
                       {status?.login_in_process
-                        ? "Esperando autorización…"
-                        : "Conectar con Cloudflare (1-Click)"}
+                        ? "Waiting for authorization…"
+                        : "Connect with Cloudflare (1-Click)"}
                     </Button>
                     <Button
                       variant="outline"
@@ -524,7 +524,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                     <div className="truncate flex items-center gap-2">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-400 shrink-0" />
                       <span className="text-muted-foreground">
-                        Si no se abrió la ventana emergente, autoriza aquí:
+                        If the popup didn&apos;t open, authorize here:
                       </span>
                       <a
                         href={status.login_url}
@@ -541,7 +541,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                       className="h-7 text-xs shrink-0 gap-1"
                       onClick={() => window.open(status.login_url, "_blank", "noopener,noreferrer")}
                     >
-                      Abrir enlace
+                      Open link
                       <ExternalLink className="h-3 w-3" />
                     </Button>
                   </div>
@@ -551,7 +551,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3.5 py-2.5 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <Sparkles className="h-4 w-4 text-sky-400 shrink-0" />
-                      <span className="text-sky-200 font-medium">URL Pública Temporal Activa:</span>
+                      <span className="text-sky-200 font-medium">Active Temporary Public URL:</span>
                       <a
                         href={status.quick_tunnel_url}
                         target="_blank"
@@ -572,7 +572,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
-                      Copiar
+                      Copy
                     </Button>
                   </div>
                 )}
@@ -583,7 +583,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="cf-base-domain" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Dominio Base Autorizado en Cloudflare
+                      Authorized Base Domain in Cloudflare
                     </Label>
                     {status.tunnel_id && (
                       <Badge variant="outline" className="font-mono text-[10px]">
@@ -594,7 +594,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                   <div className="flex gap-2">
                     <Input
                       id="cf-base-domain"
-                      placeholder="tudominio.com"
+                      placeholder="yourdomain.com"
                       value={baseDomainInput}
                       onChange={(e) => setBaseDomainInput(e.target.value)}
                       className="font-mono text-sm"
@@ -606,7 +606,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                       className="shrink-0 gap-1.5"
                     >
                       {savingDomain ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      Guardar Dominio
+                      Save Domain
                     </Button>
                   </div>
                 </div>
@@ -619,10 +619,10 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <div>
                   <h4 className="text-sm font-semibold flex items-center gap-2">
                     <Network className="h-4 w-4 text-orange-400" />
-                    Crear Ruta Reverse Proxy Multi-Nodo (Master → Tailscale → Contenedor)
+                    Create Multi-Node Reverse Proxy Route (Master → Tailscale → Container)
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Selecciona el nodo, elige una imagen Docker levantada y crea el subdominio automáticamente.
+                    Select the node, choose a running Docker image, and create the subdomain automatically.
                   </p>
                 </div>
               </div>
@@ -632,7 +632,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Server className="h-3.5 w-3.5 text-muted-foreground" />
-                    1. Nodo Destino
+                    1. Target Node
                   </Label>
                   <select
                     value={selectedNodeId}
@@ -657,7 +657,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Box className="h-3.5 w-3.5 text-muted-foreground" />
-                    2. Contenedor / Imagen Activa
+                    2. Active Container / Image
                   </Label>
                   <select
                     value={selectedContainerId}
@@ -666,10 +666,10 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                   >
                     <option value="">
                       {runningContainers.length > 0
-                        ? `Seleccionar contenedor (${runningContainers.length} activos)…`
+                        ? `Select container (${runningContainers.length} active)…`
                         : containersConnected
-                        ? "Sin contenedores activos (puerto manual)"
-                        : "Cargando contenedores del nodo…"}
+                        ? "No active containers (manual port)"
+                        : "Loading node containers…"}
                     </option>
                     {runningContainers.map((c) => {
                       const guessedPort = inferContainerPort(c);
@@ -686,7 +686,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <div className="space-y-1.5">
                   <Label className="text-xs flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                    3. Subdominio (o @ para raíz)
+                    3. Subdomain (or @ for root)
                   </Label>
                   <div className="flex items-center">
                     <Input
@@ -696,14 +696,14 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                       className="rounded-r-none font-mono text-sm"
                     />
                     <span className="inline-flex h-9 items-center rounded-r-md border border-l-0 border-input bg-muted px-2.5 text-xs font-mono text-muted-foreground truncate max-w-[140px]">
-                      .{effectiveBaseDomain || "tudominio.com"}
+                      .{effectiveBaseDomain || "yourdomain.com"}
                     </span>
                   </div>
                 </div>
 
                 {/* Step D: Port & Submit */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">4. Puerto del Contenedor</Label>
+                  <Label className="text-xs">4. Container Port</Label>
                   <div className="flex gap-2">
                     <Input
                       type="number"
@@ -725,7 +725,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                       ) : (
                         <Plus className="h-4 w-4" />
                       )}
-                      {savingRoute ? "Creando…" : routeSaved ? "¡Listo!" : "Publicar"}
+                      {savingRoute ? "Creating…" : routeSaved ? "Done!" : "Publish"}
                     </Button>
                   </div>
                 </div>
@@ -738,7 +738,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                 <span>Master Tunnel</span>
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" />
                 <span className="text-emerald-400">
-                  Tailscale ({selectedNode?.name ?? "Nodo"}: http://{selectedNodeIP}:{port || "8080"})
+                  Tailscale ({selectedNode?.name ?? "Node"}: http://{selectedNodeIP}:{port || "8080"})
                 </span>
               </div>
 
@@ -749,7 +749,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Rutas Activas en el Túnel ({status?.routes?.length ?? 0})
+                  Active Tunnel Routes ({status?.routes?.length ?? 0})
                 </h4>
               </div>
 
@@ -784,7 +784,7 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
                           )}
                           {rt.dns_configured && (
                             <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px]">
-                              DNS CNAME Activo
+                              DNS CNAME Active
                             </Badge>
                           )}
                         </div>
@@ -812,9 +812,9 @@ export function CloudflareTunnelCard({ defaultNodeId }: CloudflareTunnelCardProp
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 gap-1.5 rounded-xl border border-dashed text-muted-foreground">
                   <Cloud className="h-7 w-7 opacity-40" />
-                  <p className="text-sm">Aún no hay subdominios configurados en el túnel</p>
+                  <p className="text-sm">No subdomains configured in the tunnel yet</p>
                   <p className="text-xs text-muted-foreground/70">
-                    Selecciona un nodo y un contenedor arriba para exponerlo con HTTPS automático.
+                    Select a node and container above to expose it with automatic HTTPS.
                   </p>
                 </div>
               )}

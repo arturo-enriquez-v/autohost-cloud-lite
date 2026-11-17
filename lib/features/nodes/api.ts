@@ -149,7 +149,8 @@ export async function runContainerAction(
   name: string,
   action: ContainerAction
 ): Promise<void> {
-  await dispatchAndPoll(nodeId, `container.${action}.${name}`);
+  const { error } = await dispatchAndPoll(nodeId, `container.${action}.${name}`);
+  if (error) throw new Error(error);
 }
 
 export interface ContainerSettings {

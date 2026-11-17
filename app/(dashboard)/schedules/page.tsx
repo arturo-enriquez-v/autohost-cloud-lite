@@ -28,6 +28,7 @@ import { useProjectContext } from "@/lib/context/project-context"
 import { useScheduledTasks } from "@/lib/features/schedules/hooks/useScheduledTasks"
 import type { NodeCommand, ScheduledTask, ScheduleType } from "@/lib/types"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -159,9 +160,24 @@ export default function SchedulesPage() {
     }
   }
 
-  const handleDelete = async (task: ScheduledTask) => {
-    if (!confirm(`Delete scheduled task for "${task.commandName}"?`)) return
-    try { await remove(task.id) } catch { /* ignore */ }
+  const [deleteTarget, setDeleteTarget] = useState<ScheduledTask | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = (task: ScheduledTask) => {
+    setDeleteTarget(task)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await remove(deleteTarget.id)
+      setDeleteTarget(null)
+    } catch {
+      /* ignore */
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleToggle = async (task: ScheduledTask) => {
@@ -427,6 +443,16 @@ export default function SchedulesPage() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Scheduled Task?"
+        description={`Are you sure you want to delete the scheduled task for "${deleteTarget?.commandName ?? ""}"?`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

@@ -141,7 +141,7 @@ export default function GlobalFilesExplorerPage() {
           className="py-1.5 flex items-center gap-2 text-[11px] text-muted-foreground"
         >
           <Loader2 className="h-3 w-3 animate-spin text-[#70AEFF]" />
-          <span>Cargando…</span>
+          <span>Loading…</span>
         </div>
       )
     }
@@ -152,7 +152,7 @@ export default function GlobalFilesExplorerPage() {
           style={{ paddingLeft: `${depth * 14 + 12}px` }}
           className="py-1 text-[11px] text-muted-foreground/60 italic"
         >
-          (vacío)
+          (empty)
         </div>
       )
     }
@@ -248,10 +248,10 @@ export default function GlobalFilesExplorerPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2.5">
             <FolderOpen className="h-6 w-6 text-[#70AEFF]" />
-            Explorador de Archivos Multi-Nodo
+            Multi-Node File Explorer
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Navega tus nodos como unidades de red, explora carpetas, reproduce streams de video y transfiere archivos por Tailscale.
+            Browse your nodes as network drives, explore folders, stream video, and transfer files over Tailscale.
           </p>
         </div>
 
@@ -264,7 +264,7 @@ export default function GlobalFilesExplorerPage() {
               className="h-8 text-xs gap-1.5"
             >
               <Layers className="h-3.5 w-3.5 text-[#70AEFF]" />
-              Ver Todos los Nodos
+              View All Nodes
             </Button>
           )}
           <Button
@@ -279,7 +279,7 @@ export default function GlobalFilesExplorerPage() {
             className="h-8 text-xs gap-1.5"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            Sincronizar
+            Sync
           </Button>
         </div>
       </div>
@@ -291,10 +291,10 @@ export default function GlobalFilesExplorerPage() {
           <div className="px-3.5 py-3 border-b border-border/60 flex items-center justify-between bg-muted/20">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
               <HardDrive className="h-3.5 w-3.5 text-[#70AEFF]" />
-              Nodos y Carpetas
+              Nodes & Folders
             </span>
             <Badge variant="outline" className="text-[10px] font-mono">
-              {nodes.length} nodos
+              {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
             </Badge>
           </div>
 
@@ -311,7 +311,7 @@ export default function GlobalFilesExplorerPage() {
               )}
             >
               <Layers className="h-4 w-4 text-[#70AEFF] shrink-0" />
-              <span className="truncate">Todos los Nodos (Unidades)</span>
+              <span className="truncate">All Nodes (Drives)</span>
             </button>
 
             <div className="my-1.5 border-t border-border/50" />
@@ -319,7 +319,7 @@ export default function GlobalFilesExplorerPage() {
             {nodesLoading && nodes.length === 0 ? (
               <div className="py-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin text-[#70AEFF]" />
-                <span>Cargando nodos…</span>
+                <span>Loading nodes…</span>
               </div>
             ) : (
               nodes.map((node) => {
@@ -390,10 +390,10 @@ export default function GlobalFilesExplorerPage() {
                 <div>
                   <h2 className="text-base font-bold flex items-center gap-2">
                     <HardDrive className="h-4 w-4 text-[#70AEFF]" />
-                    Unidades de Almacenamiento por Nodo
+                    Storage Drives by Node
                   </h2>
                   <p className="text-xs text-muted-foreground">
-                    Selecciona un nodo para abrir sus carpetas y archivos compartidos (<code>/var/lib/autohost/shared</code>).
+                    Select a node to open its shared folders and files (<code>/var/lib/autohost/shared</code>).
                   </p>
                 </div>
               </div>
@@ -456,7 +456,7 @@ export default function GlobalFilesExplorerPage() {
                       {/* Disk Usage Bar */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span>Uso de disco del nodo</span>
+                          <span>Node disk usage</span>
                           <span className="font-mono font-medium text-foreground">
                             {(node.disk ?? 0).toFixed(1)}%
                           </span>
@@ -482,10 +482,10 @@ export default function GlobalFilesExplorerPage() {
                       <div className="flex items-center justify-between pt-2 border-t border-border/50 text-xs text-muted-foreground">
                         <span className="flex items-center gap-2 font-mono text-[11px]">
                           <Folder className="h-3.5 w-3.5 text-amber-400 fill-amber-400/20" />
-                          {folderCount} carpetas · {fileCount} archivos
+                          {folderCount} {folderCount === 1 ? "folder" : "folders"} · {fileCount} {fileCount === 1 ? "file" : "files"}
                         </span>
                         <span className="text-[#70AEFF] font-medium group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                          Abrir
+                          Open
                           <ChevronRight className="h-3.5 w-3.5" />
                         </span>
                       </div>

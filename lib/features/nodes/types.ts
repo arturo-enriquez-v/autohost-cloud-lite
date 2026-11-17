@@ -176,7 +176,7 @@ export interface DockerContainer {
   memPerc?: string;
 }
 
-export type ContainerAction = "start" | "stop" | "restart" | "stats";
+export type ContainerAction = "start" | "stop" | "restart" | "remove" | "stats";
 
 // ─── Node commands ────────────────────────────────────────────────────────────
 

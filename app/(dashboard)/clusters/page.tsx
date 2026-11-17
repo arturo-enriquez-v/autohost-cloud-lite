@@ -20,21 +20,21 @@ export default function ClustersPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Layers className="h-7 w-7 text-primary" />
-            Clusters Docker Swarm
+            Docker Swarm Clusters
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Orquestación de microservicios stateless sobre la red privada VPN con autoescalado predictivo.
+            Stateless microservice orchestration over the private VPN with predictive autoscaling.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refresh()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refrescar
+            Refresh
           </Button>
           <Link href="/clusters/new">
             <Button size="sm" className="gap-2">
               <Plus className="h-4 w-4" />
-              Crear Cluster
+              Create Cluster
             </Button>
           </Link>
         </div>
@@ -44,34 +44,34 @@ export default function ClustersPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="border-border/50 bg-card/60 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Clusters Activos</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Clusters</CardTitle>
             <Layers className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{clusters.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Red Overlay mesh WireGuard</p>
+            <p className="text-xs text-muted-foreground mt-1">WireGuard overlay mesh network</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-card/60 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Servidores en Clusters</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Cluster Servers</CardTitle>
             <Server className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalNodes}</div>
-            <p className="text-xs text-muted-foreground mt-1">Managers y Workers conectados</p>
+            <p className="text-xs text-muted-foreground mt-1">Connected Managers & Workers</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-card/60 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Servicios Stateless</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Stateless Services</CardTitle>
             <Cpu className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalServices}</div>
-            <p className="text-xs text-muted-foreground mt-1">Con Autoescalado activo</p>
+            <p className="text-xs text-muted-foreground mt-1">With active autoscaling</p>
           </CardContent>
         </Card>
       </div>
@@ -87,7 +87,7 @@ export default function ClustersPage() {
       {loading && clusters.length === 0 ? (
         <div className="flex justify-center items-center py-16 text-muted-foreground">
           <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-          Cargando clusters...
+          Loading clusters...
         </div>
       ) : clusters.length === 0 ? (
         <Card className="border-dashed border-border/80 bg-card/30">
@@ -95,14 +95,14 @@ export default function ClustersPage() {
             <div className="rounded-full bg-primary/10 p-4 mb-4">
               <Layers className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold">No tienes clusters creados</h3>
+            <h3 className="text-lg font-semibold">No clusters created yet</h3>
             <p className="text-sm text-muted-foreground max-w-sm mt-1 mb-6">
-              Agrupa 2 o más servidores de AutoHost para balancear tráfico de forma homogénea y autoescalar tus APIs automáticamente.
+              Group 2 or more AutoHost servers to load-balance traffic evenly and automatically autoscale your APIs.
             </p>
             <Link href="/clusters/new">
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
-                Crear tu primer Cluster
+                Create your first Cluster
               </Button>
             </Link>
           </CardContent>
@@ -128,14 +128,14 @@ export default function ClustersPage() {
                         </Badge>
                       </CardTitle>
                       <CardDescription className="text-xs mt-1">
-                        Red Overlay: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.cluster.overlay_network}</code>
+                        Overlay Network: <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{item.cluster.overlay_network}</code>
                       </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Topología breve */}
+                  {/* Brief topology */}
                   <div className="rounded-md bg-muted/40 p-3 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1.5">
@@ -148,7 +148,7 @@ export default function ClustersPage() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1.5">
-                        <Server className="h-3.5 w-3.5 text-muted-foreground" /> Nodos:
+                        <Server className="h-3.5 w-3.5 text-muted-foreground" /> Nodes:
                       </span>
                       <span className="font-medium">
                         1 Manager + {workers.length} Worker{workers.length !== 1 ? "s" : ""}
@@ -157,18 +157,18 @@ export default function ClustersPage() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-1.5">
-                        <Activity className="h-3.5 w-3.5 text-blue-400" /> Servicios:
+                        <Activity className="h-3.5 w-3.5 text-blue-400" /> Services:
                       </span>
                       <span className="font-medium">
-                        {item.services?.length || 0} servicio{item.services?.length !== 1 ? "s" : ""}
+                        {item.services?.length || 0} service{item.services?.length !== 1 ? "s" : ""}
                       </span>
                     </div>
                   </div>
 
-                  {/* Botón de acción */}
+                  {/* Action button */}
                   <Link href={`/clusters/${item.cluster.id}`} className="block">
                     <Button variant="secondary" className="w-full justify-between group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                      Administrar Cluster
+                      Manage Cluster
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>

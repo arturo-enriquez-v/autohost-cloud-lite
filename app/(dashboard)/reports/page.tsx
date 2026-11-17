@@ -15,6 +15,8 @@ import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { toast } from "sonner"
 import {
   Mail,
   Send,
@@ -111,16 +113,16 @@ export default function ReportsPage() {
       if (res.ok) {
         setTriggerMessage({
           type: "success",
-          text: `Reporte encolado correctamente (${data.nodes_total || 0} nodos procesados).`,
+          text: `Report queued successfully (${data.nodes_total || 0} nodes processed).`,
         })
       } else {
         setTriggerMessage({
           type: "error",
-          text: data?.error || "No se pudo enviar el reporte de prueba",
+          text: data?.error || "Failed to send test report",
         })
       }
     } catch {
-      setTriggerMessage({ type: "error", text: "Error de red al solicitar reporte" })
+      setTriggerMessage({ type: "error", text: "Network error while requesting report" })
     } finally {
       setIsTriggering(false)
     }
@@ -155,19 +157,31 @@ export default function ReportsPage() {
       setGroupDialogOpen(false)
       setGroupNameInput("")
     } catch (e: unknown) {
-      setGroupError(e instanceof Error ? e.message : "Error al guardar el grupo")
+      setGroupError(e instanceof Error ? e.message : "Failed to save group")
     } finally {
       setGroupSubmitting(false)
     }
   }
 
-  const handleDeleteGroup = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar el grupo "${name}"? Los VPSs asignados pasarán a "Sin grupo".`)) return
+  const [deleteGroupTarget, setDeleteGroupTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deletingGroup, setDeletingGroup] = useState(false)
+
+  const handleDeleteGroup = (id: string, name: string) => {
+    setDeleteGroupTarget({ id, name })
+  }
+
+  const handleConfirmDeleteGroup = async () => {
+    if (!deleteGroupTarget) return
+    setDeletingGroup(true)
     try {
-      await deleteProject(id)
+      await deleteProject(deleteGroupTarget.id)
       await refreshNodes()
+      toast.success(`Group "${deleteGroupTarget.name}" deleted`)
+      setDeleteGroupTarget(null)
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : "Error al eliminar grupo")
+      toast.error(e instanceof Error ? e.message : "Failed to delete group")
+    } finally {
+      setDeletingGroup(false)
     }
   }
 
@@ -225,17 +239,17 @@ export default function ReportsPage() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Mail className="h-6 w-6 text-primary shrink-0" />
-            Reportes por Correo
+            Email Reports
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Recibe reportes matutinos automatizados de tu infraestructura organizados por grupos de VPSs.
+            Receive automated morning reports of your infrastructure organized by VPS groups.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
           <Button variant="outline" size="sm" onClick={openCreateGroupModal} className="flex-1 sm:flex-initial">
             <Plus className="mr-1.5 h-4 w-4" />
-            Nuevo Grupo
+            New Group
           </Button>
           <Button
             size="sm"
@@ -246,12 +260,12 @@ export default function ReportsPage() {
             {isTriggering ? (
               <>
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                Enviando...
+                Sending...
               </>
             ) : (
               <>
                 <Send className="mr-1.5 h-4 w-4" />
-                Enviar Reporte Ahora
+                Send Report Now
               </>
             )}
           </Button>
@@ -288,10 +302,10 @@ export default function ReportsPage() {
           <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
             <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
               <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
-              Configuración del Reporte Matutino
+              Morning Report Configuration
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Ajusta la frecuencia y hora de envío del reporte diario a tu correo electrónico registrado.
+              Adjust the frequency and delivery time of the daily report to your registered email.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 space-y-6 pt-0 sm:pt-0">
@@ -300,10 +314,10 @@ export default function ReportsPage() {
               <div className="flex items-center justify-between p-3 sm:p-4 rounded-xl bg-muted/30 border gap-3 min-w-0">
                 <div className="space-y-0.5 min-w-0 flex-1">
                   <Label htmlFor="report-toggle-page" className="text-xs sm:text-sm font-semibold text-foreground cursor-pointer block truncate">
-                    Habilitar reporte diario
+                    Enable daily report
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Envía un resumen de métricas, alertas y uptime a tu correo.
+                    Sends a summary of metrics, alerts, and uptime to your email.
                   </p>
                 </div>
                 {reportLoading ? (
@@ -322,7 +336,7 @@ export default function ReportsPage() {
               {/* UTC Delivery Time Selector */}
               <div className={`space-y-2 p-3 sm:p-4 rounded-xl bg-muted/30 border transition-opacity min-w-0 ${settings.enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
                 <Label htmlFor="report-hour-page" className="text-xs sm:text-sm font-semibold text-foreground">
-                  Hora de entrega (UTC)
+                  Delivery time (UTC)
                 </Label>
                 <Select
                   value={String(settings.hour_utc)}
@@ -330,7 +344,7 @@ export default function ReportsPage() {
                   disabled={!settings.enabled || reportSaving || reportLoading}
                 >
                   <SelectTrigger id="report-hour-page" className="w-full bg-background">
-                    <SelectValue placeholder="Seleccionar hora" />
+                    <SelectValue placeholder="Select hour" />
                   </SelectTrigger>
                   <SelectContent>
                     {UTC_HOURS.map((h) => (
@@ -341,7 +355,7 @@ export default function ReportsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground">
-                  Todos los horarios están calculados en horario UTC.
+                  All times are calculated in UTC.
                 </p>
               </div>
             </div>
@@ -355,15 +369,15 @@ export default function ReportsPage() {
               <div>
                 <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
                   <FolderKanban className="h-5 w-5 text-muted-foreground shrink-0" />
-                  Grupos & Selección de VPSs para el Reporte
+                  Groups & VPS Selection for Report
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  Organiza tus VPSs en grupos (proyectos) y selecciona individualmente cuales enviar en el correo diario.
+                  Organize your VPSs into groups (projects) and individually select which ones to include in the daily email.
                 </CardDescription>
               </div>
               <Button size="sm" variant="outline" onClick={openCreateGroupModal} className="shrink-0 self-start sm:self-auto">
                 <Plus className="mr-1.5 h-4 w-4" />
-                Crear Grupo
+                Create Group
               </Button>
             </div>
           </CardHeader>
@@ -372,7 +386,7 @@ export default function ReportsPage() {
             {isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                Cargando grupos y nodos...
+                Loading groups and nodes...
               </div>
             ) : (
               <div className="space-y-6 pt-2">
@@ -393,7 +407,7 @@ export default function ReportsPage() {
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={() => openEditGroupModal(group.id, group.name)}
-                          title="Renombrar grupo"
+                          title="Rename group"
                         >
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
@@ -402,7 +416,7 @@ export default function ReportsPage() {
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-destructive"
                           onClick={() => handleDeleteGroup(group.id, group.name)}
-                          title="Eliminar grupo"
+                          title="Delete group"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -412,7 +426,7 @@ export default function ReportsPage() {
                     <div className="p-4">
                       {group.nodes.length === 0 ? (
                         <p className="text-xs text-muted-foreground italic py-2 text-center">
-                          No hay VPSs asignados a este grupo. Selecciona un grupo en los nodos de abajo para asignarlo.
+                          No VPSs assigned to this group. Select a group on the nodes below to assign it.
                         </p>
                       ) : (
                         <div className="divide-y divide-border">
@@ -437,7 +451,7 @@ export default function ReportsPage() {
                   <div className="flex items-center justify-between bg-muted/40 px-4 py-3 border-b">
                     <div className="flex items-center gap-2.5">
                       <Layers className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <span className="font-semibold text-sm text-foreground">Sin grupo</span>
+                      <span className="font-semibold text-sm text-foreground">Unassigned</span>
                       <Badge variant="outline" className="text-xs font-normal">
                         {groupedNodes.unassigned.length} VPS{groupedNodes.unassigned.length === 1 ? "" : "s"}
                       </Badge>
@@ -447,7 +461,7 @@ export default function ReportsPage() {
                   <div className="p-4">
                     {groupedNodes.unassigned.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic py-2 text-center">
-                        Todos tus VPSs pertenecen a un grupo.
+                        All your VPSs belong to a group.
                       </p>
                     ) : (
                       <div className="divide-y divide-border">
@@ -475,38 +489,38 @@ export default function ReportsPage() {
           <CardHeader className="p-4 sm:p-6 pb-3 sm:pb-4">
             <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary shrink-0" />
-              Vista Previa del Reporte Matutino (Seccionado por Grupos)
+              Morning Report Preview (Grouped)
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Así es como se genera y envía la estructura del correo diario a tu casilla.
+              This is how the daily email structure is generated and sent to your inbox.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             <div className="rounded-xl border bg-card p-3.5 sm:p-6 space-y-6 font-mono text-sm shadow-inner max-w-full overflow-hidden">
-              {/* Resumen de la Mañana */}
+              {/* Morning Summary */}
               <div className="space-y-2 border-b pb-4">
                 <div className="flex items-center gap-2 text-base font-bold text-foreground font-sans">
-                  <span>☕ Resumen de la Mañana</span>
+                  <span>☕ Morning Summary</span>
                   <Badge variant="outline" className="text-xs font-mono font-normal">
                     {new Date().toISOString().split("T")[0]}
                   </Badge>
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground font-sans">
-                  La infraestructura distribuida de AutoHost ha mantenido un rendimiento con un uptime promedio global del{" "}
-                  <strong className="text-foreground">{previewUptimePct}%</strong> en las últimas 24 horas. Actualmente hay{" "}
-                  <strong className="text-foreground">{previewAlertsCount}</strong> de <strong className="text-foreground">{includedNodes.length}</strong> VPSs en alerta de los incluidos en este reporte.
+                  AutoHost distributed infrastructure has maintained an average global uptime of{" "}
+                  <strong className="text-foreground">{previewUptimePct}%</strong> over the last 24 hours. There are currently{" "}
+                  <strong className="text-foreground">{previewAlertsCount}</strong> of <strong className="text-foreground">{includedNodes.length}</strong> VPSs in alert among those included in this report.
                 </p>
               </div>
 
-              {/* Diagnostico de Nodos por Grupos */}
+              {/* Node Diagnostics by Group */}
               <div className="space-y-4">
                 <div className="text-base font-bold text-foreground font-sans flex items-center gap-2">
-                  <span>📊 Diagnóstico de Nodos por Grupos</span>
+                  <span>📊 Node Diagnostics by Group</span>
                 </div>
 
                 {includedNodes.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic font-sans">
-                    No has seleccionado ningún VPS para incluir en el reporte diario.
+                    You have not selected any VPS to include in the daily report.
                   </p>
                 ) : (
                   <div className="space-y-6">
@@ -518,7 +532,7 @@ export default function ReportsPage() {
                         <div key={group.id} className="space-y-2">
                           <div className="text-xs font-bold text-primary font-sans flex items-center gap-1.5">
                             <FolderKanban className="h-3.5 w-3.5" />
-                            <span>Grupo: {group.name}</span>
+                            <span>Group: {group.name}</span>
                           </div>
                           <ReportPreviewTable nodes={groupIncluded} />
                         </div>
@@ -533,7 +547,7 @@ export default function ReportsPage() {
                         <div className="space-y-2">
                           <div className="text-xs font-bold text-muted-foreground font-sans flex items-center gap-1.5">
                             <Layers className="h-3.5 w-3.5" />
-                            <span>Sin grupo</span>
+                            <span>Unassigned</span>
                           </div>
                           <ReportPreviewTable nodes={unassignedIncluded} />
                         </div>
@@ -543,14 +557,14 @@ export default function ReportsPage() {
                 )}
               </div>
 
-              {/* Umbrales */}
+              {/* Thresholds */}
               {includedNodes.length > 0 && (
                 <div className="space-y-2 pt-4 border-t text-xs font-sans text-muted-foreground">
-                  <div className="font-semibold text-foreground">Umbrales configurados:</div>
+                  <div className="font-semibold text-foreground">Configured thresholds:</div>
                   <ul className="list-disc list-inside space-y-1 text-[11px] font-mono">
                     {includedNodes.map((n) => (
                       <li key={n.id}>
-                        <strong className="text-foreground">{n.hostname}:</strong> CPU ≤ 80% | RAM ≤ 80% | Disco ≤ 80 GB | Offline: sí
+                        <strong className="text-foreground">{n.hostname}:</strong> CPU ≤ 80% | RAM ≤ 80% | Disk ≤ 80 GB | Offline: yes
                       </li>
                     ))}
                   </ul>
@@ -566,15 +580,15 @@ export default function ReportsPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {editingGroupId ? "Renombrar Grupo" : "Crear Nuevo Grupo de VPSs"}
+              {editingGroupId ? "Rename Group" : "Create New VPS Group"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label htmlFor="group-name">Nombre del Grupo</Label>
+              <Label htmlFor="group-name">Group Name</Label>
               <Input
                 id="group-name"
-                placeholder="Ej. Producción, Google Landings, Databases"
+                placeholder="e.g. Production, Google Landings, Databases"
                 value={groupNameInput}
                 onChange={(e) => setGroupNameInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSaveGroup()}
@@ -589,15 +603,25 @@ export default function ReportsPage() {
           </div>
           <DialogFooter className="pt-2">
             <Button variant="outline" onClick={() => setGroupDialogOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
             <Button onClick={handleSaveGroup} disabled={groupSubmitting || !groupNameInput.trim()}>
               {groupSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
-              {editingGroupId ? "Guardar Cambios" : "Crear Grupo"}
+              {editingGroupId ? "Save Changes" : "Create Group"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteGroupTarget)}
+        onOpenChange={(open) => !open && setDeleteGroupTarget(null)}
+        title="Delete Group?"
+        description={`Delete group "${deleteGroupTarget?.name ?? ""}"? Assigned VPSs will be moved to "Unassigned".`}
+        confirmLabel="Delete Group"
+        loading={deletingGroup}
+        onConfirm={handleConfirmDeleteGroup}
+      />
     </div>
   )
 }
@@ -637,7 +661,7 @@ function NodeReportRow({
                   : "border-muted-foreground/30 text-muted-foreground"
               }`}
             >
-              {hasAlerts ? "⚠️ Alerta" : isOnline ? "✅ Normal" : "Offline"}
+              {hasAlerts ? "⚠️ Alert" : isOnline ? "✅ Normal" : "Offline"}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground truncate">
@@ -651,10 +675,10 @@ function NodeReportRow({
         <div className="flex-1 sm:flex-initial sm:w-40 min-w-0">
           <Select value={node.projectId || "unassigned"} onValueChange={onGroupChange}>
             <SelectTrigger className="h-8 text-xs bg-background w-full">
-              <SelectValue placeholder="Seleccionar grupo" />
+              <SelectValue placeholder="Select group" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="unassigned">Sin grupo</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
                   {p.name}
@@ -672,7 +696,7 @@ function NodeReportRow({
             onCheckedChange={onToggleInclusion}
           />
           <Label htmlFor={`inc-${node.id}`} className="text-xs font-medium cursor-pointer">
-            {isIncluded ? "Incluido" : "Excluido"}
+            {isIncluded ? "Included" : "Excluded"}
           </Label>
         </div>
       </div>
@@ -687,13 +711,13 @@ function ReportPreviewTable({ nodes }: { nodes: Node[] }) {
       <table className="w-full text-left text-xs font-mono">
         <thead className="border-b bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
           <tr>
-            <th className="py-2 px-3">Nodo</th>
+            <th className="py-2 px-3">Node</th>
             <th className="py-2 px-3">CPU Avg</th>
-            <th className="py-2 px-3">CPU Pico</th>
+            <th className="py-2 px-3">CPU Peak</th>
             <th className="py-2 px-3">RAM Avg</th>
-            <th className="py-2 px-3">Disco Libre</th>
-            <th className="py-2 px-3">Alertas 24h</th>
-            <th className="py-2 px-3">Estado</th>
+            <th className="py-2 px-3">Free Disk</th>
+            <th className="py-2 px-3">24h Alerts</th>
+            <th className="py-2 px-3">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -704,9 +728,9 @@ function ReportPreviewTable({ nodes }: { nodes: Node[] }) {
             const isOnline = node.status === "online" || (node.lastSeenAt && Date.now() - new Date(node.lastSeenAt).getTime() < 5 * 60 * 1000)
             const hasAlerts = cpu > 85 || ram > 85
 
-            let estado = "✅ Normal"
-            if (!isOnline) estado = "⬛ Offline"
-            else if (hasAlerts) estado = "⚠️ Alerta"
+            let status = "✅ Normal"
+            if (!isOnline) status = "⬛ Offline"
+            else if (hasAlerts) status = "⚠️ Alert"
 
             const hostname = node.hostname || node.name || "node"
 
@@ -720,7 +744,7 @@ function ReportPreviewTable({ nodes }: { nodes: Node[] }) {
                 <td className="py-2 px-3">
                   {hasAlerts ? "1 (cpu/ram)" : "0 ( )"}
                 </td>
-                <td className="py-2 px-3">{estado}</td>
+                <td className="py-2 px-3">{status}</td>
               </tr>
             )
           })}

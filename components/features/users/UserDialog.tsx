@@ -130,17 +130,17 @@ export function UserDialog({
     const trimmedEmail = email.trim().toLowerCase()
     const trimmedName = name.trim()
     if (!trimmedEmail) {
-      setError("El correo electrónico es obligatorio.")
+      setError("Email address is required.")
       setTab("profile")
       return
     }
     if (!isEditing && password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.")
+      setError("Password must be at least 6 characters long.")
       setTab("profile")
       return
     }
     if (isEditing && password.length > 0 && password.length < 6) {
-      setError("La nueva contraseña debe tener al menos 6 caracteres.")
+      setError("New password must be at least 6 characters long.")
       setTab("profile")
       return
     }
@@ -173,7 +173,7 @@ export function UserDialog({
       }
       onOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar el usuario")
+      setError(err instanceof Error ? err.message : "Could not save user")
     } finally {
       setSubmitting(false)
     }
@@ -185,10 +185,10 @@ export function UserDialog({
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-border">
           <DialogTitle className="flex items-center gap-2 text-lg">
             {isEditing ? <UserCog className="h-5 w-5 text-[#70AEFF]" /> : <UserPlus className="h-5 w-5 text-[#70AEFF]" />}
-            {isEditing ? `Editar usuario: ${user?.name || user?.email}` : "Crear nuevo usuario"}
+            {isEditing ? `Edit user: ${user?.name || user?.email}` : "Create new user"}
           </DialogTitle>
           <DialogDescription>
-            Configura las credenciales, rol global, acceso a proyectos y permisos granulares por nodo.
+            Configure credentials, global role, project access, and granular node permissions.
           </DialogDescription>
         </DialogHeader>
 
@@ -200,9 +200,9 @@ export function UserDialog({
           >
             <div className="px-6 pt-3 border-b border-border bg-muted/20">
               <TabsList className="mb-3">
-                <TabsTrigger value="profile">Datos y Rol</TabsTrigger>
+                <TabsTrigger value="profile">Profile & Role</TabsTrigger>
                 <TabsTrigger value="permissions" disabled={role === "admin"} className="gap-1.5">
-                  Proyectos y Permisos por Nodo
+                  Projects & Node Permissions
                   {role === "member" && (projectCount > 0 || nodeGrantCount > 0) && (
                     <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-[10px]">
                       {projectCount}P · {nodeGrantCount}N
@@ -223,21 +223,21 @@ export function UserDialog({
               <TabsContent value="profile" className="mt-0 space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="user-name">Nombre</Label>
+                    <Label htmlFor="user-name">Name</Label>
                     <Input
                       id="user-name"
-                      placeholder="Ej. Carlos Mendoza"
+                      placeholder="e.g. Alex Morgan"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       autoFocus
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="user-email">Correo electrónico *</Label>
+                    <Label htmlFor="user-email">Email *</Label>
                     <Input
                       id="user-email"
                       type="email"
-                      placeholder="usuario@empresa.com"
+                      placeholder="user@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -248,13 +248,13 @@ export function UserDialog({
                 <div className="space-y-2">
                   <Label htmlFor="user-password" className="flex items-center gap-1.5">
                     <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
-                    {isEditing ? "Nueva contraseña (opcional)" : "Contraseña *"}
+                    {isEditing ? "New password (optional)" : "Password *"}
                   </Label>
                   <div className="relative">
                     <Input
                       id="user-password"
                       type={showPassword ? "text" : "password"}
-                      placeholder={isEditing ? "Dejar en blanco para conservar la contraseña actual" : "Mínimo 6 caracteres"}
+                      placeholder={isEditing ? "Leave blank to keep current password" : "Minimum 6 characters"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required={!isEditing}
@@ -272,7 +272,7 @@ export function UserDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Rol global en la plataforma</Label>
+                  <Label>Global platform role</Label>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <button
                       type="button"
@@ -286,11 +286,11 @@ export function UserDialog({
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-sm">Miembro (Member)</span>
+                        <span className="font-semibold text-sm">Member</span>
                         <Badge variant="outline" className="text-[10px]">Granular</Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Solo accede a los proyectos y nodos asignados, con los permisos específicos por módulo que definas.
+                        Only accesses assigned projects and nodes, with the specific per-module permissions you define.
                       </p>
                     </button>
 
@@ -308,14 +308,14 @@ export function UserDialog({
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-sm flex items-center gap-1.5">
                           <ShieldCheck className="h-4 w-4 text-amber-400" />
-                          Administrador (Admin)
+                          Administrator (Admin)
                         </span>
                         <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
-                          Acceso total
+                          Full access
                         </Badge>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Control completo de proyectos, todos los nodos, configuraciones globales y gestión de usuarios.
+                        Full control over projects, all nodes, global settings, and user management.
                       </p>
                     </button>
                   </div>
@@ -323,18 +323,18 @@ export function UserDialog({
 
                 <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 p-3.5">
                   <div>
-                    <p className="text-sm font-medium">Cuenta activa</p>
+                    <p className="text-sm font-medium">Active account</p>
                     <p className="text-xs text-muted-foreground">
                       {isSelf
-                        ? "No puedes desactivar tu propia cuenta."
-                        : "Si la desactivas, el usuario no podrá iniciar sesión y se revocarán sus tokens."}
+                        ? "You cannot deactivate your own account."
+                        : "If deactivated, the user will not be able to sign in and their tokens will be revoked."}
                     </p>
                   </div>
                   <Switch
                     checked={isActive}
                     disabled={isSelf}
                     onCheckedChange={setIsActive}
-                    aria-label="Cuenta activa"
+                    aria-label="Active account"
                   />
                 </div>
 
@@ -342,14 +342,14 @@ export function UserDialog({
                   <div className="flex items-center justify-between rounded-xl border border-dashed border-[#70AEFF]/40 bg-[#70AEFF]/5 p-3.5">
                     <div className="text-xs">
                       <p className="font-semibold text-foreground">
-                        Proyectos y nodos ({projectCount} proyectos · {nodeGrantCount} nodos configurados)
+                        Projects & nodes ({projectCount} projects · {nodeGrantCount} nodes configured)
                       </p>
                       <p className="text-muted-foreground mt-0.5">
-                        Configura qué nodos puede ver y qué acciones puede ejecutar en cada uno.
+                        Configure which nodes they can view and what actions they can perform on each.
                       </p>
                     </div>
                     <Button type="button" size="sm" variant="outline" onClick={() => setTab("permissions")}>
-                      Configurar permisos →
+                      Configure permissions →
                     </Button>
                   </div>
                 )}
@@ -358,7 +358,7 @@ export function UserDialog({
               <TabsContent value="permissions" className="mt-0 space-y-3">
                 {role === "admin" ? (
                   <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-200">
-                    Los usuarios con rol <strong>Admin</strong> tienen acceso irrestricto a toda la plataforma; no necesitan permisos por nodo.
+                    Users with the <strong>Admin</strong> role have unrestricted access to the entire platform; they do not need per-node permissions.
                   </div>
                 ) : !catalog ? (
                   <div className="flex items-center justify-center py-10">
@@ -367,7 +367,7 @@ export function UserDialog({
                 ) : (
                   <>
                     <div className="text-xs text-muted-foreground">
-                      Activa los <strong>proyectos</strong> a los que pertenece el usuario, luego selecciona los <strong>nodos</strong> y elige un preset rápido (<code className="font-mono">Viewer</code>, <code className="font-mono">Operator</code>, <code className="font-mono">Editor</code>) o personaliza cada acción.
+                      Enable the <strong>projects</strong> the user belongs to, then select the <strong>nodes</strong> and choose a quick preset (<code className="font-mono">Viewer</code>, <code className="font-mono">Operator</code>, <code className="font-mono">Editor</code>) or customize each action.
                     </div>
                     <AccessEditor
                       catalog={catalog}
@@ -384,18 +384,18 @@ export function UserDialog({
 
           <DialogFooter className="border-t border-border px-6 py-4 bg-muted/10">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-              Cancelar
+              Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando…
+                  Saving…
                 </>
               ) : isEditing ? (
-                "Guardar cambios"
+                "Save changes"
               ) : (
-                "Crear usuario"
+                "Create user"
               )}
             </Button>
           </DialogFooter>

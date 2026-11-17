@@ -83,7 +83,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
     ...projects.map((p) => ({ id: p.id, name: p.name, nodes: nodes.filter((n) => n.projectId === p.id) })),
   ]
   const orphanNodes = nodes.filter((n) => !n.projectId || !projects.some((p) => p.id === n.projectId))
-  if (orphanNodes.length > 0) groups.push({ id: NO_PROJECT, name: "Sin proyecto", nodes: orphanNodes })
+  if (orphanNodes.length > 0) groups.push({ id: NO_PROJECT, name: "Unassigned", nodes: orphanNodes })
 
   // ─── Project mutations ────────────────────────────────────────────────
   const setProjectMember = (projectId: string, member: boolean, projectNodes: Node[]) => {
@@ -127,7 +127,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
   if (groups.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-        No hay proyectos ni nodos registrados todavía.
+        No projects or nodes registered yet.
       </div>
     )
   }
@@ -149,7 +149,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
                 <Switch
                   checked={isMember}
                   onCheckedChange={(v) => setProjectMember(group.id, v, group.nodes)}
-                  aria-label={`Miembro de ${group.name}`}
+                  aria-label={`Member of ${group.name}`}
                 />
               ) : (
                 <span className="w-8" />
@@ -158,14 +158,14 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{group.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {group.nodes.length} nodo{group.nodes.length === 1 ? "" : "s"}
-                  {isMember && !membership?.all_nodes && ` · ${grantedCount} con acceso`}
-                  {membership?.all_nodes && " · acceso a todos los nodos"}
+                  {group.nodes.length} node{group.nodes.length === 1 ? "" : "s"}
+                  {isMember && !membership?.all_nodes && ` · ${grantedCount} with access`}
+                  {membership?.all_nodes && " · access to all nodes"}
                 </p>
               </div>
               {!isOrphan && isMember && (
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Todos los nodos</span>
+                  <span>All nodes</span>
                   <Switch
                     checked={Boolean(membership?.all_nodes)}
                     onCheckedChange={(v) => patchProject(group.id, { all_nodes: v })}
@@ -179,7 +179,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
               <div className="border-t border-border bg-muted/10 p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-400" />
-                  <span className="text-xs font-medium">Rol por defecto en el proyecto</span>
+                  <span className="text-xs font-medium">Default project role</span>
                   <PresetSelect
                     catalog={catalog}
                     value={membership.default_role}
@@ -196,7 +196,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
                     onClick={() => toggleExpanded(projectKey)}
                     className="ml-auto flex items-center gap-1 text-xs text-[#70AEFF] hover:underline"
                   >
-                    Permisos
+                    Permissions
                     <ChevronDown className={cn("h-3 w-3 transition-transform", expanded[projectKey] && "rotate-180")} />
                   </button>
                 </div>
@@ -210,7 +210,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
                   </div>
                 )}
                 <p className="mt-2 text-[11px] text-muted-foreground">
-                  Los nodos con permisos explícitos abajo sobrescriben este rol.
+                  Nodes with explicit permissions below override this role.
                 </p>
               </div>
             )}
@@ -227,7 +227,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
                         <Switch
                           checked={Boolean(grant)}
                           onCheckedChange={(v) => setNodeGranted(node.id, v, group.id)}
-                          aria-label={`Acceso a ${node.name}`}
+                          aria-label={`Access to ${node.name}`}
                         />
                         <Server className="h-4 w-4 text-muted-foreground" />
                         <div className="min-w-0 flex-1">
@@ -258,16 +258,16 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
                               onClick={() => toggleExpanded(nodeKey)}
                               className="flex items-center gap-1 text-xs text-[#70AEFF] hover:underline"
                             >
-                              {effectivePerms(catalog, grant.role_preset, grant.permissions).length} permisos
+                              {effectivePerms(catalog, grant.role_preset, grant.permissions).length} permissions
                               <ChevronDown className={cn("h-3 w-3 transition-transform", expanded[nodeKey] && "rotate-180")} />
                             </button>
                           </>
                         ) : membership?.all_nodes ? (
                           <Badge variant="outline" className="text-[10px]">
-                            Hereda: {catalog.node_presets.find((p) => p.id === membership.default_role)?.name ?? membership.default_role}
+                            Inherits: {catalog.node_presets.find((p) => p.id === membership.default_role)?.name ?? membership.default_role}
                           </Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Sin acceso</span>
+                          <span className="text-xs text-muted-foreground">No access</span>
                         )}
                       </div>
                       {grant && expanded[nodeKey] && (
@@ -285,7 +285,7 @@ export function AccessEditor({ catalog, projects, nodes, value, onChange }: Acce
               </div>
             )}
             {isMember && group.nodes.length === 0 && (
-              <p className="border-t border-border p-3 text-xs text-muted-foreground">Este proyecto aún no tiene nodos.</p>
+              <p className="border-t border-border p-3 text-xs text-muted-foreground">This project has no nodes yet.</p>
             )}
           </div>
         )

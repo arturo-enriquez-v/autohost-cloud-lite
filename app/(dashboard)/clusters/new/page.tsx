@@ -71,11 +71,11 @@ export default function NewClusterPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Por favor ingresa un nombre para el cluster.");
+      setError("Please enter a cluster name.");
       return;
     }
     if (!managerNodeId) {
-      setError("Debes seleccionar al menos un nodo Manager.");
+      setError("You must select at least one Manager node.");
       return;
     }
 
@@ -85,7 +85,7 @@ export default function NewClusterPage() {
       const created = await createCluster(name.trim(), managerNodeId, workerNodeIds);
       router.push(`/clusters/${created.cluster.id}`);
     } catch (err: any) {
-      setError(err.message || "Error al crear el cluster");
+      setError(err.message || "Failed to create cluster");
       setSubmitting(false);
     }
   };
@@ -96,14 +96,14 @@ export default function NewClusterPage() {
       <div>
         <Link href="/clusters" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-3 gap-1">
           <ArrowLeft className="h-4 w-4" />
-          Volver a Clusters
+          Back to Clusters
         </Link>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Layers className="h-7 w-7 text-primary" />
-          Crear Nuevo Cluster Docker Swarm
+          Create New Docker Swarm Cluster
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configura un cluster sobre la red privada VPN de AutoHost para ejecutar servicios stateless con balanceo de carga nativo.
+          Configure a cluster over the private AutoHost VPN to run stateless services with native load balancing.
         </p>
       </div>
 
@@ -119,15 +119,15 @@ export default function NewClusterPage() {
         {/* Basic Info */}
         <Card className="border-border/60">
           <CardHeader>
-            <CardTitle className="text-base">1. Información General</CardTitle>
-            <CardDescription>Nombre identificador para tu nuevo cluster.</CardDescription>
+            <CardTitle className="text-base">1. General Information</CardTitle>
+            <CardDescription>Identifying name for your new cluster.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="cluster-name">Nombre del Cluster</Label>
+              <Label htmlFor="cluster-name">Cluster Name</Label>
               <Input
                 id="cluster-name"
-                placeholder="ej: produccion-cluster, microservicios-core"
+                placeholder="e.g. production-cluster, core-microservices"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -141,20 +141,20 @@ export default function NewClusterPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
-              2. Seleccionar Nodo Manager (Líder del Swarm)
+              2. Select Manager Node (Swarm Leader)
             </CardTitle>
             <CardDescription>
-              Este nodo inicializará el Swarm y mantendrá el control plane. Debe tener la VPN de AutoHost conectada.
+              This node will initialize the Swarm and maintain the control plane. It must have the AutoHost VPN connected.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loadingNodes ? (
               <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Cargando servidores...
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading servers...
               </div>
             ) : nodes.length === 0 ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
-                No tienes servidores enrolados. Enrola al menos un servidor primero.
+                You have no enrolled servers. Enroll at least one server first.
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -189,15 +189,15 @@ export default function NewClusterPage() {
                       </div>
 
                       <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                        <div>IP Local: {localIP}</div>
+                        <div>Local IP: {localIP}</div>
                         <div className="flex items-center gap-1.5">
-                          IP VPN:
+                          VPN IP:
                           {hasVPN ? (
                             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] py-0">
                               {vpnIP}
                             </Badge>
                           ) : (
-                            <span className="text-destructive">VPN no conectada</span>
+                            <span className="text-destructive">VPN not connected</span>
                           )}
                         </div>
                       </div>
@@ -214,20 +214,20 @@ export default function NewClusterPage() {
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Server className="h-5 w-5 text-emerald-500" />
-              3. Seleccionar Nodos Workers (Opcional)
+              3. Select Worker Nodes (Optional)
             </CardTitle>
             <CardDescription>
-              Servidores que ejecutarán réplicas de tus contenedores. Puedes agregar más nodos después.
+              Servers that will run container replicas. You can add more nodes later.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loadingNodes ? (
               <div className="py-6 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Cargando servidores...
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading servers...
               </div>
             ) : nodes.filter((n) => n.id !== managerNodeId).length === 0 ? (
               <div className="py-4 text-sm text-muted-foreground">
-                No hay otros servidores disponibles para añadir como workers. El cluster se creará con el nodo Manager (puedes añadir workers más adelante).
+                No other servers available to add as workers. The cluster will be created with the Manager node (you can add workers later).
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
@@ -258,15 +258,15 @@ export default function NewClusterPage() {
                         </div>
 
                         <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                          <div>IP Local: {localIP}</div>
+                          <div>Local IP: {localIP}</div>
                           <div className="flex items-center gap-1.5">
-                            IP VPN:
+                            VPN IP:
                             {hasVPN ? (
                               <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] py-0">
                                 {vpnIP}
                               </Badge>
                             ) : (
-                              <span className="text-destructive">VPN no conectada</span>
+                              <span className="text-destructive">VPN not connected</span>
                             )}
                           </div>
                         </div>
@@ -281,11 +281,11 @@ export default function NewClusterPage() {
         {/* Submit */}
         <div className="flex justify-end gap-3">
           <Link href="/clusters">
-            <Button variant="outline" type="button">Cancelar</Button>
+            <Button variant="outline" type="button">Cancel</Button>
           </Link>
           <Button type="submit" disabled={submitting || !name || !managerNodeId} className="gap-2">
             {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            Inicializar Cluster
+            Initialize Cluster
           </Button>
         </div>
       </form>

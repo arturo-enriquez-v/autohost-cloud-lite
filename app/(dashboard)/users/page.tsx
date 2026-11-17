@@ -112,9 +112,9 @@ export default function UsersPage() {
   const handleToggleActive = async (u: ManagedUser, nextActive: boolean) => {
     try {
       await updateUser(u.id, { is_active: nextActive })
-      toast.success(nextActive ? `Usuario ${u.email} activado` : `Usuario ${u.email} desactivado`)
+      toast.success(nextActive ? `User ${u.email} activated` : `User ${u.email} deactivated`)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Error al actualizar estado")
+      toast.error(e instanceof Error ? e.message : "Failed to update status")
     }
   }
 
@@ -123,10 +123,10 @@ export default function UsersPage() {
     setDeleting(true)
     try {
       await deleteUser(deleteTarget.id)
-      toast.success(`Usuario ${deleteTarget.email} eliminado`)
+      toast.success(`User ${deleteTarget.email} deleted`)
       setDeleteTarget(null)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "No se pudo eliminar el usuario")
+      toast.error(e instanceof Error ? e.message : "Could not delete user")
     } finally {
       setDeleting(false)
     }
@@ -145,12 +145,12 @@ export default function UsersPage() {
       <Card className="mx-auto max-w-lg mt-12">
         <CardContent className="flex flex-col items-center py-12 text-center gap-3">
           <ShieldAlert className="h-10 w-10 text-amber-400" />
-          <h2 className="text-lg font-semibold">Acceso restringido</h2>
+          <h2 className="text-lg font-semibold">Restricted Access</h2>
           <p className="text-sm text-muted-foreground">
-            Solo los administradores globales pueden gestionar usuarios y permisos.
+            Only global administrators can manage users and permissions.
           </p>
           <Button variant="outline" onClick={() => router.push("/")} className="mt-2">
-            Volver al Dashboard
+            Back to Dashboard
           </Button>
         </CardContent>
       </Card>
@@ -164,22 +164,22 @@ export default function UsersPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Users className="h-6 w-6 text-[#70AEFF]" />
-            Usuarios y Permisos
+            Users & Permissions
           </h2>
           <p className="text-sm text-muted-foreground">
-            Administra cuentas, roles globales y acceso granular por proyecto y nodo.
+            Manage accounts, global roles, and granular access by project and node.
           </p>
         </div>
         <div className="flex items-center gap-2">
           {catalog && (
             <Button variant="outline" onClick={() => setCatalogOpen(true)} className="gap-2">
               <BookOpen className="h-4 w-4" />
-              Guía de Permisos
+              Permissions Guide
             </Button>
           )}
           <Button onClick={openCreate} className="gap-2">
             <UserPlus className="h-4 w-4" />
-            Nuevo usuario
+            New user
           </Button>
         </div>
       </div>
@@ -188,32 +188,32 @@ export default function UsersPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Total usuarios</CardDescription>
+            <CardDescription>Total users</CardDescription>
             <CardTitle className="text-2xl">{users.length}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            {activeCount} activo{activeCount === 1 ? "" : "s"} · {users.length - activeCount} inactivo{users.length - activeCount === 1 ? "" : "s"}
+            {activeCount} active · {users.length - activeCount} inactive
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Administradores</CardDescription>
+            <CardDescription>Administrators</CardDescription>
             <CardTitle className="text-2xl flex items-center gap-2">
               {adminCount}
               <ShieldCheck className="h-5 w-5 text-amber-400" />
             </CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            Acceso irrestricto a toda la plataforma
+            Unrestricted access across the entire platform
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Miembros con acceso granular</CardDescription>
+            <CardDescription>Members with granular access</CardDescription>
             <CardTitle className="text-2xl">{memberCount}</CardTitle>
           </CardHeader>
           <CardContent className="text-xs text-muted-foreground">
-            {catalog ? `${catalog.modules.reduce((acc, m) => acc + m.permissions.length, 0)} permisos en ${catalog.modules.length} módulos` : "Control por proyecto y nodo"}
+            {catalog ? `${catalog.modules.reduce((acc, m) => acc + m.permissions.length, 0)} permissions across ${catalog.modules.length} modules` : "Control by project and node"}
           </CardContent>
         </Card>
       </div>
@@ -221,7 +221,7 @@ export default function UsersPage() {
       {error && (
         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex items-center justify-between">
           <span>{error}</span>
-          <Button size="sm" variant="outline" onClick={refresh}>Reintentar</Button>
+          <Button size="sm" variant="outline" onClick={refresh}>Retry</Button>
         </div>
       )}
 
@@ -231,7 +231,7 @@ export default function UsersPage() {
           <div className="relative w-full sm:max-w-xs">
             <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <Input
-              placeholder="Buscar por nombre o correo..."
+              placeholder="Search by name or email..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9"
@@ -247,7 +247,7 @@ export default function UsersPage() {
                   roleFilter === r ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {r === "all" ? `Todos (${users.length})` : r === "admin" ? `Admins (${adminCount})` : `Miembros (${memberCount})`}
+                {r === "all" ? `All (${users.length})` : r === "admin" ? `Admins (${adminCount})` : `Members (${memberCount})`}
               </button>
             ))}
           </div>
@@ -256,18 +256,18 @@ export default function UsersPage() {
         <CardContent className="pt-0">
           {filteredUsers.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              No se encontraron usuarios con ese filtro.
+              No users found with that filter.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Usuario</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Proyectos y Nodos</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Projects & Nodes</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -294,7 +294,7 @@ export default function UsersPage() {
                                 </span>
                                 {isSelf && (
                                   <Badge variant="outline" className="text-[10px] border-[#70AEFF]/40 text-[#70AEFF]">
-                                    Tú
+                                    You
                                   </Badge>
                                 )}
                               </div>
@@ -311,7 +311,7 @@ export default function UsersPage() {
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-xs">
-                              Miembro
+                              Member
                             </Badge>
                           )}
                         </TableCell>
@@ -319,12 +319,12 @@ export default function UsersPage() {
                         <TableCell>
                           {u.role === "admin" ? (
                             <span className="text-xs text-muted-foreground">
-                              Acceso completo a toda la plataforma
+                              Full access to the entire platform
                             </span>
                           ) : (
                             <div className="flex flex-col gap-1.5 max-w-md">
                               {u.projects.length === 0 && u.node_permissions.length === 0 ? (
-                                <span className="text-xs text-amber-400">Sin acceso asignado todavía</span>
+                                <span className="text-xs text-amber-400">No access assigned yet</span>
                               ) : (
                                 <>
                                   {u.projects.length > 0 && (
@@ -333,7 +333,7 @@ export default function UsersPage() {
                                         <Badge key={pm.project_id} variant="outline" className="text-[10px] gap-1">
                                           <FolderKanban className="h-2.5 w-2.5 text-[#70AEFF]" />
                                           {pm.project_name || projectNames.get(pm.project_id) || pm.project_id}
-                                          {pm.all_nodes ? ` · todos (${pm.default_role})` : ""}
+                                          {pm.all_nodes ? ` · all (${pm.default_role})` : ""}
                                         </Badge>
                                       ))}
                                     </div>
@@ -366,10 +366,10 @@ export default function UsersPage() {
                               checked={u.is_active}
                               disabled={isSelf}
                               onCheckedChange={(v) => handleToggleActive(u, v)}
-                              aria-label={`Estado de ${u.email}`}
+                              aria-label={`Status of ${u.email}`}
                             />
                             <span className={`text-xs ${u.is_active ? "text-emerald-400" : "text-muted-foreground"}`}>
-                              {u.is_active ? "Activo" : "Inactivo"}
+                              {u.is_active ? "Active" : "Inactive"}
                             </span>
                           </div>
                         </TableCell>
@@ -382,10 +382,10 @@ export default function UsersPage() {
                                 size="sm"
                                 className="h-8 gap-1 text-xs text-[#70AEFF] hover:text-[#70AEFF]"
                                 onClick={() => openEdit(u, "permissions")}
-                                title="Configurar permisos granulares"
+                                title="Configure granular permissions"
                               >
                                 <KeyRound className="h-3.5 w-3.5" />
-                                <span className="hidden md:inline">Permisos</span>
+                                <span className="hidden md:inline">Permissions</span>
                               </Button>
                             )}
                             <Button
@@ -393,7 +393,7 @@ export default function UsersPage() {
                               size="icon"
                               className="h-8 w-8"
                               onClick={() => openEdit(u, "profile")}
-                              title="Editar usuario"
+                              title="Edit user"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -403,7 +403,7 @@ export default function UsersPage() {
                               disabled={isSelf}
                               className="h-8 w-8 text-muted-foreground hover:text-destructive disabled:opacity-30"
                               onClick={() => setDeleteTarget(u)}
-                              title={isSelf ? "No puedes eliminar tu propia cuenta" : "Eliminar usuario"}
+                              title={isSelf ? "You cannot delete your own account" : "Delete user"}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -431,12 +431,12 @@ export default function UsersPage() {
         nodes={allNodes}
         onCreate={async (input) => {
           const created = await createUser(input)
-          toast.success(`Usuario ${input.email} creado`)
+          toast.success(`User ${input.email} created`)
           return created
         }}
         onUpdate={async (id, input) => {
           const updated = await updateUser(id, input)
-          toast.success("Usuario actualizado")
+          toast.success("User updated")
           return updated
         }}
       />
@@ -445,20 +445,20 @@ export default function UsersPage() {
       <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(o) => !o && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar usuario {deleteTarget?.email}?</AlertDialogTitle>
+            <AlertDialogTitle>Delete user {deleteTarget?.email}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se revocarán todas sus sesiones, membresías de proyectos y permisos sobre los nodos. Esta acción no se puede deshacer.
+              All their sessions, project memberships, and node permissions will be revoked. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Eliminar usuario
+              Delete user
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -468,7 +468,7 @@ export default function UsersPage() {
       <Dialog open={catalogOpen} onOpenChange={setCatalogOpen}>
         <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Catálogo de Presets y Permisos Granulares</DialogTitle>
+            <DialogTitle>Presets & Granular Permissions Catalog</DialogTitle>
           </DialogHeader>
           {catalog && (
             <div className="space-y-5">

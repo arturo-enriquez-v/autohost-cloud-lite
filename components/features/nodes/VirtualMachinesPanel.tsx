@@ -26,6 +26,7 @@ import { useVirtualMachines } from "@/lib/features/nodes/hooks/useVirtualMachine
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { CreateVMDialog } from "./CreateVMDialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { VirtualMachine, VMStatus } from "@/lib/features/nodes/types"
 
 interface VirtualMachinesPanelProps {
@@ -94,6 +95,7 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
   } = useVirtualMachines(nodeId)
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [destroyTargetId, setDestroyTargetId] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<Record<string, string | null>>({})
   const { can } = useNodePermissions(nodeId)
   const canAction = can(PERMS.VMS_ACTION)
@@ -103,16 +105,27 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
   const isCapable = Boolean(info?.capable)
 
   const handleAction = async (vmId: string, action: "start" | "stop" | "reboot" | "destroy") => {
+    if (action === "destroy") {
+      setDestroyTargetId(vmId)
+      return
+    }
     setActionLoading((prev) => ({ ...prev, [vmId]: action }))
     try {
-      if (action === "destroy") {
-        if (!confirm("Are you sure you want to destroy this VM and all its storage volumes?")) {
-          return
-        }
-      }
       await actionVM(vmId, action)
     } finally {
       setActionLoading((prev) => ({ ...prev, [vmId]: null }))
+    }
+  }
+
+  const handleConfirmDestroy = async () => {
+    if (!destroyTargetId) return
+    const targetId = destroyTargetId
+    setActionLoading((prev) => ({ ...prev, [targetId]: "destroy" }))
+    try {
+      await actionVM(targetId, "destroy")
+      setDestroyTargetId(null)
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [targetId]: null }))
     }
   }
 
@@ -371,6 +384,16 @@ export function VirtualMachinesPanel({ nodeId }: VirtualMachinesPanelProps) {
         onSubmit={async (data) => {
           await createVM(data)
         }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(destroyTargetId)}
+        onOpenChange={(open) => !open && setDestroyTargetId(null)}
+        title="Destroy Virtual Machine?"
+        description="Are you sure you want to destroy this VM and all its storage volumes? This action cannot be undone."
+        confirmLabel="Destroy VM"
+        loading={Boolean(destroyTargetId && actionLoading[destroyTargetId] === "destroy")}
+        onConfirm={handleConfirmDestroy}
       />
     </Card>
   )

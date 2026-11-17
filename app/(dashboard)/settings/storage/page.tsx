@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { HardDrive, Plus, Trash2, Check, Cloud, ShieldAlert } from "lucide-react";
 import { StorageCredential } from "@/lib/api/backups";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 export default function StorageSettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -18,6 +20,8 @@ export default function StorageSettingsPage() {
   const [secretAccessKey, setSecretAccessKey] = useState("");
   const [isDefault, setIsDefault] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadCredentials();
@@ -41,7 +45,7 @@ export default function StorageSettingsPage() {
   const handleCreateCredential = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !endpoint || !bucket || !accessKeyId || !secretAccessKey) {
-      alert("Por favor completa todos los campos requeridos.");
+      toast.error("Please complete all required fields.");
       return;
     }
 
@@ -68,34 +72,44 @@ export default function StorageSettingsPage() {
         setBucket("");
         setAccessKeyId("");
         setSecretAccessKey("");
-        alert("Credencial de almacenamiento añadida correctamente.");
+        toast.success("Storage credential added successfully.");
         loadCredentials();
       } else {
         const err = await res.json();
-        alert(`Error al guardar credencial: ${err.error || "Fallo desconocido"}`);
+        toast.error(`Failed to save credential: ${err.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error(err);
-      alert("Error de comunicación.");
+      toast.error("Communication error.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Seguro que deseas eliminar esta credencial de almacenamiento?")) return;
+  const handleDelete = (id: string) => {
+    setDeleteTargetId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      const res = await fetch(`/api/backups/credentials/${id}`, {
+      const res = await fetch(`/api/backups/credentials/${deleteTargetId}`, {
         method: "DELETE",
       });
       if (res.ok) {
+        setDeleteTargetId(null);
+        toast.success("Storage credential deleted.");
         loadCredentials();
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(`Error al eliminar la credencial: ${err.error || "Fallo desconocido"}`);
+        toast.error(`Failed to delete credential: ${err.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error(err);
+      toast.error("Communication error.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -261,6 +275,16 @@ export default function StorageSettingsPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTargetId)}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+        title="Delete Storage Credential?"
+        description="Are you sure you want to delete this storage credential? Existing backups using it may no longer be accessible."
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

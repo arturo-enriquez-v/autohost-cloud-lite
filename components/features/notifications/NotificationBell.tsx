@@ -22,13 +22,13 @@ function formatTimeAgo(dateStr: string): string {
   try {
     const diff = Math.max(0, Date.now() - new Date(dateStr).getTime())
     const sec = Math.floor(diff / 1000)
-    if (sec < 60) return "hace unos segundos"
+    if (sec < 60) return "just now"
     const min = Math.floor(sec / 60)
-    if (min < 60) return `hace ${min}m`
+    if (min < 60) return `${min}m ago`
     const hours = Math.floor(min / 60)
-    if (hours < 24) return `hace ${hours}h`
+    if (hours < 24) return `${hours}h ago`
     const days = Math.floor(hours / 24)
-    return `hace ${days}d`
+    return `${days}d ago`
   } catch {
     return ""
   }
@@ -61,8 +61,8 @@ export function NotificationBell() {
       id: `alert-${a.id}`,
       originalId: a.id,
       kind: "alert" as const,
-      title: a.message || `Alerta: ${a.alert_type}`,
-      subtitle: a.node_name ? `Nodo: ${a.node_name}` : undefined,
+      title: a.message || `Alert: ${a.alert_type}`,
+      subtitle: a.node_name ? `Node: ${a.node_name}` : undefined,
       badgeText: a.alert_type.toUpperCase(),
       severity: a.alert_type === "offline" || a.alert_type === "disk" ? "critical" : "warning",
       date: a.created_at,
@@ -73,7 +73,7 @@ export function NotificationBell() {
       originalId: l.id,
       kind: "log" as const,
       title: l.title,
-      subtitle: l.node_name ? `Nodo: ${l.node_name}` : l.message || undefined,
+      subtitle: l.node_name ? `Node: ${l.node_name}` : l.message || undefined,
       badgeText: l.level.toUpperCase(),
       severity: l.level === "error" ? "critical" : l.level === "warn" ? "warning" : "info",
       date: l.created_at,
@@ -107,7 +107,7 @@ export function NotificationBell() {
         variant="ghost"
         size="icon"
         className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-0"
-        title="Notificaciones"
+        title="Notifications"
         suppressHydrationWarning
       >
         <Bell className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function NotificationBell() {
           variant="ghost"
           size="icon"
           className="relative h-9 w-9 rounded-full text-muted-foreground hover:text-foreground hover:bg-accent focus-visible:ring-0"
-          title="Notificaciones"
+          title="Notifications"
           suppressHydrationWarning
         >
           <Bell className="h-5 w-5" />
@@ -137,10 +137,10 @@ export function NotificationBell() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-foreground">Notificaciones</span>
+            <span className="font-semibold text-sm text-foreground">Notifications</span>
             {totalUnread > 0 && (
               <Badge variant="secondary" className="bg-rose-500/15 text-rose-500 border border-rose-500/30 text-[10px] py-0 px-1.5 font-medium">
-                {totalUnread} nuevas
+                {totalUnread} new
               </Badge>
             )}
           </div>
@@ -148,10 +148,10 @@ export function NotificationBell() {
             <button
               onClick={markAllAsRead}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              title="Marcar todas como leídas"
+              title="Mark all as read"
             >
               <CheckCheck className="h-3.5 w-3.5" />
-              <span>Marcar leídas</span>
+              <span>Mark read</span>
             </button>
           )}
         </div>
@@ -167,7 +167,7 @@ export function NotificationBell() {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            Todas
+            All
           </button>
           <button
             onClick={() => setTab("alerts")}
@@ -178,7 +178,7 @@ export function NotificationBell() {
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
             )}
           >
-            Alertas
+            Alerts
             {unreadAlerts > 0 && (
               <span className="h-4 min-w-[14px] flex items-center justify-center rounded-full bg-rose-500 text-white text-[9px] px-1 font-bold">
                 {unreadAlerts}
@@ -208,7 +208,7 @@ export function NotificationBell() {
           {filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center px-4">
               <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
-              <p className="text-xs text-muted-foreground">No hay notificaciones recientes</p>
+              <p className="text-xs text-muted-foreground">No recent notifications</p>
             </div>
           ) : (
             filteredItems.map((item) => (
@@ -283,13 +283,13 @@ export function NotificationBell() {
             onClick={() => { setOpen(false); router.push("/alerts") }}
             className="text-muted-foreground hover:text-[#70AEFF] transition-colors font-medium"
           >
-            Ver alertas →
+            View alerts →
           </button>
           <button
             onClick={() => { setOpen(false); router.push("/logs") }}
             className="text-muted-foreground hover:text-[#70AEFF] transition-colors font-medium"
           >
-            Ver logs externos →
+            View external logs →
           </button>
         </div>
       </PopoverContent>

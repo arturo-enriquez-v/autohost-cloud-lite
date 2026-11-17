@@ -5,6 +5,7 @@ import {
   Folder,
   FolderPlus,
   FileText,
+  FilePlus,
   Upload,
   Download,
   Trash2,
@@ -28,8 +29,15 @@ import {
   Image as ImageIcon,
   FileCode,
   Share2,
+  Eye,
+  Pencil,
+  Save,
+  Edit3,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react"
 import { FolderShareDialog } from "./FolderShareDialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { Button } from "@/components/ui/button"
@@ -89,6 +97,25 @@ interface NodeFileManagerProps {
   defaultViewMode?: "grid" | "list"
 }
 
+function isImageFile(filename: string): boolean {
+  const ext = filename.split(".").pop()?.toLowerCase() || ""
+  return ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif"].includes(ext)
+}
+
+function isEditableTextFile(filename: string): boolean {
+  const lower = filename.toLowerCase()
+  const ext = lower.split(".").pop() || ""
+  const base = lower.split("/").pop() || lower
+  if (["dockerfile", "makefile", "readme", "license", ".env", ".gitignore", ".dockerignore"].includes(base)) {
+    return true
+  }
+  return [
+    "txt", "md", "markdown", "json", "yaml", "yml", "env", "conf", "cfg", "ini", "toml",
+    "log", "sh", "bash", "zsh", "js", "mjs", "cjs", "ts", "tsx", "jsx", "py", "go", "rs",
+    "css", "scss", "html", "htm", "xml", "sql", "csv", "properties", "service",
+  ].includes(ext)
+}
+
 function formatBytes(bytes: number): string {
   if (!bytes || bytes <= 0) return "0 B"
   const units = ["B", "KB", "MB", "GB", "TB"]
@@ -146,6 +173,27 @@ export function NodeFileManager({
   // Share folder dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false)
   const [shareTargetFolder, setShareTargetFolder] = useState<string>("/")
+
+  // Image viewer state
+  const [imagePreviewEntry, setImagePreviewEntry] = useState<NodeFileEntry | null>(null)
+  const [imageZoom, setImageZoom] = useState<number>(1)
+
+  // Text editor state
+  const [editorEntry, setEditorEntry] = useState<NodeFileEntry | null>(null)
+  const [editorContent, setEditorContent] = useState<string>("")
+  const [editorLoading, setEditorLoading] = useState<boolean>(false)
+  const [editorSaving, setEditorSaving] = useState<boolean>(false)
+
+  // Create new file dialog state
+  const [newFileOpen, setNewFileOpen] = useState(false)
+  const [newFileName, setNewFileName] = useState("")
+  const [newFileContent, setNewFileContent] = useState("")
+  const [creatingFile, setCreatingFile] = useState(false)
+
+  // Rename file/folder dialog state
+  const [renameTarget, setRenameTarget] = useState<NodeFileEntry | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [renaming, setRenaming] = useState(false)
 
   const openShareDialogForPath = (folderPath: string) => {
     setShareTargetFolder(folderPath || "/")
@@ -271,6 +319,151 @@ export function NodeFileManager({
     }
   }
 
+  const handleOpenImage = (entry: NodeFileEntry) => {
+    setImageZoom(1)
+    setImagePreviewEntry(entry)
+  }
+
+  const handleOpenEditor = async (entry: NodeFileEntry) => {
+    setEditorEntry(entry)
+    setEditorContent("")
+    setEditorLoading(true)
+    try {
+      const res = await fetch(
+        `/api/nodes/${nodeId}/files/download?path=${encodeURIComponent(entry.path)}`,
+        { credentials: "include" }
+      )
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error || `Failed to load file (HTTP ${res.status})`)
+      }
+      const text = await res.text()
+      setEditorContent(text)
+    } catch (err) {
+      setStatusBanner({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to open file",
+      })
+      setEditorEntry(null)
+    } finally {
+      setEditorLoading(false)
+    }
+  }
+
+  const handleSaveEditor = async () => {
+    if (!editorEntry) return
+    setEditorSaving(true)
+    setStatusBanner(null)
+    try {
+      const parts = editorEntry.path.split("/").filter(Boolean)
+      const filename = parts.pop() || editorEntry.name
+      const parentDir = parts.length > 0 ? "/" + parts.join("/") : "/"
+      const file = new File([editorContent], filename, { type: "text/plain" })
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("path", parentDir)
+
+      const res = await fetch(`/api/nodes/${nodeId}/files/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to save file (HTTP ${res.status})`)
+      }
+      setStatusBanner({ type: "ok", text: `Saved "${filename}".` })
+      setEditorEntry(null)
+      await fetchFiles(currentPath)
+    } catch (err) {
+      setStatusBanner({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to save file",
+      })
+    } finally {
+      setEditorSaving(false)
+    }
+  }
+
+  const handleCreateFile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = newFileName.trim().replace(/^\/+|\/+$/g, "")
+    if (!trimmed || trimmed.includes("/")) return
+
+    setCreatingFile(true)
+    setStatusBanner(null)
+    try {
+      const file = new File([newFileContent], trimmed, { type: "text/plain" })
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("path", currentPath)
+
+      const res = await fetch(`/api/nodes/${nodeId}/files/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || "Could not create file")
+      }
+      setNewFileName("")
+      setNewFileContent("")
+      setNewFileOpen(false)
+      setStatusBanner({ type: "ok", text: `File "${trimmed}" created.` })
+      await fetchFiles(currentPath)
+    } catch (err) {
+      setStatusBanner({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to create file",
+      })
+    } finally {
+      setCreatingFile(false)
+    }
+  }
+
+  const openRenameDialog = (entry: NodeFileEntry) => {
+    setRenameTarget(entry)
+    setRenameValue(entry.name)
+  }
+
+  const handleConfirmRename = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!renameTarget) return
+    const trimmed = renameValue.trim().replace(/^\/+|\/+$/g, "")
+    if (!trimmed || trimmed.includes("/") || trimmed === renameTarget.name) return
+
+    setRenaming(true)
+    setStatusBanner(null)
+    try {
+      const parts = renameTarget.path.split("/").filter(Boolean)
+      parts.pop()
+      const parentDir = parts.length > 0 ? "/" + parts.join("/") : ""
+      const newPath = `${parentDir}/${trimmed}`
+
+      const res = await fetch(`/api/nodes/${nodeId}/files/rename`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ path: renameTarget.path, new_path: newPath }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || "Could not rename")
+      }
+      setStatusBanner({ type: "ok", text: `Renamed "${renameTarget.name}" to "${trimmed}".` })
+      setRenameTarget(null)
+      await fetchFiles(currentPath)
+    } catch (err) {
+      setStatusBanner({
+        type: "err",
+        text: err instanceof Error ? err.message : "Failed to rename",
+      })
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return
     setUploading(true)
@@ -390,12 +583,15 @@ export function NodeFileManager({
     }
   }
 
-  const handleDelete = async (entry: NodeFileEntry) => {
-    const confirmMsg = entry.is_dir
-      ? `Delete folder "${entry.name}" and all its contents?`
-      : `Delete file "${entry.name}"?`
-    if (!window.confirm(confirmMsg)) return
+  const [deleteTarget, setDeleteTarget] = useState<NodeFileEntry | null>(null)
 
+  const handleDelete = (entry: NodeFileEntry) => {
+    setDeleteTarget(entry)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    const entry = deleteTarget
     setDeletingPath(entry.path)
     setStatusBanner(null)
     try {
@@ -411,6 +607,7 @@ export function NodeFileManager({
         throw new Error(data.error || "Delete failed")
       }
       setStatusBanner({ type: "ok", text: `Deleted "${entry.name}".` })
+      setDeleteTarget(null)
       await fetchFiles(currentPath)
     } catch (err) {
       setStatusBanner({
@@ -637,7 +834,7 @@ export function NodeFileManager({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar en esta carpeta…"
+                placeholder="Search in this folder…"
                 className="h-8 pl-8 pr-3 text-xs w-44 sm:w-52 bg-background/60"
               />
             </div>
@@ -651,7 +848,7 @@ export function NodeFileManager({
                     ? "bg-[#70AEFF]/20 text-[#70AEFF]"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                title="Vista de cuadrícula"
+                title="Grid view"
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
               </button>
@@ -663,7 +860,7 @@ export function NodeFileManager({
                     ? "bg-[#70AEFF]/20 text-[#70AEFF]"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
-                title="Vista de lista"
+                title="List view"
               >
                 <List className="h-3.5 w-3.5" />
               </button>
@@ -694,7 +891,7 @@ export function NodeFileManager({
                 className="h-8 text-xs gap-1.5 border-[#70AEFF]/40 text-[#70AEFF] hover:bg-[#70AEFF]/15"
               >
                 <Share2 className="h-3.5 w-3.5" />
-                Compartir Carpeta
+                Share Folder
               </Button>
             )}
             {canWrite && (
@@ -707,6 +904,19 @@ export function NodeFileManager({
                 >
                   <FolderPlus className="h-3.5 w-3.5 text-amber-400" />
                   New Folder
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setNewFileName("")
+                    setNewFileContent("")
+                    setNewFileOpen(true)
+                  }}
+                  className="h-8 text-xs gap-1.5"
+                >
+                  <FilePlus className="h-3.5 w-3.5 text-sky-400" />
+                  New File
                 </Button>
                 <Button
                   size="sm"
@@ -740,7 +950,7 @@ export function NodeFileManager({
               }
             }}
             className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-            title="Subir un nivel"
+            title="Up one level"
           >
             <ArrowUpLeft className="h-3.5 w-3.5 mr-1" />
             Up
@@ -754,7 +964,7 @@ export function NodeFileManager({
                 className="px-2 py-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground flex items-center gap-1"
               >
                 <Server className="h-3 w-3 text-[#70AEFF]" />
-                Nodos
+                Nodes
               </button>
               <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             </>
@@ -845,10 +1055,23 @@ export function NodeFileManager({
               </p>
             </div>
             {canWrite && (
-              <div className="flex items-center justify-center gap-2 pt-1">
+              <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
                 <Button variant="outline" size="sm" onClick={() => setMkdirOpen(true)} className="text-xs">
                   <FolderPlus className="h-3.5 w-3.5 mr-1.5 text-amber-400" />
                   Create Folder
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setNewFileName("")
+                    setNewFileContent("")
+                    setNewFileOpen(true)
+                  }}
+                  className="text-xs"
+                >
+                  <FilePlus className="h-3.5 w-3.5 mr-1.5 text-sky-400" />
+                  Create File
                 </Button>
                 <Button
                   size="sm"
@@ -871,12 +1094,14 @@ export function NodeFileManager({
                 onDoubleClick={() => {
                   if (entry.is_dir) navigateTo(entry.path)
                   else if (isMediaFile(entry.name)) setStreamingEntry(entry)
+                  else if (isImageFile(entry.name)) handleOpenImage(entry)
+                  else if (isEditableTextFile(entry.name)) handleOpenEditor(entry)
                 }}
                 onClick={() => {
                   if (entry.is_dir) navigateTo(entry.path)
                 }}
                 className={`group relative rounded-xl border border-border/60 bg-background/40 hover:bg-muted/30 hover:border-[#70AEFF]/40 p-3.5 transition-all flex flex-col justify-between gap-3 ${
-                  entry.is_dir ? "cursor-pointer" : ""
+                  entry.is_dir || isImageFile(entry.name) || isEditableTextFile(entry.name) ? "cursor-pointer" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -888,7 +1113,7 @@ export function NodeFileManager({
                     )}
                   </div>
                   <div
-                    className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100"
+                    className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 flex-wrap justify-end"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {canShare && entry.is_dir && (
@@ -897,9 +1122,31 @@ export function NodeFileManager({
                         size="icon"
                         onClick={() => openShareDialogForPath(entry.path)}
                         className="h-7 w-7 text-[#70AEFF] hover:bg-[#70AEFF]/15"
-                        title="Compartir carpeta con contraseña"
+                        title="Share folder with password"
                       >
                         <Share2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {!entry.is_dir && isImageFile(entry.name) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenImage(entry)}
+                        className="h-7 w-7 text-pink-400 hover:bg-pink-500/15"
+                        title="View image"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                    {!entry.is_dir && isEditableTextFile(entry.name) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenEditor(entry)}
+                        className="h-7 w-7 text-sky-400 hover:bg-sky-500/15"
+                        title={canWrite ? "Edit file" : "View file"}
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     {!entry.is_dir && isMediaFile(entry.name) && (
@@ -908,7 +1155,7 @@ export function NodeFileManager({
                         size="icon"
                         onClick={() => setStreamingEntry(entry)}
                         className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/15"
-                        title="Reproducir stream"
+                        title="Play stream"
                       >
                         <Play className="h-3.5 w-3.5 fill-emerald-400" />
                       </Button>
@@ -920,7 +1167,7 @@ export function NodeFileManager({
                           size="icon"
                           onClick={() => handleDownload(entry)}
                           className="h-7 w-7 text-[#70AEFF] hover:bg-[#70AEFF]/15"
-                          title="Descargar"
+                          title="Download"
                         >
                           <Download className="h-3.5 w-3.5" />
                         </Button>
@@ -929,11 +1176,22 @@ export function NodeFileManager({
                           size="icon"
                           onClick={() => openTransferDialog(entry)}
                           className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/15"
-                          title="Transferir a otro nodo"
+                          title="Transfer to another node"
                         >
                           <Send className="h-3.5 w-3.5" />
                         </Button>
                       </>
+                    )}
+                    {canWrite && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openRenameDialog(entry)}
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        title="Rename"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                     )}
                     {canDelete && (
                       <Button
@@ -942,7 +1200,7 @@ export function NodeFileManager({
                         disabled={deletingPath === entry.path}
                         onClick={() => handleDelete(entry)}
                         className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        title="Eliminar"
+                        title="Delete"
                       >
                         {deletingPath === entry.path ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -963,7 +1221,7 @@ export function NodeFileManager({
                     {entry.is_dir ? "/" : ""}
                   </p>
                   <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono">
-                    <span>{entry.is_dir ? "Carpeta" : formatBytes(entry.size_bytes)}</span>
+                    <span>{entry.is_dir ? "Folder" : formatBytes(entry.size_bytes)}</span>
                     {entry.modified_at && (
                       <span>{new Date(entry.modified_at).toLocaleDateString()}</span>
                     )}
@@ -1007,10 +1265,34 @@ export function NodeFileManager({
                           type="button"
                           onClick={() => setStreamingEntry(entry)}
                           className="flex items-center gap-2.5 text-foreground hover:text-emerald-400 transition-colors text-left group/item"
-                          title="Reproducir stream de video"
+                          title="Play video stream"
                         >
                           <Film className="h-4 w-4 text-emerald-400 shrink-0 group-hover/item:scale-110 transition-transform" />
                           <span className="font-mono break-all underline-offset-2 hover:underline text-emerald-300">
+                            {entry.name}
+                          </span>
+                        </button>
+                      ) : isImageFile(entry.name) ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenImage(entry)}
+                          className="flex items-center gap-2.5 text-foreground hover:text-pink-400 transition-colors text-left group/item"
+                          title="View image"
+                        >
+                          <ImageIcon className="h-4 w-4 text-pink-400 shrink-0 group-hover/item:scale-110 transition-transform" />
+                          <span className="font-mono break-all underline-offset-2 hover:underline text-pink-300">
+                            {entry.name}
+                          </span>
+                        </button>
+                      ) : isEditableTextFile(entry.name) ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditor(entry)}
+                          className="flex items-center gap-2.5 text-foreground hover:text-sky-400 transition-colors text-left group/item"
+                          title={canWrite ? "Edit text file" : "View text file"}
+                        >
+                          <FileCode className="h-4 w-4 text-sky-400 shrink-0 group-hover/item:scale-110 transition-transform" />
+                          <span className="font-mono break-all underline-offset-2 hover:underline text-sky-300">
                             {entry.name}
                           </span>
                         </button>
@@ -1040,21 +1322,45 @@ export function NodeFileManager({
                             size="sm"
                             onClick={() => openShareDialogForPath(entry.path)}
                             className="h-7 px-2 text-xs text-[#70AEFF] hover:bg-[#70AEFF]/15 gap-1"
-                            title="Compartir esta carpeta con contraseña"
+                            title="Share this folder with password"
                           >
                             <Share2 className="h-3.5 w-3.5" />
-                            <span className="hidden lg:inline">Compartir</span>
+                            <span className="hidden lg:inline">Share</span>
                           </Button>
                         )}
                         {!entry.is_dir && (
                           <>
+                            {isImageFile(entry.name) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenImage(entry)}
+                                className="h-7 px-2 text-xs text-pink-400 hover:text-pink-300 hover:bg-pink-500/10 gap-1 font-medium"
+                                title="View image"
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="hidden lg:inline">View</span>
+                              </Button>
+                            )}
+                            {isEditableTextFile(entry.name) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenEditor(entry)}
+                                className="h-7 px-2 text-xs text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 gap-1 font-medium"
+                                title={canWrite ? "Edit file" : "View file"}
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                                <span className="hidden lg:inline">{canWrite ? "Edit" : "View"}</span>
+                              </Button>
+                            )}
                             {isMediaFile(entry.name) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setStreamingEntry(entry)}
                                 className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 gap-1 font-medium"
-                                title="Reproducir stream directo"
+                                title="Play direct stream"
                               >
                                 <Play className="h-3.5 w-3.5 fill-emerald-400 text-emerald-400" />
                                 <span className="hidden lg:inline">Play</span>
@@ -1081,6 +1387,17 @@ export function NodeFileManager({
                               <span className="hidden lg:inline">Transfer</span>
                             </Button>
                           </>
+                        )}
+                        {canWrite && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openRenameDialog(entry)}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            title="Rename"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
                         )}
                         {canDelete && (
                           <Button
@@ -1256,7 +1573,7 @@ export function NodeFileManager({
                 <span className="truncate">{streamingEntry?.name}</span>
               </DialogTitle>
               <DialogDescription className="text-xs text-gray-400 mt-1">
-                Streaming directo vía Tailscale ({streamingEntry ? formatBytes(streamingEntry.size_bytes) : ""})
+                Direct streaming via Tailscale ({streamingEntry ? formatBytes(streamingEntry.size_bytes) : ""})
               </DialogDescription>
             </div>
           </DialogHeader>
@@ -1272,7 +1589,7 @@ export function NodeFileManager({
                 className="w-full h-full object-contain"
                 src={`/api/nodes/${nodeId}/files/stream?path=${encodeURIComponent(streamingEntry.path)}`}
               >
-                Tu navegador no soporta reproducción de video HTML5.
+                Your browser does not support HTML5 video playback.
               </video>
             </div>
           )}
@@ -1303,9 +1620,9 @@ export function NodeFileManager({
                   size="sm"
                   onClick={t.cancel}
                   className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 shrink-0"
-                  title="Cancelar transferencia"
+                  title="Cancel transfer"
                 >
-                  <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+                  <X className="h-3.5 w-3.5 mr-1" /> Cancel
                 </Button>
               </div>
 
@@ -1332,6 +1649,278 @@ export function NodeFileManager({
           ))}
         </div>
       )}
+      {/* Image Viewer Dialog */}
+      <Dialog
+        open={Boolean(imagePreviewEntry)}
+        onOpenChange={(open) => {
+          if (!open) setImagePreviewEntry(null)
+        }}
+      >
+        <DialogContent className="max-w-5xl p-0 overflow-hidden bg-slate-950 border-white/10 text-white shadow-2xl">
+          <DialogHeader className="p-4 bg-slate-900/90 border-b border-white/10 flex flex-row items-center justify-between gap-4">
+            <div className="min-w-0">
+              <DialogTitle className="flex items-center gap-2 text-base font-semibold truncate text-white">
+                <ImageIcon className="h-4 w-4 text-pink-400 shrink-0" />
+                <span className="truncate font-mono">{imagePreviewEntry?.name}</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-gray-400 mt-0.5">
+                {imagePreviewEntry ? formatBytes(imagePreviewEntry.size_bytes) : ""} · {Math.round(imageZoom * 100)}%
+              </DialogDescription>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0 pr-6">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImageZoom((z) => Math.max(0.25, +(z - 0.25).toFixed(2)))}
+                className="h-7 px-2 text-xs bg-white/5 border-white/15 text-white hover:bg-white/10"
+                title="Zoom out"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImageZoom(1)}
+                className="h-7 px-2 text-xs bg-white/5 border-white/15 text-white hover:bg-white/10 font-mono"
+              >
+                100%
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setImageZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
+                className="h-7 px-2 text-xs bg-white/5 border-white/15 text-white hover:bg-white/10"
+                title="Zoom in"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </Button>
+              {imagePreviewEntry && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleDownload(imagePreviewEntry)}
+                  className="h-7 px-2.5 text-xs bg-white/5 border-white/15 text-white hover:bg-white/10 gap-1"
+                >
+                  <Download className="h-3.5 w-3.5 text-[#70AEFF]" />
+                  Download
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
+
+          {imagePreviewEntry && (
+            <div className="w-full max-h-[75vh] overflow-auto bg-black/95 flex items-center justify-center p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`/api/nodes/${nodeId}/files/stream?path=${encodeURIComponent(imagePreviewEntry.path)}`}
+                alt={imagePreviewEntry.name}
+                style={{ transform: `scale(${imageZoom})`, transformOrigin: "center center" }}
+                className="max-w-full max-h-[68vh] object-contain transition-transform duration-150 rounded"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Simple Text Editor Dialog */}
+      <Dialog
+        open={Boolean(editorEntry)}
+        onOpenChange={(open) => {
+          if (!open && !editorSaving) setEditorEntry(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-5 py-4 border-b border-border bg-muted/20">
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileCode className="h-4 w-4 text-sky-400 shrink-0" />
+              <span className="font-mono truncate">{editorEntry?.name}</span>
+              {!canWrite && (
+                <Badge variant="outline" className="text-[10px]">Read-only</Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription className="text-xs font-mono truncate">
+              {editorEntry?.path}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 p-4 overflow-hidden flex flex-col gap-2">
+            {editorLoading ? (
+              <div className="h-[55vh] flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin text-[#70AEFF]" />
+                <span>Loading file contents…</span>
+              </div>
+            ) : (
+              <textarea
+                value={editorContent}
+                onChange={(e) => setEditorContent(e.target.value)}
+                readOnly={!canWrite}
+                spellCheck={false}
+                onKeyDown={(e) => {
+                  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                    e.preventDefault()
+                    if (canWrite && !editorSaving) handleSaveEditor()
+                  }
+                }}
+                className="w-full h-[55vh] rounded-lg border border-border bg-background/80 p-3.5 font-mono text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-[#70AEFF] resize-none"
+                placeholder="Empty file…"
+              />
+            )}
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono">
+              <span>
+                {editorContent.split("\n").length} lines · {editorContent.length} chars
+              </span>
+              {canWrite && <span>Ctrl+S / Cmd+S to save</span>}
+            </div>
+          </div>
+
+          <DialogFooter className="px-5 py-3 border-t border-border bg-muted/10">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setEditorEntry(null)}
+              disabled={editorSaving}
+            >
+              Close
+            </Button>
+            {canWrite && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSaveEditor}
+                disabled={editorLoading || editorSaving}
+                className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold gap-1.5"
+              >
+                {editorSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                {editorSaving ? "Saving…" : "Save Changes"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create New File Dialog */}
+      <Dialog open={newFileOpen} onOpenChange={setNewFileOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FilePlus className="h-5 w-5 text-sky-400" />
+              Create New File
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Create a file inside <code className="font-mono text-[#70AEFF]">{currentPath}</code>
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateFile} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">File Name</label>
+              <Input
+                placeholder="e.g. notes.txt, .env, config.yaml"
+                value={newFileName}
+                onChange={(e) => setNewFileName(e.target.value)}
+                autoFocus
+                className="font-mono text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-foreground">Initial Content (optional)</label>
+              <textarea
+                value={newFileContent}
+                onChange={(e) => setNewFileContent(e.target.value)}
+                spellCheck={false}
+                rows={6}
+                placeholder="Write initial text or leave blank for an empty file…"
+                className="w-full rounded-lg border border-input bg-background/80 p-3 font-mono text-xs leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-[#70AEFF]"
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" size="sm" onClick={() => setNewFileOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={creatingFile || !newFileName.trim() || newFileName.includes("/")}
+                className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
+              >
+                {creatingFile ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                Create File
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename File or Folder Dialog */}
+      <Dialog
+        open={Boolean(renameTarget)}
+        onOpenChange={(open) => {
+          if (!open && !renaming) setRenameTarget(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-[#70AEFF]" />
+              Rename {renameTarget?.is_dir ? "Folder" : "File"}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Enter a new name for <code className="font-mono text-[#70AEFF]">{renameTarget?.name}</code>
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleConfirmRename} className="space-y-4">
+            <Input
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              autoFocus
+              className="font-mono text-xs"
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRenameTarget(null)}
+                disabled={renaming}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={
+                  renaming ||
+                  !renameValue.trim() ||
+                  renameValue.includes("/") ||
+                  renameValue.trim() === renameTarget?.name
+                }
+                className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
+              >
+                {renaming ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                Rename
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={deleteTarget?.is_dir ? "Delete Folder?" : "Delete File?"}
+        description={
+          deleteTarget?.is_dir
+            ? `Are you sure you want to delete folder "${deleteTarget.name}" and all its contents? This action cannot be undone.`
+            : `Are you sure you want to delete file "${deleteTarget?.name ?? ""}"? This action cannot be undone.`
+        }
+        confirmLabel="Delete"
+        loading={Boolean(deleteTarget && deletingPath === deleteTarget.path)}
+        onConfirm={handleConfirmDelete}
+      />
     </Card>
   )
 }

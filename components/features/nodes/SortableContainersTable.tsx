@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useEffect, useRef, useState } from "react"
-import { GripVertical, Loader2, FileText, Play, Square, RotateCcw, Activity, Lock, Unlock } from "lucide-react"
+import { GripVertical, Loader2, FileText, Play, Square, RotateCcw, Activity, Lock, Unlock, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -158,12 +158,12 @@ function SortableRow({
       </TableCell>
       <TableCell>
         <div className="flex items-center justify-end gap-1">
-          {/* Botón unificado: Métricas y Respaldos */}
+          {/* Unified button: Metrics & Backups */}
           <Button
             variant="ghost"
             size="icon"
             className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
-            title="Métricas y Respaldos"
+            title="Metrics & Backups"
             onClick={onMetricsAndBackups}
           >
             <Activity className="h-4 w-4" />
@@ -182,7 +182,7 @@ function SortableRow({
             </Button>
           )}
 
-          {/* Candado de protección contra acciones */}
+          {/* Action protection lock */}
           {canSettings && (
             <Button
               variant="ghost"
@@ -194,8 +194,8 @@ function SortableRow({
               }`}
               title={
                 isLocked
-                  ? "Acciones bloqueadas por candado (clic para desbloquear)"
-                  : "Acciones desbloqueadas (clic para bloquear y proteger)"
+                  ? "Actions locked (click to unlock)"
+                  : "Actions unlocked (click to lock & protect)"
               }
               onClick={onToggleLock}
             >
@@ -205,12 +205,12 @@ function SortableRow({
 
           {canAction && (
             <>
-              {/* Iniciar */}
+              {/* Start */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-green-500 hover:text-green-400 hover:bg-green-500/10 disabled:opacity-30"
-                title={isLocked ? "Acción protegida por candado" : "Iniciar contenedor"}
+                title={isLocked ? "Action protected by lock" : "Start container"}
                 disabled={anyActing || isRunning || isLocked}
                 onClick={() => onRequestAction("start")}
               >
@@ -221,12 +221,12 @@ function SortableRow({
                 )}
               </Button>
 
-              {/* Apagar / Detener */}
+              {/* Stop */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30"
-                title={isLocked ? "Acción protegida por candado" : "Detener contenedor"}
+                title={isLocked ? "Action protected by lock" : "Stop container"}
                 disabled={anyActing || isExited || isLocked}
                 onClick={() => onRequestAction("stop")}
               >
@@ -237,12 +237,12 @@ function SortableRow({
                 )}
               </Button>
 
-              {/* Reiniciar */}
+              {/* Restart */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 disabled:opacity-30"
-                title={isLocked ? "Acción protegida por candado" : "Reiniciar contenedor"}
+                title={isLocked ? "Action protected by lock" : "Restart container"}
                 disabled={anyActing || isLocked}
                 onClick={() => onRequestAction("restart")}
               >
@@ -250,6 +250,22 @@ function SortableRow({
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <RotateCcw className="h-4 w-4" />
+                )}
+              </Button>
+
+              {/* Remove / Delete */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 disabled:opacity-30"
+                title={isLocked ? "Action protected by lock" : "Remove container"}
+                disabled={anyActing || isLocked}
+                onClick={() => onRequestAction("remove")}
+              >
+                {isActing && actionState?.action === "remove" ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
                 )}
               </Button>
             </>
@@ -346,7 +362,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
         })
       } catch (err) {
         console.error("Failed to save container order:", err)
-        toast.error("No se pudo guardar el orden de los contenedores en el servidor")
+        toast.error("Could not save container order on server")
       }
     }
   }
@@ -367,8 +383,8 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
       })
       toast.success(
         nextLocked
-          ? `Acciones bloqueadas para ${containerName}`
-          : `Acciones desbloqueadas para ${containerName}`
+          ? `Actions locked for ${containerName}`
+          : `Actions unlocked for ${containerName}`
       )
     } catch (err) {
       console.error("Failed to save container lock:", err)
@@ -376,13 +392,13 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
       const revertedLocks = { ...locksRef.current, [containerName]: currentLocked }
       locksRef.current = revertedLocks
       setLocks(revertedLocks)
-      toast.error("No se pudo guardar la configuración de bloqueo")
+      toast.error("Could not save lock configuration")
     }
   }
 
   const handleRequestAction = (containerName: string, action: ContainerAction) => {
     if (locksRef.current[containerName]) {
-      toast.error(`Acción bloqueada: el contenedor "${containerName}" está protegido por candado`)
+      toast.error(`Action blocked: container "${containerName}" is locked`)
       return
     }
     setConfirmModal({
@@ -399,7 +415,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
     try {
       await onAction(containerName, action)
     } catch (err: any) {
-      toast.error(err?.message || `Error al ejecutar acción en ${containerName}`)
+      toast.error(err?.message || `Failed to run action on ${containerName}`)
     }
   }
 
@@ -457,7 +473,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
             <div className="flex items-center gap-3">
               <div
                 className={`p-2.5 rounded-full ${
-                  confirmModal.action === "stop"
+                  confirmModal.action === "stop" || confirmModal.action === "remove"
                     ? "bg-rose-500/15 text-rose-500"
                     : confirmModal.action === "restart"
                     ? "bg-amber-500/15 text-amber-500"
@@ -467,17 +483,19 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                 {confirmModal.action === "stop" && <Square className="h-5 w-5" />}
                 {confirmModal.action === "restart" && <RotateCcw className="h-5 w-5" />}
                 {confirmModal.action === "start" && <Play className="h-5 w-5" />}
+                {confirmModal.action === "remove" && <Trash2 className="h-5 w-5" />}
               </div>
               <AlertDialogTitle>
-                {confirmModal.action === "start" && "Confirmar inicio"}
-                {confirmModal.action === "stop" && "Confirmar apagado"}
-                {confirmModal.action === "restart" && "Confirmar reinicio"}
+                {confirmModal.action === "start" && "Confirm Start"}
+                {confirmModal.action === "stop" && "Confirm Stop"}
+                {confirmModal.action === "restart" && "Confirm Restart"}
+                {confirmModal.action === "remove" && "Confirm Removal"}
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="pt-2 text-sm text-foreground/80">
               {confirmModal.action === "start" && (
                 <>
-                  ¿Estás seguro de que deseas <strong>iniciar</strong> el contenedor{" "}
+                  Are you sure you want to <strong>start</strong> container{" "}
                   <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-foreground font-semibold">
                     {confirmModal.containerName}
                   </code>?
@@ -485,27 +503,35 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
               )}
               {confirmModal.action === "stop" && (
                 <>
-                  ¿Estás seguro de que deseas <strong>apagar / detener</strong> el contenedor{" "}
+                  Are you sure you want to <strong>stop</strong> container{" "}
                   <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-foreground font-semibold">
                     {confirmModal.containerName}
-                  </code>? El servicio dejará de responder peticiones.
+                  </code>? The service will stop responding to requests.
                 </>
               )}
               {confirmModal.action === "restart" && (
                 <>
-                  ¿Estás seguro de que deseas <strong>reiniciar</strong> el contenedor{" "}
+                  Are you sure you want to <strong>restart</strong> container{" "}
                   <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-foreground font-semibold">
                     {confirmModal.containerName}
-                  </code>? Experimentará una breve interrupción de servicio.
+                  </code>? It will experience a brief service interruption.
+                </>
+              )}
+              {confirmModal.action === "remove" && (
+                <>
+                  Are you sure you want to <strong>permanently remove</strong> container{" "}
+                  <code className="px-1.5 py-0.5 rounded bg-secondary font-mono text-foreground font-semibold">
+                    {confirmModal.containerName}
+                  </code>? If running, it will be stopped and deleted. This action cannot be undone.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-3">
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className={
-                confirmModal.action === "stop"
+                confirmModal.action === "stop" || confirmModal.action === "remove"
                   ? "bg-rose-600 text-white hover:bg-rose-700"
                   : confirmModal.action === "restart"
                   ? "bg-amber-600 text-white hover:bg-amber-700"
@@ -513,9 +539,10 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
               }
               onClick={handleConfirmAction}
             >
-              {confirmModal.action === "start" && "Iniciar"}
-              {confirmModal.action === "stop" && "Apagar"}
-              {confirmModal.action === "restart" && "Reiniciar"}
+              {confirmModal.action === "start" && "Start"}
+              {confirmModal.action === "stop" && "Stop"}
+              {confirmModal.action === "restart" && "Restart"}
+              {confirmModal.action === "remove" && "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

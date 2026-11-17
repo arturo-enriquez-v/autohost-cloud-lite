@@ -48,9 +48,9 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
         <Card className="border-border bg-card">
           <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
             <ShieldAlert className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium">Permiso denegado (<code>network:read</code>)</p>
+            <p className="text-sm font-medium">Permission denied (<code>network:read</code>)</p>
             <p className="text-xs text-muted-foreground">
-              No tienes permiso para ver la configuración de red y proxy de este nodo.
+              You do not have permission to view the network and proxy configuration for this node.
             </p>
           </CardContent>
         </Card>
@@ -63,7 +63,7 @@ export default function NodeProxyPage({ params }: { params: Promise<{ id: string
             </>
           ) : (
             <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-              Modo solo lectura (<code>network:read</code>). Se requiere <code>network:manage</code> para administrar túneles Cloudflare, Tailscale Funnel o rutas Caddy.
+              Read-only mode (<code>network:read</code>). <code>network:manage</code> is required to manage Cloudflare tunnels, Tailscale Funnel, or Caddy routes.
             </div>
           )}
           <CaddyStatusBanner status={caddyStatus} onRetry={checkCaddy} />

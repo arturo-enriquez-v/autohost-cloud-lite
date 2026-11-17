@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import {
   Dialog,
   DialogContent,
@@ -262,13 +263,13 @@ export default function PublicSharePortalPage({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        throw new Error(data.error || "No se pudo crear la carpeta")
+        throw new Error(data.error || "Could not create folder")
       }
       setNewFolderName("")
       setMkdirOpen(false)
       await fetchSharedFiles(currentPath, shareToken)
     } catch (err) {
-      setFilesError(err instanceof Error ? err.message : "Error al crear carpeta")
+      setFilesError(err instanceof Error ? err.message : "Failed to create folder")
     } finally {
       setCreatingFolder(false)
     }
@@ -299,10 +300,10 @@ export default function PublicSharePortalPage({
             if (xhr.status >= 200 && xhr.status < 300) {
               resolve()
             } else {
-              reject(new Error(`Error al subir ${file.name}`))
+              reject(new Error(`Failed to upload ${file.name}`))
             }
           }
-          xhr.onerror = () => reject(new Error(`Error de red al subir ${file.name}`))
+          xhr.onerror = () => reject(new Error(`Network error uploading ${file.name}`))
 
           xhr.open(
             "POST",
@@ -316,7 +317,7 @@ export default function PublicSharePortalPage({
       }
       await fetchSharedFiles(currentPath, shareToken)
     } catch (err) {
-      setFilesError(err instanceof Error ? err.message : "Error al subir archivo")
+      setFilesError(err instanceof Error ? err.message : "Failed to upload file")
     } finally {
       setUploading(false)
       setUploadFilename("")
@@ -325,9 +326,16 @@ export default function PublicSharePortalPage({
     }
   }
 
-  const handleDelete = async (entry: SharedFileEntry) => {
+  const [deleteTarget, setDeleteTarget] = useState<SharedFileEntry | null>(null)
+
+  const handleDelete = (entry: SharedFileEntry) => {
     if (!shareToken || !canDelete) return
-    if (!window.confirm(`¿Eliminar "${entry.name}" permanentemente?`)) return
+    setDeleteTarget(entry)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget || !shareToken || !canDelete) return
+    const entry = deleteTarget
     setDeletingPath(entry.path)
     try {
       const res = await fetch(`/api/public-shares/${encodeURIComponent(shareId)}`, {
@@ -340,11 +348,12 @@ export default function PublicSharePortalPage({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || "No se pudo eliminar")
+        throw new Error(data.error || "Could not delete")
       }
+      setDeleteTarget(null)
       await fetchSharedFiles(currentPath, shareToken)
     } catch (err) {
-      setFilesError(err instanceof Error ? err.message : "Error al eliminar")
+      setFilesError(err instanceof Error ? err.message : "Failed to delete")
     } finally {
       setDeletingPath(null)
     }
@@ -362,9 +371,11 @@ export default function PublicSharePortalPage({
       <div className="min-h-screen bg-[#070A10] text-foreground flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3 text-muted-foreground">
           <Loader2 className="h-8 w-8 animate-spin text-[#70AEFF]" />
-          <p className="text-xs font-mono">Verificando enlace compartido…</p>
-        </div>
-      </div>
+          <p className="text-xs font-mono">Verifying shared link…</p>
+    
+    </div>
+  
+    </div>
     )
   }
 
@@ -373,10 +384,12 @@ export default function PublicSharePortalPage({
       <div className="min-h-screen bg-[#070A10] text-foreground flex items-center justify-center p-4">
         <div className="max-w-md w-full rounded-2xl border border-destructive/40 bg-card/80 p-8 text-center space-y-3 shadow-2xl">
           <AlertCircle className="h-10 w-10 text-destructive mx-auto" />
-          <h1 className="text-lg font-bold">Enlace no disponible</h1>
+          <h1 className="text-lg font-bold">Link unavailable</h1>
           <p className="text-xs text-muted-foreground">{notFoundError}</p>
-        </div>
-      </div>
+    
+    </div>
+  
+    </div>
     )
   }
 
@@ -388,27 +401,30 @@ export default function PublicSharePortalPage({
           <div className="flex flex-col items-center text-center space-y-2">
             <div className="h-12 w-12 rounded-2xl bg-[#70AEFF]/15 border border-[#70AEFF]/30 flex items-center justify-center text-[#70AEFF]">
               <Lock className="h-6 w-6" />
-            </div>
+        
+    </div>
             <h1 className="text-xl font-bold tracking-tight">{shareTitle}</h1>
             <p className="text-xs text-muted-foreground">
-              Esta carpeta compartida{nodeName ? ` en ${nodeName}` : ""} está protegida por contraseña.
+              This shared folder{nodeName ? ` on ${nodeName}` : ""} is password-protected.
             </p>
-          </div>
+      
+    </div>
 
           <form onSubmit={handleUnlock} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                Contraseña de acceso
+                Access password
               </label>
               <Input
                 type="password"
-                placeholder="Ingresa la contraseña (ej. AH-xxxx-xxxx)"
+                placeholder="Enter password (e.g. AH-xxxx-xxxx)"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 autoFocus
                 className="font-mono text-sm h-10"
               />
-            </div>
+        
+    </div>
 
             {unlockError && (
               <p className="text-xs text-destructive font-medium flex items-center gap-1.5">
@@ -427,15 +443,17 @@ export default function PublicSharePortalPage({
               ) : (
                 <ShieldCheck className="h-4 w-4" />
               )}
-              Desbloquear Carpeta
+              Unlock Folder
             </Button>
           </form>
 
           <p className="text-[11px] text-center text-muted-foreground/60">
-            AutoHost Secure Share · Acceso aislado con permisos restringidos
+            AutoHost Secure Share · Isolated access with restricted permissions
           </p>
-        </div>
-      </div>
+    
+    </div>
+  
+    </div>
     )
   }
 
@@ -447,20 +465,21 @@ export default function PublicSharePortalPage({
         <div className="flex items-center gap-3 min-w-0">
           <div className="p-2 rounded-xl bg-[#70AEFF]/15 border border-[#70AEFF]/30 text-[#70AEFF]">
             <Folder className="h-5 w-5" />
-          </div>
+      
+    </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-bold text-base truncate">{shareTitle}</h1>
               {permission === "read" && (
                 <Badge variant="outline" className="text-[10px] gap-1 border-sky-500/40 text-sky-400">
                   <Eye className="h-3 w-3" />
-                  Solo Lectura
+                  Read Only
                 </Badge>
               )}
               {permission === "write" && (
                 <Badge variant="outline" className="text-[10px] gap-1 border-emerald-500/40 text-emerald-400">
                   <FileUp className="h-3 w-3" />
-                  Lectura y Escritura
+                  Read & Write
                 </Badge>
               )}
               {permission === "editor" && (
@@ -469,12 +488,15 @@ export default function PublicSharePortalPage({
                   Editor
                 </Badge>
               )}
-            </div>
+        
+    </div>
             <p className="text-[11px] text-muted-foreground truncate">
-              Nodo: <span className="font-mono text-foreground/80">{nodeName || "AutoHost"}</span> · Sesión cifrada vía Tailscale
+              Node: <span className="font-mono text-foreground/80">{nodeName || "AutoHost"}</span> · Encrypted session via Tailscale
             </p>
-          </div>
-        </div>
+      
+    </div>
+    
+    </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative">
@@ -482,10 +504,11 @@ export default function PublicSharePortalPage({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar archivo…"
+              placeholder="Search file…"
               className="h-8 pl-8 pr-3 text-xs w-44 bg-background/60"
             />
-          </div>
+      
+    </div>
 
           <div className="inline-flex items-center rounded-lg border border-border bg-background/60 p-0.5">
             <button
@@ -510,7 +533,8 @@ export default function PublicSharePortalPage({
             >
               <List className="h-3.5 w-3.5" />
             </button>
-          </div>
+      
+    </div>
 
           <Button
             variant="outline"
@@ -520,7 +544,7 @@ export default function PublicSharePortalPage({
             className="h-8 text-xs gap-1.5"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${filesLoading ? "animate-spin" : ""}`} />
-            Actualizar
+            Refresh
           </Button>
 
           {canWrite && (
@@ -539,7 +563,7 @@ export default function PublicSharePortalPage({
                 className="h-8 text-xs gap-1.5"
               >
                 <FolderPlus className="h-3.5 w-3.5 text-amber-400" />
-                Nueva Carpeta
+                New Folder
               </Button>
               <Button
                 size="sm"
@@ -552,7 +576,7 @@ export default function PublicSharePortalPage({
                 ) : (
                   <Upload className="h-3.5 w-3.5" />
                 )}
-                {uploading ? `Subiendo (${uploadProgress}%)` : "Subir Archivo"}
+                {uploading ? `Uploading (${uploadProgress}%)` : "Upload File"}
               </Button>
             </>
           )}
@@ -567,9 +591,10 @@ export default function PublicSharePortalPage({
             className="h-8 text-xs text-muted-foreground hover:text-destructive"
           >
             <Lock className="h-3.5 w-3.5 mr-1" />
-            Bloquear
+            Lock
           </Button>
-        </div>
+    
+    </div>
       </header>
 
       {/* Main Content */}
@@ -584,7 +609,7 @@ export default function PublicSharePortalPage({
             className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
           >
             <ArrowUpLeft className="h-3.5 w-3.5 mr-1" />
-            Subir
+            Up
           </Button>
           <span className="text-border">|</span>
           <button
@@ -614,13 +639,15 @@ export default function PublicSharePortalPage({
               </React.Fragment>
             )
           })}
-        </div>
+    
+    </div>
 
         {uploading && (
           <div className="rounded-xl border border-[#70AEFF]/40 bg-[#70AEFF]/10 p-3 flex items-center justify-between gap-4 text-xs">
-            <span className="font-mono truncate">Subiendo: {uploadFilename}</span>
+            <span className="font-mono truncate">Uploading: {uploadFilename}</span>
             <span className="font-mono font-bold text-[#70AEFF]">{uploadProgress}%</span>
-          </div>
+      
+    </div>
         )}
 
         {filesError && (
@@ -629,23 +656,26 @@ export default function PublicSharePortalPage({
             <Button variant="ghost" size="sm" onClick={() => setFilesError(null)}>
               <X className="h-3.5 w-3.5" />
             </Button>
-          </div>
+      
+    </div>
         )}
 
         <div className="rounded-2xl border border-border/80 bg-card/80 shadow-lg overflow-hidden">
           {filesLoading ? (
             <div className="p-16 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin text-[#70AEFF]" />
-              <span>Cargando contenido…</span>
-            </div>
+              <span>Loading content…</span>
+        
+    </div>
           ) : filteredEntries.length === 0 ? (
             <div className="p-16 text-center space-y-2 text-muted-foreground">
               <Folder className="h-10 w-10 mx-auto opacity-40" />
-              <p className="text-sm font-medium text-foreground">Esta carpeta está vacía</p>
+              <p className="text-sm font-medium text-foreground">This folder is empty</p>
               {canWrite && (
-                <p className="text-xs">Puedes subir archivos o crear carpetas usando los botones superiores.</p>
+                <p className="text-xs">You can upload files or create folders using the buttons above.</p>
               )}
-            </div>
+        
+    </div>
           ) : viewMode === "grid" ? (
             <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {filteredEntries.map((entry) => (
@@ -670,7 +700,8 @@ export default function PublicSharePortalPage({
                       ) : (
                         <FileText className="h-7 w-7 text-[#70AEFF]" />
                       )}
-                    </div>
+                
+    </div>
 
                     <div
                       className="flex items-center gap-0.5"
@@ -682,7 +713,7 @@ export default function PublicSharePortalPage({
                           size="icon"
                           onClick={() => setStreamingEntry(entry)}
                           className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/15"
-                          title="Reproducir"
+                          title="Play"
                         >
                           <Play className="h-3.5 w-3.5 fill-emerald-400" />
                         </Button>
@@ -693,7 +724,7 @@ export default function PublicSharePortalPage({
                           size="icon"
                           onClick={() => handleDownload(entry)}
                           className="h-7 w-7 text-[#70AEFF] hover:bg-[#70AEFF]/15"
-                          title="Descargar"
+                          title="Download"
                         >
                           <Download className="h-3.5 w-3.5" />
                         </Button>
@@ -705,7 +736,7 @@ export default function PublicSharePortalPage({
                           disabled={deletingPath === entry.path}
                           onClick={() => handleDelete(entry)}
                           className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          title="Eliminar"
+                          title="Delete"
                         >
                           {deletingPath === entry.path ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -714,8 +745,10 @@ export default function PublicSharePortalPage({
                           )}
                         </Button>
                       )}
-                    </div>
-                  </div>
+                
+    </div>
+              
+    </div>
 
                   <div className="space-y-1 min-w-0">
                     <p className="text-xs font-medium font-mono truncate" title={entry.name}>
@@ -723,21 +756,24 @@ export default function PublicSharePortalPage({
                       {entry.is_dir ? "/" : ""}
                     </p>
                     <p className="text-[10px] text-muted-foreground font-mono">
-                      {entry.is_dir ? "Carpeta" : formatBytes(entry.size_bytes)}
+                      {entry.is_dir ? "Folder" : formatBytes(entry.size_bytes)}
                     </p>
-                  </div>
-                </div>
+              
+    </div>
+            
+    </div>
               ))}
-            </div>
+        
+    </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-border/60 bg-muted/20 text-muted-foreground uppercase text-[10px] tracking-wider">
-                    <th className="py-2.5 px-4 font-semibold">Nombre</th>
-                    <th className="py-2.5 px-4 font-semibold">Tamaño</th>
-                    <th className="py-2.5 px-4 font-semibold hidden sm:table-cell">Modificado</th>
-                    <th className="py-2.5 px-4 font-semibold text-right">Acciones</th>
+                    <th className="py-2.5 px-4 font-semibold">Name</th>
+                    <th className="py-2.5 px-4 font-semibold">Size</th>
+                    <th className="py-2.5 px-4 font-semibold hidden sm:table-cell">Modified</th>
+                    <th className="py-2.5 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -761,7 +797,8 @@ export default function PublicSharePortalPage({
                               <FileText className="h-4 w-4 text-[#70AEFF]" />
                             )}
                             <span className="font-mono">{entry.name}</span>
-                          </div>
+                      
+    </div>
                         )}
                       </td>
                       <td className="py-2.5 px-4 font-mono text-muted-foreground">
@@ -793,7 +830,7 @@ export default function PublicSharePortalPage({
                               className="h-7 px-2 text-xs text-[#70AEFF]"
                             >
                               <Download className="h-3.5 w-3.5 mr-1" />
-                              Descargar
+                              Download
                             </Button>
                           )}
                           {canDelete && (
@@ -807,15 +844,18 @@ export default function PublicSharePortalPage({
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
-                        </div>
+                    
+    </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+        
+    </div>
           )}
-        </div>
+    
+    </div>
       </main>
 
       {/* Create Folder Modal (only for write/editor) */}
@@ -824,15 +864,15 @@ export default function PublicSharePortalPage({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FolderPlus className="h-5 w-5 text-amber-400" />
-              Nueva Carpeta
+              New Folder
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Crear carpeta dentro de <code className="font-mono text-[#70AEFF]">{currentPath}</code>
+              Create folder inside <code className="font-mono text-[#70AEFF]">{currentPath}</code>
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateFolder} className="space-y-4">
             <Input
-              placeholder="Nombre de la carpeta"
+              placeholder="Folder name"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               autoFocus
@@ -840,7 +880,7 @@ export default function PublicSharePortalPage({
             />
             <DialogFooter>
               <Button type="button" variant="outline" size="sm" onClick={() => setMkdirOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button
                 type="submit"
@@ -848,7 +888,7 @@ export default function PublicSharePortalPage({
                 disabled={creatingFolder || !newFolderName.trim()}
                 className="bg-[#70AEFF] hover:bg-[#5b9df5] text-slate-950 font-semibold"
               >
-                Crear
+                Create
               </Button>
             </DialogFooter>
           </form>
@@ -879,10 +919,20 @@ export default function PublicSharePortalPage({
                   shareToken
                 )}`}
               />
-            </div>
+        
+    </div>
           )}
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title={deleteTarget?.is_dir ? "Delete Folder?" : "Delete File?"}
+        description={`Are you sure you want to permanently delete "${deleteTarget?.name ?? ""}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        loading={Boolean(deleteTarget && deletingPath === deleteTarget.path)}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   )
 }

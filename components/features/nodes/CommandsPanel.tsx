@@ -38,7 +38,7 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
   const { dispatch, isDispatching, activeJob } = useJobDispatch()
   const { can } = useNodePermissions(nodeId)
   const canRun = can(PERMS.JOBS_RUN)
-  const [filter, setFilter] = useState<"all" | "custom" | "system">("all")
+  const [filter, setFilter] = useState<"all" | "custom" | "system">("custom")
 
   const displayedCommands = commands.filter((c) => {
     if (filter === "custom") return c.type === "custom"
@@ -144,7 +144,9 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
                       <TableCell className="font-mono font-medium text-xs sm:text-sm">{cmd.name}</TableCell>
                       <TableCell className="text-xs sm:text-sm text-muted-foreground">{cmd.description || "—"}</TableCell>
                       <TableCell className="text-right">
-                        {canRun ? (
+                        {cmd.type !== "custom" ? (
+                          <span className="text-xs text-muted-foreground">System only</span>
+                        ) : canRun ? (
                           <Button
                             size="sm"
                             onClick={() => handleExecute(cmd)}
@@ -159,7 +161,7 @@ export function CommandsPanel({ nodeId, onJobDispatched }: CommandsPanelProps) {
                             Execute
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Solo lectura</span>
+                          <span className="text-xs text-muted-foreground">Read-only</span>
                         )}
                       </TableCell>
                     </TableRow>

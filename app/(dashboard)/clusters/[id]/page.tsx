@@ -35,6 +35,8 @@ import {
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ClusterTopologyGraph } from "@/components/features/clusters/ClusterTopologyGraph";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 export default function ClusterDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: clusterId } = use(params);
@@ -148,6 +150,11 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     setSvcPorts("");
   };
 
+  const [deleteServiceTarget, setDeleteServiceTarget] = useState<ClusterService | null>(null);
+  const [deletingService, setDeletingService] = useState(false);
+  const [deleteClusterOpen, setDeleteClusterOpen] = useState(false);
+  const [deletingCluster, setDeletingCluster] = useState(false);
+
   const handleDeployService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!svcName || !svcImage) return;
@@ -168,7 +175,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setSvcEnvVars({});
       await fetchDetails();
     } catch (err: any) {
-      alert(err.message || "Error al desplegar servicio");
+      toast.error(err.message || "Failed to deploy service");
     } finally {
       setDeploying(false);
     }
@@ -181,17 +188,25 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       await scaleService(clusterId, service.id, newReplicas);
       await fetchDetails();
     } catch (err: any) {
-      alert(err.message || "Error al escalar servicio");
+      toast.error(err.message || "Failed to scale service");
     }
   };
 
-  const handleDeleteService = async (service: ClusterService) => {
-    if (!confirm(`¿Estás seguro de eliminar el servicio ${service.name}?`)) return;
+  const handleDeleteService = (service: ClusterService) => {
+    setDeleteServiceTarget(service);
+  };
+
+  const handleConfirmDeleteService = async () => {
+    if (!deleteServiceTarget) return;
+    setDeletingService(true);
     try {
-      await deleteService(clusterId, service.id);
+      await deleteService(clusterId, deleteServiceTarget.id);
+      setDeleteServiceTarget(null);
       await fetchDetails();
     } catch (err: any) {
-      alert(err.message || "Error al eliminar servicio");
+      toast.error(err.message || "Failed to delete service");
+    } finally {
+      setDeletingService(false);
     }
   };
 
@@ -240,21 +255,25 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       setAutoScaleOpen(false);
       await fetchDetails();
     } catch (err: any) {
-      alert(err.message || "Error al guardar política de autoescalado");
+      toast.error(err.message || "Failed to save autoscaling policy");
     } finally {
       setSavingPolicy(false);
     }
   };
 
-  const handleDeleteCluster = async () => {
-    if (!confirm(`¿Estás seguro de eliminar el cluster "${clusterData?.cluster.name}"? Todos los servicios se detendrán y los nodos saldrán del Swarm.`)) {
-      return;
-    }
+  const handleDeleteCluster = () => {
+    setDeleteClusterOpen(true);
+  };
+
+  const handleConfirmDeleteCluster = async () => {
+    setDeletingCluster(true);
     try {
       await deleteCluster(clusterId);
       router.push("/clusters");
     } catch (err: any) {
-      alert(err.message || "Error al eliminar cluster");
+      toast.error(err.message || "Failed to delete cluster");
+    } finally {
+      setDeletingCluster(false);
     }
   };
 
@@ -262,7 +281,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
     return (
       <div className="flex justify-center items-center py-24 text-muted-foreground">
         <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-        Cargando detalles del cluster...
+        Loading cluster details...
       </div>
     );
   }
@@ -270,9 +289,9 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
   if (!clusterData) {
     return (
       <div className="text-center py-16">
-        <h2 className="text-xl font-semibold">Cluster no encontrado</h2>
+        <h2 className="text-xl font-semibold">Cluster not found</h2>
         <Link href="/clusters" className="text-primary mt-2 inline-block">
-          Volver a la lista
+          Back to list
         </Link>
       </div>
     );
@@ -290,7 +309,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         <div>
           <Link href="/clusters" className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground mb-2 gap-1">
             <ArrowLeft className="h-3.5 w-3.5" />
-            Volver a Clusters
+            Back to Clusters
           </Link>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{clusterData.cluster.name}</h1>
@@ -299,7 +318,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-            Red Overlay: <code className="bg-muted px-1.5 py-0.5 rounded">{clusterData.cluster.overlay_network} (MTU 1200)</code>
+            Overlay Network: <code className="bg-muted px-1.5 py-0.5 rounded">{clusterData.cluster.overlay_network} (MTU 1200)</code>
             <span>•</span>
             Manager: <span className="font-medium text-foreground">{manager?.node_hostname || manager?.node_id.slice(0, 8)}</span>
           </p>
@@ -308,11 +327,11 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchDetails}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refrescar
+            Refresh
           </Button>
           <Button variant="destructive" size="sm" onClick={handleDeleteCluster}>
             <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar Cluster
+            Delete Cluster
           </Button>
         </div>
       </div>
@@ -328,7 +347,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           }`}
         >
           <Network className="h-4 w-4 text-emerald-400" />
-          Topología & Réplicas en Vivo
+          Live Topology & Replicas
         </button>
 
         <button
@@ -340,7 +359,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           }`}
         >
           <Cpu className="h-4 w-4" />
-          Servicios Stateless ({services.length})
+          Stateless Services ({services.length})
         </button>
 
         <button
@@ -352,7 +371,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           }`}
         >
           <Server className="h-4 w-4" />
-          Nodos & Red Privada ({nodes.length})
+          Nodes & Private Network ({nodes.length})
         </button>
       </div>
 
@@ -361,14 +380,14 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-semibold">Microservicios Desplegados</h3>
+              <h3 className="text-base font-semibold">Deployed Microservices</h3>
               <p className="text-xs text-muted-foreground">
-                Servicios distribuidos y balanceados automáticamente por el Ingress Routing Mesh de Swarm.
+                Services distributed and automatically load-balanced by Swarm&apos;s Ingress Routing Mesh.
               </p>
             </div>
             <Button size="sm" onClick={() => setDeployModalOpen(true)} className="gap-1.5">
               <Plus className="h-4 w-4" />
-              Desplegar Servicio
+              Deploy Service
             </Button>
           </div>
 
@@ -376,8 +395,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             <Card className="border-dashed bg-card/40">
               <CardContent className="py-12 text-center text-muted-foreground">
                 <Cpu className="h-8 w-8 mx-auto mb-2 text-muted-foreground/60" />
-                <p className="text-sm font-medium">No hay servicios desplegados en este cluster.</p>
-                <p className="text-xs mt-1">Haz clic en &quot;Desplegar Servicio&quot; para publicar una imagen Docker stateless.</p>
+                <p className="text-sm font-medium">No services deployed in this cluster.</p>
+                <p className="text-xs mt-1">Click &quot;Deploy Service&quot; to publish a stateless Docker image.</p>
               </CardContent>
             </Card>
           ) : (
@@ -394,7 +413,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         </Badge>
                         {svc.autoscaling?.enabled && (
                           <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] gap-1">
-                            <Zap className="h-3 w-3" /> Autoescalado Activo
+                            <Zap className="h-3 w-3" /> Autoscaling Active
                           </Badge>
                         )}
                       </div>
@@ -402,15 +421,15 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         {svc.ports && (
                           <span>
-                            Puertos: <code className="bg-muted px-1 rounded">{svc.ports}</code>
+                            Ports: <code className="bg-muted px-1 rounded">{svc.ports}</code>
                           </span>
                         )}
                         <span>
-                          ID Swarm: <code className="bg-muted px-1 rounded">{svc.id.slice(0, 8)}</code>
+                          Swarm ID: <code className="bg-muted px-1 rounded">{svc.id.slice(0, 8)}</code>
                         </span>
                         {svc.autoscaling && (
                           <span className="text-foreground/80 flex items-center gap-1">
-                            Regla: {(svc.autoscaling.metric_type || "cpu").toUpperCase()} &gt; {svc.autoscaling.scale_up_threshold}% (min {svc.autoscaling.min_replicas}, max {svc.autoscaling.max_replicas})
+                            Rule: {(svc.autoscaling.metric_type || "cpu").toUpperCase()} &gt; {svc.autoscaling.scale_up_threshold}% (min {svc.autoscaling.min_replicas}, max {svc.autoscaling.max_replicas})
                           </span>
                         )}
                       </div>
@@ -429,7 +448,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                           -
                         </Button>
                         <span className="px-3 text-xs font-semibold">
-                          {svc.replicas} {svc.replicas === 1 ? "réplica" : "réplicas"}
+                          {svc.replicas} {svc.replicas === 1 ? "replica" : "replicas"}
                         </span>
                         <Button
                           variant="ghost"
@@ -449,7 +468,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                         className="gap-1.5"
                       >
                         <Sliders className="h-3.5 w-3.5 text-primary" />
-                        Autoescalado
+                        Autoscaling
                       </Button>
 
                       {/* Delete Button */}
@@ -474,9 +493,9 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
       {activeTab === "nodes" && (
         <div className="space-y-4">
           <div>
-            <h3 className="text-base font-semibold">Topología del Cluster y Red Privada</h3>
+            <h3 className="text-base font-semibold">Cluster Topology & Private Network</h3>
             <p className="text-xs text-muted-foreground">
-              Nodos interconectados de forma segura mediante la red mesh WireGuard (Headscale).
+              Nodes securely interconnected via the WireGuard (Headscale) mesh network.
             </p>
           </div>
 
@@ -508,17 +527,17 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
                 <CardContent className="space-y-2 text-xs text-muted-foreground">
                   <div className="flex justify-between">
-                    <span>IP Pública:</span>
+                    <span>Public IP:</span>
                     <span className="font-mono text-foreground">{node.node_ip || "N/A"}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span>IP Privada VPN:</span>
+                    <span>Private VPN IP:</span>
                     <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-mono text-[11px]">
                       {node.node_ip_vpn || "N/A"}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
-                    <span>Estado en Cluster:</span>
+                    <span>Cluster Status:</span>
                     <span className="text-emerald-500 font-medium capitalize">{node.status}</span>
                   </div>
                 </CardContent>
@@ -534,10 +553,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           <div>
             <h3 className="text-base font-semibold flex items-center gap-2">
               <Network className="h-5 w-5 text-emerald-400" />
-              Topología y Distribución de Réplicas en Tiempo Real
+              Real-Time Topology & Replica Distribution
             </h3>
             <p className="text-xs text-muted-foreground">
-              Visualiza en vivo la interconexión entre tus nodos y las réplicas asignadas dinámicamente por Docker Swarm.
+              Visualize live interconnections between your nodes and replicas dynamically scheduled by Docker Swarm.
             </p>
           </div>
 
@@ -551,10 +570,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Layers className="h-5 w-5 text-primary" />
-              Desplegar Servicio Stateless en Cluster
+              Deploy Stateless Service to Cluster
             </DialogTitle>
             <DialogDescription>
-              Selecciona un contenedor existente en tus nodos para convertirlo en servicio balanceado, o ingresa una nueva imagen Docker.
+              Select an existing container on your nodes to convert it into a load-balanced service, or enter a new Docker image.
             </DialogDescription>
           </DialogHeader>
 
@@ -562,7 +581,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                1. Contenedores en tus Servidores
+                1. Containers on your Servers
               </Label>
               {selectedContainerId && (
                 <button
@@ -570,7 +589,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   onClick={handleClearSelectedContainer}
                   className="text-xs text-primary hover:underline"
                 >
-                  Limpiar selección
+                  Clear selection
                 </button>
               )}
             </div>
@@ -610,11 +629,11 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             {loadingContainers ? (
               <div className="py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2 bg-muted/20 rounded-lg border border-dashed border-border/60">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                Obteniendo contenedores activos en el servidor...
+                Fetching active containers on server...
               </div>
             ) : nodeContainers.length === 0 ? (
               <div className="py-4 px-3 text-xs text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border/60 text-center">
-                No se encontraron contenedores activos en este servidor. Puedes escribir la imagen manualmente abajo.
+                No active containers found on this server. You can enter the image manually below.
               </div>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2 max-h-[180px] overflow-y-auto pr-1">
@@ -637,7 +656,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                           <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                         ) : (
                           <Badge variant="outline" className="text-[10px] py-0 px-1 text-emerald-500 bg-emerald-500/10 border-emerald-500/20">
-                            {c.state || "activo"}
+                            {c.state || "active"}
                           </Badge>
                         )}
                       </div>
@@ -656,14 +675,14 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           {/* Section 2: Form Configuration */}
           <form onSubmit={handleDeployService} className="space-y-4">
             <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              2. Configuración del Servicio Swarm
+              2. Swarm Service Configuration
             </Label>
 
             <div className="space-y-1.5">
-              <Label htmlFor="svc-name" className="text-xs">Nombre del Servicio</Label>
+              <Label htmlFor="svc-name" className="text-xs">Service Name</Label>
               <Input
                 id="svc-name"
-                placeholder="ej: demo-api, auth-service, webapp"
+                placeholder="e.g. demo-api, auth-service, webapp"
                 value={svcName}
                 onChange={(e) => setSvcName(e.target.value)}
                 required
@@ -671,10 +690,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="svc-image" className="text-xs">Imagen Docker</Label>
+              <Label htmlFor="svc-image" className="text-xs">Docker Image</Label>
               <Input
                 id="svc-image"
-                placeholder="ej: traefik/whoami, nginx:alpine, tu-repo/app:latest"
+                placeholder="e.g. traefik/whoami, nginx:alpine, your-repo/app:latest"
                 value={svcImage}
                 onChange={(e) => setSvcImage(e.target.value)}
                 required
@@ -683,17 +702,17 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="svc-ports" className="text-xs">Puertos (Publicado:Destino)</Label>
+                <Label htmlFor="svc-ports" className="text-xs">Ports (Published:Target)</Label>
                 <Input
                   id="svc-ports"
-                  placeholder="ej: 8080:80 o 3000"
+                  placeholder="e.g. 8080:80 or 3000"
                   value={svcPorts}
                   onChange={(e) => setSvcPorts(e.target.value)}
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="svc-replicas" className="text-xs">Réplicas Iniciales</Label>
+                <Label htmlFor="svc-replicas" className="text-xs">Initial Replicas</Label>
                 <Input
                   id="svc-replicas"
                   type="number"
@@ -709,19 +728,19 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             {/* Environment Variables Editor */}
             <div className="space-y-2 pt-1 border-t border-border/60">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold">Variables de Entorno (Se inyectan a todas las réplicas)</Label>
+                <Label className="text-xs font-semibold">Environment Variables (Injected into all replicas)</Label>
                 <span className="text-[10px] text-muted-foreground">{Object.keys(svcEnvVars).length} variables</span>
               </div>
 
               <div className="flex items-center gap-2">
                 <Input
-                  placeholder="CLAVE (ej: DB_HOST, PORT)"
+                  placeholder="KEY (e.g. DB_HOST, PORT)"
                   value={svcEnvKey}
                   onChange={(e) => setSvcEnvKey(e.target.value)}
                   className="h-8 text-xs font-mono"
                 />
                 <Input
-                  placeholder="VALOR (ej: 100.64.0.1, 8080)"
+                  placeholder="VALUE (e.g. 100.64.0.1, 8080)"
                   value={svcEnvVal}
                   onChange={(e) => setSvcEnvVal(e.target.value)}
                   className="h-8 text-xs font-mono"
@@ -738,7 +757,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   }}
                   className="h-8 px-3 text-xs"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Añadir
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
                 </Button>
               </div>
 
@@ -771,10 +790,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
 
             <DialogFooter className="pt-2">
               <Button variant="outline" type="button" onClick={() => setDeployModalOpen(false)}>
-                Cancelar
+                Cancel
               </Button>
               <Button type="submit" disabled={deploying || !svcName || !svcImage}>
-                {deploying ? "Desplegando en Swarm..." : "Desplegar Servicio"}
+                {deploying ? "Deploying to Swarm..." : "Deploy Service"}
               </Button>
             </DialogFooter>
           </form>
@@ -787,10 +806,10 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-primary" />
-              Autoescalado Predictivo: {selectedService?.name}
+              Predictive Autoscaling: {selectedService?.name}
             </DialogTitle>
             <DialogDescription>
-              Configura los umbrales de consumo y tiempos sostenidos para escalar hacia arriba y hacia abajo automáticamente.
+              Configure usage thresholds and sustained durations to automatically scale up and down.
             </DialogDescription>
           </DialogHeader>
 
@@ -798,8 +817,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             {/* Enable Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border/60">
               <div className="space-y-0.5">
-                <div className="text-sm font-semibold">Habilitar Autoescalado</div>
-                <div className="text-xs text-muted-foreground">El API evaluará métricas cada 30 segundos</div>
+                <div className="text-sm font-semibold">Enable Autoscaling</div>
+                <div className="text-xs text-muted-foreground">The API will evaluate metrics every 30 seconds</div>
               </div>
               <input
                 type="checkbox"
@@ -818,7 +837,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 }`}
               >
                 <Cpu className="h-4 w-4 mx-auto mb-1 text-primary" />
-                <span className="text-xs">Métrica: CPU (%)</span>
+                <span className="text-xs">Metric: CPU (%)</span>
               </div>
 
               <div
@@ -828,7 +847,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                 }`}
               >
                 <Activity className="h-4 w-4 mx-auto mb-1 text-blue-400" />
-                <span className="text-xs">Métrica: RAM (%)</span>
+                <span className="text-xs">Metric: RAM (%)</span>
               </div>
             </div>
 
@@ -838,12 +857,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
               <div className="space-y-2.5 p-3 rounded-lg bg-card border border-border/60">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="flex items-center gap-1 text-emerald-500">
-                    <TrendingUp className="h-3.5 w-3.5" /> Scale-Up (Subir)
+                    <TrendingUp className="h-3.5 w-3.5" /> Scale-Up
                   </span>
                   <span>{upThreshold}%</span>
                 </div>
                 <div>
-                  <Label className="text-[11px] text-muted-foreground">Umbral de activación (%)</Label>
+                  <Label className="text-[11px] text-muted-foreground">Activation threshold (%)</Label>
                   <Input
                     type="number"
                     min={5}
@@ -854,18 +873,18 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] text-muted-foreground">Tiempo sostenido</Label>
+                  <Label className="text-[11px] text-muted-foreground">Sustained duration</Label>
                   <select
                     value={upDuration}
                     onChange={(e) => setUpDuration(Number(e.target.value))}
                     className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary mt-1"
                   >
-                    <option value={15}>⚡ 15 segundos (Pruebas ultra rápidas)</option>
-                    <option value={30}>⚡ 30 segundos (Pruebas)</option>
-                    <option value={60}>⏱️ 1 minuto</option>
-                    <option value={120}>⏱️ 2 minutos</option>
-                    <option value={300}>🛡️ 5 minutos (Producción estándar)</option>
-                    <option value={600}>🛡️ 10 minutos</option>
+                    <option value={15}>⚡ 15 seconds (Ultra-fast testing)</option>
+                    <option value={30}>⚡ 30 seconds (Testing)</option>
+                    <option value={60}>⏱️ 1 minute</option>
+                    <option value={120}>⏱️ 2 minutes</option>
+                    <option value={300}>🛡️ 5 minutes (Production standard)</option>
+                    <option value={600}>🛡️ 10 minutes</option>
                   </select>
                 </div>
               </div>
@@ -874,12 +893,12 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
               <div className="space-y-2.5 p-3 rounded-lg bg-card border border-border/60">
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="flex items-center gap-1 text-blue-400">
-                    <TrendingDown className="h-3.5 w-3.5" /> Scale-Down (Bajar)
+                    <TrendingDown className="h-3.5 w-3.5" /> Scale-Down
                   </span>
                   <span>{downThreshold}%</span>
                 </div>
                 <div>
-                  <Label className="text-[11px] text-muted-foreground">Umbral de reducción (%)</Label>
+                  <Label className="text-[11px] text-muted-foreground">Scale-down threshold (%)</Label>
                   <Input
                     type="number"
                     min={1}
@@ -890,17 +909,17 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] text-muted-foreground">Tiempo sostenido</Label>
+                  <Label className="text-[11px] text-muted-foreground">Sustained duration</Label>
                   <select
                     value={downDuration}
                     onChange={(e) => setDownDuration(Number(e.target.value))}
                     className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary mt-1"
                   >
-                    <option value={30}>⚡ 30 segundos (Pruebas)</option>
-                    <option value={60}>⏱️ 1 minuto</option>
-                    <option value={120}>⏱️ 2 minutos</option>
-                    <option value={300}>⏱️ 5 minutos</option>
-                    <option value={600}>🛡️ 10 minutos (Producción estándar)</option>
+                    <option value={30}>⚡ 30 seconds (Testing)</option>
+                    <option value={60}>⏱️ 1 minute</option>
+                    <option value={120}>⏱️ 2 minutes</option>
+                    <option value={300}>⏱️ 5 minutes</option>
+                    <option value={600}>🛡️ 10 minutes (Production standard)</option>
                   </select>
                 </div>
               </div>
@@ -909,7 +928,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             {/* Replicas Bounds & Cooldown */}
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Mín. Réplicas</Label>
+                <Label className="text-xs">Min. Replicas</Label>
                 <Input
                   type="number"
                   min={1}
@@ -921,7 +940,7 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs">Máx. Réplicas</Label>
+                <Label className="text-xs">Max. Replicas</Label>
                 <Input
                   type="number"
                   min={minReplicas}
@@ -939,8 +958,8 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
                   onChange={(e) => setCooldown(Number(e.target.value))}
                   className="w-full h-8 text-xs rounded-md border border-input bg-background px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value={15}>15 seg</option>
-                  <option value={30}>30 seg</option>
+                  <option value={15}>15 sec</option>
+                  <option value={30}>30 sec</option>
                   <option value={60}>1 min</option>
                   <option value={180}>3 min</option>
                 </select>
@@ -951,21 +970,41 @@ export default function ClusterDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs text-muted-foreground">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <span>
-                <strong>Anti-Flapping Activo:</strong> Antes de apagar una réplica, el sistema calcula la carga proyectada para garantizar que las réplicas restantes no volverán a saturarse.
+                <strong>Anti-Flapping Active:</strong> Before shutting down a replica, the system calculates projected load to ensure remaining replicas won&apos;t saturate again.
               </span>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setAutoScaleOpen(false)}>
-              Cancelar
+              Cancel
             </Button>
             <Button onClick={handleSaveAutoscaling} disabled={savingPolicy}>
-              {savingPolicy ? "Guardando..." : "Guardar Reglas"}
+              {savingPolicy ? "Saving..." : "Save Rules"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDialog
+        open={Boolean(deleteServiceTarget)}
+        onOpenChange={(open) => !open && setDeleteServiceTarget(null)}
+        title="Delete Service?"
+        description={`Are you sure you want to delete service "${deleteServiceTarget?.name ?? ""}"?`}
+        confirmLabel="Delete Service"
+        loading={deletingService}
+        onConfirm={handleConfirmDeleteService}
+      />
+
+      <ConfirmDialog
+        open={deleteClusterOpen}
+        onOpenChange={setDeleteClusterOpen}
+        title="Delete Cluster?"
+        description={`Are you sure you want to delete cluster "${clusterData?.cluster.name ?? ""}"? All services will stop and nodes will leave the Swarm.`}
+        confirmLabel="Delete Cluster"
+        loading={deletingCluster}
+        onConfirm={handleConfirmDeleteCluster}
+      />
     </div>
   );
 }

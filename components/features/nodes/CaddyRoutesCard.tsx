@@ -21,8 +21,8 @@ interface CaddyRoutesCardProps {
 
 const TLS_MODE_LABELS: Record<CaddyTLSMode, string> = {
   auto: "Auto (ACME / .local / Tailscale)",
-  internal: "TLS Interno (CA Local / CGNAT)",
-  http_only: "Solo HTTP (Sin SSL / LAN)",
+  internal: "Internal TLS (Local CA / CGNAT)",
+  http_only: "HTTP Only (No SSL / LAN)",
 }
 
 export function CaddyRoutesCard({ nodeId, caddyStatus, liveRoutes }: CaddyRoutesCardProps) {
@@ -77,9 +77,9 @@ export function CaddyRoutesCard({ nodeId, caddyStatus, liveRoutes }: CaddyRoutes
       <CardHeader>
         <CardTitle>Caddy Routes & Homelab Ingress</CardTitle>
         <CardDescription>
-          Configura rutas inversas en Caddy (localhost:2019). Soporta dominios públicos (ACME),
-          dominios locales (<code>.local</code>, <code>.lan</code>, <code>.home.arpa</code>),
-          Tailscale MagicDNS (<code>*.ts.net</code>) o acceso directo por HTTP en LAN.
+          Configure reverse routes in Caddy (localhost:2019). Supports public domains (ACME),
+          local domains (<code>.local</code>, <code>.lan</code>, <code>.home.arpa</code>),
+          Tailscale MagicDNS (<code>*.ts.net</code>), or direct HTTP access over LAN.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -126,7 +126,7 @@ export function CaddyRoutesCard({ nodeId, caddyStatus, liveRoutes }: CaddyRoutes
                             ) : (
                               <ShieldCheck className="h-3 w-3" />
                             )}
-                            {mode === "internal" ? "TLS Interno" : mode === "http_only" ? "HTTP" : "Auto TLS"}
+                            {mode === "internal" ? "Internal TLS" : mode === "http_only" ? "HTTP" : "Auto TLS"}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground truncate">→ {route.upstream}</p>
@@ -166,7 +166,7 @@ export function CaddyRoutesCard({ nodeId, caddyStatus, liveRoutes }: CaddyRoutes
                     <Label htmlFor="proxy-domain">Domain / Host</Label>
                     <Input
                       id="proxy-domain"
-                      placeholder="jellyfin.local, nodo.ts.net o app.com"
+                      placeholder="jellyfin.local, node.ts.net or app.com"
                       value={form.domain}
                       disabled={formDisabled}
                       onChange={(e) => setForm((f) => ({ ...f, domain: e.target.value }))}
@@ -217,7 +217,7 @@ export function CaddyRoutesCard({ nodeId, caddyStatus, liveRoutes }: CaddyRoutes
               </div>
             ) : (
               <p className="text-xs text-muted-foreground">
-                Solo lectura: necesitas el permiso <code>network:manage</code> para crear o eliminar rutas.
+                Read-only: you need the <code>network:manage</code> permission to create or delete routes.
               </p>
             )}
           </>
