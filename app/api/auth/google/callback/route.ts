@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { backendFetch } from "@/lib/api";
+import { forwardedForHeaders } from "@/lib/client-ip";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTIONS,
@@ -55,6 +56,7 @@ export async function GET(req: Request) {
   // Send id_token to our Go backend for verification + user creation
   const backendRes = await backendFetch("/v1/auth/oauth/google", {
     method: "POST",
+    headers: forwardedForHeaders(req),
     body: JSON.stringify({ id_token: tokens.id_token }),
   });
 

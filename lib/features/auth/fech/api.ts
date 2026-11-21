@@ -5,9 +5,10 @@ import type { LoginRequest, RegisterRequest, AuthResponse } from "@/lib/types";
 /**
  * Realiza login en el backend
  */
-export async function loginBackend(data: LoginRequest) {
+export async function loginBackend(data: LoginRequest, headers: Record<string, string> = {}) {
   return backendFetch(API_ENDPOINTS.AUTH.LOGIN, {
     method: "POST",
+    headers,
     body: JSON.stringify(data),
   });
 }

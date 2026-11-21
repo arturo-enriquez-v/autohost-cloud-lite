@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/api";
+import { forwardedForHeaders } from "@/lib/client-ip";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTIONS,
@@ -59,6 +60,7 @@ export async function POST(req: Request) {
 
   const res = await backendFetch("/v1/auth/oauth/google", {
     method: "POST",
+    headers: forwardedForHeaders(req),
     body: JSON.stringify({ id_token: body.id_token }),
   });
 

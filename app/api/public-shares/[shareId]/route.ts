@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { forwardedForHeaders } from "@/lib/client-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export async function POST(
       reqBody = undefined;
     }
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = { ...forwardedForHeaders(req) };
     if (reqBody) headers["Content-Type"] = "application/json";
     if (shareToken) headers["X-Share-Token"] = shareToken;
 

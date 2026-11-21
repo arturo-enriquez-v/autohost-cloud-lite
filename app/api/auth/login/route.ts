@@ -6,13 +6,14 @@ import {
   REFRESH_COOKIE_OPTIONS,
 } from "@/lib/cookies";
 import { loginBackend } from "@/lib/features/auth/fech/api";
+import { forwardedForHeaders } from "@/lib/client-ip";
 
 export async function POST(req: Request) {
   const body = await req.json();
 
   let res: Response;
   try {
-    res = await loginBackend(body);
+    res = await loginBackend(body, forwardedForHeaders(req));
   } catch (err) {
     console.error("[AUTH] Error connecting to backend API:", err);
     return NextResponse.json(

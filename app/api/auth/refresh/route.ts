@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { backendFetch } from "@/lib/api";
+import { forwardedForHeaders } from "@/lib/client-ip";
 import {
   ACCESS_COOKIE,
   ACCESS_COOKIE_OPTIONS,
@@ -8,7 +9,7 @@ import {
   getRefreshTokenFromCookie,
 } from "@/lib/cookies";
 
-export async function POST() {
+export async function POST(req: Request) {
   const refreshToken = await getRefreshTokenFromCookie();
 
   if (!refreshToken) {
@@ -19,6 +20,7 @@ export async function POST() {
   try {
     res = await backendFetch("/v1/auth/refresh", {
       method: "POST",
+      headers: forwardedForHeaders(req),
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
   } catch {
