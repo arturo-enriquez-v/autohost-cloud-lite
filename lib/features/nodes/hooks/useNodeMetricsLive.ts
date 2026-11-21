@@ -6,6 +6,18 @@ import { liveMetricsUrl } from "../api";
 
 export type { LiveMetric } from "../types";
 
+// TODO: drop the ram_* fallbacks once every deployed API sends memory_* in live metrics.
+function parseLiveMetric(raw: Record<string, unknown>): LiveMetric {
+  const pick = (key: string) => (raw[`memory_${key}`] ?? raw[`ram_${key}`] ?? 0) as number;
+  return {
+    ...(raw as unknown as LiveMetric),
+    memory_total_bytes: pick("total_bytes"),
+    memory_used_bytes: pick("used_bytes"),
+    memory_available_bytes: pick("available_bytes"),
+    memory_usage_percent: pick("usage_percent"),
+  };
+}
+
 interface UseNodeMetricsLiveReturn {
   metric: LiveMetric | null;
   connected: boolean;
@@ -43,7 +55,7 @@ export function useNodeMetricsLive(nodeId: string): UseNodeMetricsLiveReturn {
 
     es.addEventListener("metric", (event) => {
       try {
-        setMetric(JSON.parse((event as MessageEvent).data) as LiveMetric);
+        setMetric(parseLiveMetric(JSON.parse((event as MessageEvent).data)));
       } catch {
         // malformed frame — ignore
       }

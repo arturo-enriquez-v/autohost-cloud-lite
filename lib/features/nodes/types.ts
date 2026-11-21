@@ -96,10 +96,10 @@ export interface NodeWithMetricsBackendResponse {
 
 export interface LiveMetric {
   cpu_usage_percent: number;
-  ram_total_bytes: number;
-  ram_used_bytes: number;
-  ram_available_bytes: number;
-  ram_usage_percent: number;
+  memory_total_bytes: number;
+  memory_used_bytes: number;
+  memory_available_bytes: number;
+  memory_usage_percent: number;
   disk_total_bytes: number;
   disk_used_bytes: number;
   disk_available_bytes: number;
@@ -133,16 +133,16 @@ export type JobStatus = "pending" | "running" | "completed" | "failed";
 export type JobCommandType = "default" | "custom";
 
 export interface JobBackendResponse {
-  ID: string;
-  NodeID: string;
-  CommandName: string;
-  CommandType: JobCommandType;
-  Status: JobStatus;
-  Output: string;
-  Error: string;
-  CreatedAt: string;
-  StartedAt: string | null;
-  FinishedAt: string | null;
+  id: string;
+  node_id: string;
+  command_name: string;
+  command_type: JobCommandType;
+  status: JobStatus;
+  output: string;
+  error: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
 }
 
 export interface Job {
@@ -183,13 +183,13 @@ export type ContainerAction = "start" | "stop" | "restart" | "remove" | "stats";
 export type CommandType = "default" | "custom";
 
 export interface NodeCommandBackendResponse {
-  ID: string;
-  NodeID: string;
-  Name: string;
-  Description: string;
-  Type: CommandType;
-  ScriptPath: string;
-  CreatedAt: string;
+  id: string;
+  node_id: string;
+  name: string;
+  description: string;
+  type: CommandType;
+  script_path: string;
+  created_at: string;
 }
 
 export interface NodeCommand {

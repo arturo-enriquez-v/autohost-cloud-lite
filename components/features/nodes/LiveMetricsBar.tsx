@@ -55,8 +55,8 @@ export function LiveMetricsBar({ nodeId }: LiveMetricsBarProps) {
               <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
               <span className="flex items-center gap-1.5">
                 <MemoryStick className="h-3.5 w-3.5 text-green-400 shrink-0" />
-                <span className="font-medium">{live.ram_usage_percent.toFixed(1)}%</span>
-                <span className="text-xs text-muted-foreground">of {fmtBytes(live.ram_total_bytes)} RAM</span>
+                <span className="font-medium">{live.memory_usage_percent.toFixed(1)}%</span>
+                <span className="text-xs text-muted-foreground">of {fmtBytes(live.memory_total_bytes)} RAM</span>
               </span>
               <div className="hidden sm:block h-4 w-px bg-border shrink-0" />
               <span className="flex items-center gap-1.5">

@@ -91,10 +91,10 @@ export function LiveMetricsCard({ nodeId }: LiveMetricsCardProps) {
             />
             <LiveStat
               label="RAM"
-              value={`${live.ram_usage_percent.toFixed(1)}%`}
-              sub={`${fmtBytes(live.ram_used_bytes)} / ${fmtBytes(live.ram_total_bytes)}`}
+              value={`${live.memory_usage_percent.toFixed(1)}%`}
+              sub={`${fmtBytes(live.memory_used_bytes)} / ${fmtBytes(live.memory_total_bytes)}`}
               icon={<MemoryStick className="h-4 w-4 text-green-400" />}
-              pct={live.ram_usage_percent}
+              pct={live.memory_usage_percent}
               color="bg-green-400"
             />
             <LiveStat
