@@ -15,6 +15,8 @@ import {
   Plus,
   Radio,
   KeyRound,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -39,7 +41,8 @@ export interface SharedFolderLink {
   folder_path: string;
   title: string;
   permission: SharePermission;
-  password: string;
+  /** Only present in create/regenerate responses: the API stores a bcrypt hash and never returns it again. */
+  password?: string;
   funnel_enabled: boolean;
   funnel_url?: string;
   created_at: string;
@@ -73,6 +76,14 @@ export function FolderShareDialog({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Plaintext passwords received in this dialog session (create / regenerate). They are never
+  // retrievable again from the API, so they only live in memory until the dialog closes.
+  const [revealed, setRevealed] = useState<Record<string, string>>({});
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) setRevealed({});
+  }, [open]);
 
   useEffect(() => {
     setFolderPath(initialFolderPath || "/");
@@ -129,6 +140,9 @@ export function FolderShareDialog({
       if (!res.ok) {
         throw new Error(data.error || "Could not create shared link");
       }
+      if (data?.id && data?.password) {
+        setRevealed((prev) => ({ ...prev, [data.id]: data.password }));
+      }
       setCustomPassword("");
       await fetchShares();
     } catch (err) {
@@ -152,6 +166,27 @@ export function FolderShareDialog({
       await fetchShares();
     } catch {
       // ignore
+    }
+  };
+
+  const handleRegeneratePassword = async (shareId: string) => {
+    setRegeneratingId(shareId);
+    setError(null);
+    try {
+      const res = await fetchWithAuth("/api/file-shares", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update", share_id: shareId, regenerate_password: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.password) {
+        throw new Error(data.error || "Could not generate a new password");
+      }
+      setRevealed((prev) => ({ ...prev, [shareId]: data.password }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate a new password");
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -251,7 +286,7 @@ export function FolderShareDialog({
               <Input
                 value={customPassword}
                 onChange={(e) => setCustomPassword(e.target.value)}
-                placeholder="Auto-generated (e.g. AH-7k9m-4p2x)"
+                placeholder="Auto-generated (min. 8 characters if custom)"
                 className="font-mono text-xs h-9"
               />
             </div>
@@ -370,7 +405,11 @@ export function FolderShareDialog({
                       <div className="flex items-center gap-2 font-mono">
                         <Lock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                         <span className="text-muted-foreground">Password:</span>
-                        <code className="font-bold text-amber-300">{s.password}</code>
+                        {revealed[s.id] ? (
+                          <code className="font-bold text-amber-300">{revealed[s.id]}</code>
+                        ) : (
+                          <code className="text-muted-foreground tracking-widest">••••••••</code>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5">
@@ -387,26 +426,50 @@ export function FolderShareDialog({
                           )}
                           Copy Link
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            copyText(
-                              `both_${s.id}`,
-                              `Shared folder: ${shareUrl}\nPassword: ${s.password}`
-                            )
-                          }
-                          className="h-6 px-2 text-[11px] gap-1"
-                        >
-                          {copiedKey === `both_${s.id}` ? (
-                            <Check className="h-3 w-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                          Copy Link + Password
-                        </Button>
+                        {revealed[s.id] ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              copyText(
+                                `both_${s.id}`,
+                                `Shared folder: ${shareUrl}\nPassword: ${revealed[s.id]}`
+                              )
+                            }
+                            className="h-6 px-2 text-[11px] gap-1"
+                          >
+                            {copiedKey === `both_${s.id}` ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                            Copy Link + Password
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={regeneratingId === s.id}
+                            onClick={() => handleRegeneratePassword(s.id)}
+                            className="h-6 px-2 text-[11px] gap-1"
+                            title="Passwords are stored hashed and cannot be shown again. Generate a new one (the old one stops working)."
+                          >
+                            {regeneratingId === s.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-3 w-3" />
+                            )}
+                            New password
+                          </Button>
+                        )}
                       </div>
                     </div>
+                    {revealed[s.id] && (
+                      <p className="flex items-center gap-1.5 text-[11px] text-amber-400/90">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        Copy this password now: only a secure hash is stored, so it cannot be shown again.
+                      </p>
+                    )}
                   </div>
                 );
               })}
