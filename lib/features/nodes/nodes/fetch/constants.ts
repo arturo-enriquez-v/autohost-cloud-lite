@@ -4,7 +4,7 @@ export const API_NODES_ENDPOINTS = {
     LIST: "/v1/nodes",
     WITH_METRICS: "/v1/nodes/with-metrics",
     DETAIL: (id: string) => `/v1/nodes/${id}`,
-    UPDATE: "/v1/nodes",
+    UPDATE: (id: string) => `/v1/nodes/${id}`,
     DELETE: (id: string) => `/v1/nodes/${id}`,
   },
   NODE_METRICS: {

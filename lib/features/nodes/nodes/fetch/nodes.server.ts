@@ -26,9 +26,9 @@ export async function getNodeBackend(id: string, accessToken: string) {
 }
 
 export async function updateNodeBackend(id: string, hostname: string, accessToken: string) {
-  return backendFetch(API_NODES_ENDPOINTS.NODES.UPDATE, {
+  return backendFetch(API_NODES_ENDPOINTS.NODES.UPDATE(id), {
     method: "PUT",
-    body: JSON.stringify({ id, hostname }),
+    body: JSON.stringify({ hostname }),
   }, accessToken);
 }
 
