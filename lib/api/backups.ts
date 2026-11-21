@@ -21,6 +21,8 @@ export interface BackupConfig {
   retention_count?: number;
   pause_container?: boolean;
   backup_method?: string;
+  storage_destination?: string;
+  replica_node_id?: string | null;
   pg_user?: string;
   storage_credential_id?: string;
   enabled: boolean;
@@ -31,7 +33,12 @@ export interface BackupRecord {
   backup_config_id: string;
   node_id: string;
   container_name: string;
-  s3_key: string;
+  storage_destination?: string;
+  local_path?: string;
+  parent_path?: string;
+  replica_node_id?: string;
+  replica_path?: string;
+  s3_key?: string;
   file_size_bytes: number;
   backup_method?: string;
   trigger_type: string;
@@ -95,5 +102,11 @@ export async function restoreBackupBackend(recordId: string, accessToken: string
 export async function downloadBackupBackend(recordId: string, accessToken: string) {
   return backendFetch(`/v1/backups/download/${recordId}`, {
     method: "GET",
+  }, accessToken);
+}
+
+export async function deleteBackupBackend(recordId: string, accessToken: string) {
+  return backendFetch(`/v1/backups/records/${recordId}`, {
+    method: "DELETE",
   }, accessToken);
 }

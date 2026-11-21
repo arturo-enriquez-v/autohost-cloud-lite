@@ -7,6 +7,19 @@ import { parseCron, buildCron } from "../utils";
 
 const EMPTY_VOLUMES: string[] = [];
 
+export type StorageDestination =
+  | "local"
+  | "local_and_parent"
+  | "local_and_replica"
+  | "remote_node";
+
+export interface ReplicaNodeOption {
+  id: string;
+  name: string;
+  status: string;
+  ip_vpn?: string;
+}
+
 interface UseContainerBackupsOptions {
   nodeId: string;
   containerName: string;
@@ -41,6 +54,9 @@ export function useContainerBackups({
   const [selectedVolumes, setSelectedVolumes] = useState<string[]>([]);
   const [backupMethod, setBackupMethod] = useState<"volume" | "pg_dump">("volume");
   const [pgUser, setPgUser] = useState("postgres");
+  const [storageDestination, setStorageDestination] = useState<StorageDestination>("local");
+  const [replicaNodeId, setReplicaNodeId] = useState<string>("");
+  const [availableNodes, setAvailableNodes] = useState<ReplicaNodeOption[]>([]);
 
   // Restore Modal State
   const [restoreModalOpen, setRestoreModalOpen] = useState(false);
@@ -48,6 +64,10 @@ export function useContainerBackups({
   const [restoring, setRestoring] = useState(false);
   const [restoreConfirmInput, setRestoreConfirmInput] = useState("");
   const [restoreStatusMsg, setRestoreStatusMsg] = useState("");
+
+  // Delete Snapshot State
+  const [deleteTarget, setDeleteTarget] = useState<BackupRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const volumesRef = useRef(detectedVolumes);
   useEffect(() => {
@@ -74,7 +94,9 @@ export function useContainerBackups({
         retention !== 7 ||
         pauseContainer !== true ||
         backupMethod !== "volume" ||
-        pgUser !== "postgres"
+        pgUser !== "postgres" ||
+        storageDestination !== "local" ||
+        replicaNodeId !== ""
       );
     }
     const cronChanged = (config.cron_expression || "0 3 * * *") !== cronExpr;
@@ -82,6 +104,8 @@ export function useContainerBackups({
     const pauseChanged = (config.pause_container ?? true) !== pauseContainer;
     const methodChanged = (config.backup_method || "volume") !== backupMethod;
     const pgUserChanged = (config.pg_user || "postgres") !== pgUser;
+    const destChanged = (config.storage_destination || "local") !== storageDestination;
+    const replicaChanged = (config.replica_node_id || "") !== replicaNodeId;
 
     const configVols = Array.isArray(config.volumes) ? config.volumes : defaultVols;
     const volsChanged =
@@ -94,7 +118,9 @@ export function useContainerBackups({
       pauseChanged ||
       volsChanged ||
       methodChanged ||
-      pgUserChanged
+      pgUserChanged ||
+      destChanged ||
+      replicaChanged
     );
   }, [
     config,
@@ -103,6 +129,8 @@ export function useContainerBackups({
     pauseContainer,
     backupMethod,
     pgUser,
+    storageDestination,
+    replicaNodeId,
     selectedVolumes,
   ]);
 
@@ -126,14 +154,28 @@ export function useContainerBackups({
       if (!nodeId || !containerName) return;
       if (isInitial) setLoading(true);
       try {
-        const [cfgRes, recsRes] = await Promise.all([
+        const [cfgRes, recsRes, nodesRes] = await Promise.all([
           fetch(`/api/backups/config/${nodeId}/${containerName}`).then((r) =>
             r.ok ? r.json() : null
           ),
           fetch(`/api/backups/records/${nodeId}/${containerName}`).then((r) =>
             r.ok ? r.json() : []
           ),
+          fetch(`/api/nodes`).then((r) => (r.ok ? r.json() : [])),
         ]);
+
+        if (Array.isArray(nodesRes)) {
+          setAvailableNodes(
+            nodesRes
+              .filter((n: any) => n && n.id && n.id !== nodeId)
+              .map((n: any) => ({
+                id: n.id,
+                name: n.name || n.hostname || n.id,
+                status: n.status || "offline",
+                ip_vpn: n.ip_vpn || n.vpn_ip || "",
+              }))
+          );
+        }
 
         if (Array.isArray(recsRes)) {
           setRecords(recsRes);
@@ -155,6 +197,11 @@ export function useContainerBackups({
           setPauseContainer(cfgRes.pause_container ?? true);
           setBackupMethod((cfgRes.backup_method as "volume" | "pg_dump") || "volume");
           setPgUser(cfgRes.pg_user || "postgres");
+          const rawDest = cfgRes.storage_destination || "local";
+          setStorageDestination(
+            rawDest === "s3" ? "local" : (rawDest as StorageDestination)
+          );
+          setReplicaNodeId(cfgRes.replica_node_id || "");
           if (Array.isArray(cfgRes.volumes) && cfgRes.volumes.length > 0) {
             setSelectedVolumes(cfgRes.volumes);
           } else {
@@ -222,6 +269,8 @@ export function useContainerBackups({
           retention_count: Number(retention),
           pause_container: pauseContainer,
           backup_method: backupMethod,
+          storage_destination: storageDestination,
+          replica_node_id: replicaNodeId || null,
           pg_user: pgUser,
         }),
       });
@@ -256,6 +305,8 @@ export function useContainerBackups({
           retention_count: Number(retention),
           pause_container: pauseContainer,
           backup_method: backupMethod,
+          storage_destination: storageDestination,
+          replica_node_id: replicaNodeId || null,
           pg_user: pgUser,
         }),
       });
@@ -336,26 +387,69 @@ export function useContainerBackups({
     try {
       const res = await fetch(`/api/backups/download/${recordId}`);
       if (res.ok) {
-        const data = await res.json();
-        if (data.download_url) {
-          const a = document.createElement("a");
-          a.href = data.download_url;
-          a.download = data.filename || "backup.tar.gz";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          toast.success("Download started.");
-          loadRecords();
-        } else {
-          toast.error("Download URL not found.");
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+          const data = await res.json();
+          if (data.download_url) {
+            const a = document.createElement("a");
+            a.href = data.download_url;
+            a.download = data.filename || `${containerName}.back`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            toast.success("Download started.");
+            loadRecords();
+          } else {
+            toast.error("Download URL not found.");
+          }
+          return;
         }
+
+        const disposition = res.headers.get("content-disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/i);
+        const filename = match?.[1] || `${containerName}.back`;
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        toast.success("Download started.");
+        loadRecords();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         toast.error(`Download failed: ${err.error || "Unknown error"}`);
       }
     } catch (err) {
       console.error(err);
       toast.error("Failed to connect for download.");
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/backups/delete/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Backup snapshot deleted.");
+        setDeleteTarget(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(`Delete failed: ${err.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to connect to API.");
+    } finally {
+      setDeleting(false);
+      loadRecords();
     }
   };
 
@@ -377,6 +471,9 @@ export function useContainerBackups({
     selectedVolumes,
     backupMethod,
     pgUser,
+    storageDestination,
+    replicaNodeId,
+    availableNodes,
     hasChanges,
     historyTab,
     restoreModalOpen,
@@ -384,11 +481,17 @@ export function useContainerBackups({
     restoring,
     restoreConfirmInput,
     restoreStatusMsg,
+    deleteTarget,
+    deleting,
+    setDeleteTarget,
+    handleConfirmDelete,
     setHistoryTab,
     setRetention,
     setPauseContainer,
     setBackupMethod,
     setPgUser,
+    setStorageDestination,
+    setReplicaNodeId,
     setRestoreModalOpen,
     setRestoreConfirmInput,
     handleScheduleChange,

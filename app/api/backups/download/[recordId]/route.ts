@@ -16,6 +16,21 @@ export async function GET(
     return NextResponse.json(err, { status: res.status });
   }
 
-  const data = await res.json();
-  return NextResponse.json(data, { status: 200 });
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    const data = await res.json();
+    return NextResponse.json(data, { status: 200 });
+  }
+
+  const headers = new Headers();
+  headers.set("Content-Type", contentType || "application/octet-stream");
+  const disposition = res.headers.get("content-disposition");
+  if (disposition) headers.set("Content-Disposition", disposition);
+  const contentLength = res.headers.get("content-length");
+  if (contentLength) headers.set("Content-Length", contentLength);
+
+  return new NextResponse(res.body, {
+    status: 200,
+    headers,
+  });
 }

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   RefreshCw,
   XCircle,
+  Trash2,
 } from "lucide-react";
 import type { BackupRecord } from "@/lib/api/backups";
 import { formatSnapshotDateFromKey } from "./utils";
@@ -117,6 +118,18 @@ export function BackupActivityLogTable({
                   <span className="inline-flex items-center gap-1.5 text-xs text-blue-400 font-medium">
                     <RefreshCw className="w-4 h-4 animate-spin" /> In Progress
                   </span>
+                )}
+                {r.status === "deleted" && (
+                  <div className="flex flex-col max-w-sm" title={r.error_message}>
+                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+                      <Trash2 className="w-4 h-4 flex-shrink-0" /> Deleted
+                    </span>
+                    {r.error_message && (
+                      <span className="text-[11px] text-slate-500 font-mono break-words line-clamp-2 mt-0.5">
+                        {r.error_message}
+                      </span>
+                    )}
+                  </div>
                 )}
                 {r.status === "failed" && (
                   <div className="flex flex-col max-w-sm" title={r.error_message}>

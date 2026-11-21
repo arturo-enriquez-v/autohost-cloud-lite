@@ -1,15 +1,22 @@
 "use client";
 
 import React from "react";
-import { HardDrive, Cloud, Database, Calendar, Play } from "lucide-react";
+import { HardDrive, Server, Database, Calendar, Play, FolderArchive } from "lucide-react";
 import { getScheduleSummary } from "./utils";
+import type { StorageDestination, ReplicaNodeOption } from "./hooks/useContainerBackups";
 
 interface BackupConfigPanelProps {
   enabled: boolean;
+  containerName: string;
   backupMethod: "volume" | "pg_dump";
   setBackupMethod: (method: "volume" | "pg_dump") => void;
   pgUser: string;
   setPgUser: (user: string) => void;
+  storageDestination: StorageDestination;
+  setStorageDestination: (dest: StorageDestination) => void;
+  replicaNodeId: string;
+  setReplicaNodeId: (nodeId: string) => void;
+  availableNodes: ReplicaNodeOption[];
   retention: number;
   setRetention: (count: number) => void;
   pauseContainer: boolean;
@@ -37,10 +44,16 @@ interface BackupConfigPanelProps {
 
 export function BackupConfigPanel({
   enabled,
+  containerName,
   backupMethod,
   setBackupMethod,
   pgUser,
   setPgUser,
+  storageDestination,
+  setStorageDestination,
+  replicaNodeId,
+  setReplicaNodeId,
+  availableNodes,
   retention,
   setRetention,
   pauseContainer,
@@ -86,11 +99,64 @@ export function BackupConfigPanel({
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               Storage Destination
             </label>
-            <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-              <Cloud className="w-4 h-4 text-blue-400" />
-              <span>AutoHost Cloud Storage (Included)</span>
-            </div>
+            <select
+              value={storageDestination}
+              onChange={(e) => {
+                const next = e.target.value as StorageDestination;
+                setStorageDestination(next);
+                if (next === "local") {
+                  setReplicaNodeId("");
+                }
+              }}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+            >
+              <option value="local">This Node (Local Shared Folder)</option>
+              <option value="local_and_parent">This Node + Parent Server</option>
+              <option value="local_and_replica">This Node + Replica Node (Tailscale)</option>
+              <option value="remote_node">Remote Node Only (Tailscale)</option>
+            </select>
+            <p className="mt-1.5 text-[11px] text-slate-500 flex items-center gap-1.5 font-mono">
+              <FolderArchive className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>shared/backup/{containerName}/&lt;fecha&gt;.back</span>
+            </p>
           </div>
+
+          {(storageDestination === "local_and_replica" ||
+            storageDestination === "remote_node" ||
+            storageDestination === "local_and_parent") && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                {storageDestination === "remote_node"
+                  ? "Target Node (Tailscale)"
+                  : storageDestination === "local_and_parent"
+                  ? "Optional Replica Node (Tailscale)"
+                  : "Replica Node (Tailscale)"}
+              </label>
+              <div className="relative">
+                <select
+                  value={replicaNodeId}
+                  onChange={(e) => setReplicaNodeId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="">
+                    {storageDestination === "local_and_parent"
+                      ? "None (Parent server only)"
+                      : "Select a node..."}
+                  </option>
+                  {availableNodes.map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.name} {n.ip_vpn ? `(${n.ip_vpn})` : ""} — {n.status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {availableNodes.length === 0 && (
+                <p className="mt-1 text-[11px] text-amber-400/80 flex items-center gap-1">
+                  <Server className="w-3 h-3" /> No other nodes available in your network.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Backup Method Selector */}
           <div>

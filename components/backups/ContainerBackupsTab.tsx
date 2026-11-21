@@ -8,6 +8,7 @@ import { BackupConfigPanel } from "./BackupConfigPanel";
 import { BackupSnapshotsTable } from "./BackupSnapshotsTable";
 import { BackupActivityLogTable } from "./BackupActivityLogTable";
 import { RestoreConfirmModal } from "./RestoreConfirmModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const EMPTY_VOLUMES: string[] = [];
 
@@ -39,6 +40,9 @@ export function ContainerBackupsTab({
     selectedVolumes,
     backupMethod,
     pgUser,
+    storageDestination,
+    replicaNodeId,
+    availableNodes,
     hasChanges,
     historyTab,
     restoreModalOpen,
@@ -46,11 +50,17 @@ export function ContainerBackupsTab({
     restoring,
     restoreConfirmInput,
     restoreStatusMsg,
+    deleteTarget,
+    deleting,
+    setDeleteTarget,
+    handleConfirmDelete,
     setHistoryTab,
     setRetention,
     setPauseContainer,
     setBackupMethod,
     setPgUser,
+    setStorageDestination,
+    setReplicaNodeId,
     setRestoreModalOpen,
     setRestoreConfirmInput,
     handleScheduleChange,
@@ -82,10 +92,16 @@ export function ContainerBackupsTab({
       {/* Configuration & Schedule Panel */}
       <BackupConfigPanel
         enabled={enabled}
+        containerName={containerName}
         backupMethod={backupMethod}
         setBackupMethod={setBackupMethod}
         pgUser={pgUser}
         setPgUser={setPgUser}
+        storageDestination={storageDestination}
+        setStorageDestination={setStorageDestination}
+        replicaNodeId={replicaNodeId}
+        setReplicaNodeId={setReplicaNodeId}
+        availableNodes={availableNodes}
         retention={retention}
         setRetention={setRetention}
         pauseContainer={pauseContainer}
@@ -150,6 +166,7 @@ export function ContainerBackupsTab({
             containerName={containerName}
             onDownload={handleDownload}
             onOpenRestoreModal={handleOpenRestoreModal}
+            onDelete={setDeleteTarget}
           />
         ) : (
           <BackupActivityLogTable
@@ -158,6 +175,25 @@ export function ContainerBackupsTab({
           />
         )}
       </div>
+
+      {/* Delete Snapshot Confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteTarget(null);
+        }}
+        title="Delete backup snapshot?"
+        description={`This permanently removes the archive${
+          deleteTarget
+            ? ` "${(deleteTarget.replica_path || deleteTarget.local_path || deleteTarget.parent_path || "")
+                .split("/")
+                .pop()}"`
+            : ""
+        } from every node and server where it is stored. The entry stays in the activity log.`}
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleConfirmDelete}
+      />
 
       {/* Restore Confirmation Modal */}
       <RestoreConfirmModal

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FileArchive, Download, RotateCcw } from "lucide-react";
+import { FileArchive, Download, RotateCcw, Trash2 } from "lucide-react";
 import type { BackupRecord } from "@/lib/api/backups";
 
 interface BackupSnapshotsTableProps {
@@ -9,6 +9,7 @@ interface BackupSnapshotsTableProps {
   containerName: string;
   onDownload: (recordId: string) => void;
   onOpenRestoreModal: (record: BackupRecord) => void;
+  onDelete: (record: BackupRecord) => void;
 }
 
 export function BackupSnapshotsTable({
@@ -16,6 +17,7 @@ export function BackupSnapshotsTable({
   containerName,
   onDownload,
   onOpenRestoreModal,
+  onDelete,
 }: BackupSnapshotsTableProps) {
   if (snapshots.length === 0) {
     return (
@@ -47,15 +49,19 @@ export function BackupSnapshotsTable({
                 <div className="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded w-fit text-slate-300">
                   <FileArchive className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   <span>
-                    {r.s3_key
-                      ? r.s3_key.split("/").pop()
-                      : `${containerName}.tar.gz`}
+                    {(r.replica_path || r.local_path || r.parent_path || r.s3_key)
+                      ? (r.replica_path || r.local_path || r.parent_path || r.s3_key)!
+                          .split("/")
+                          .pop()
+                      : `${containerName}.back`}
                   </span>
                 </div>
               </td>
               <td className="py-3 px-4 text-xs font-mono">
                 {r.file_size_bytes
-                  ? `${(r.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`
+                  ? r.file_size_bytes >= 1024 * 1024
+                    ? `${(r.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`
+                    : `${(r.file_size_bytes / 1024).toFixed(1)} KB`
                   : "-"}
               </td>
               <td className="py-3 px-4">
@@ -97,6 +103,14 @@ export function BackupSnapshotsTable({
                     title="Restore Container Volume"
                   >
                     <RotateCcw className="w-3.5 h-3.5 text-amber-400" /> Restore
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(r)}
+                    className="inline-flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded transition border border-slate-700 hover:border-rose-500/50"
+                    title="Delete Backup Archive"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Delete
                   </button>
                 </div>
               </td>
