@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import { backendFetch } from "@/lib/api";
 
-// GET /api/nodes/[id]/vms → GET /v1/node-vms/{id}
+// GET /api/nodes/[id]/vms → GET /v1/nodes/{id}/vms
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -14,7 +14,7 @@ export async function GET(
   }
 
   try {
-    const res = await backendFetch(`/v1/node-vms/${nodeId}`, { method: "GET" }, accessToken);
+    const res = await backendFetch(`/v1/nodes/${nodeId}/vms`, { method: "GET" }, accessToken);
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Failed to fetch VMs" }));
       return NextResponse.json(err, { status: res.status });
@@ -26,7 +26,7 @@ export async function GET(
   }
 }
 
-// POST /api/nodes/[id]/vms → POST /v1/node-vms/{id}
+// POST /api/nodes/[id]/vms → POST /v1/nodes/{id}/vms
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -40,7 +40,7 @@ export async function POST(
   try {
     const body = await req.json();
     const res = await backendFetch(
-      `/v1/node-vms/${nodeId}`,
+      `/v1/nodes/${nodeId}/vms`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
