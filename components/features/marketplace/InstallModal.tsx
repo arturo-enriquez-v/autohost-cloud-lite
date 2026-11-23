@@ -124,7 +124,7 @@ export function InstallModal({ app, nodes, onClose, onDeploy, onSuccess }: Insta
                 onChange={(e) =>
                   setEnvValues((prev) => ({ ...prev, [v.key]: e.target.value }))
                 }
-                placeholder={v.default ?? v.key}
+                placeholder={v.generate ? "Leave empty to generate" : v.default ?? v.key}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>

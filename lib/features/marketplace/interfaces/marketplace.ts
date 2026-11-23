@@ -5,6 +5,8 @@ export interface AppEnvVar {
   required: boolean;
   secret: boolean;
   default?: string;
+  /** The API generates the value when left empty (e.g. "hex32"). */
+  generate?: string;
 }
 
 export interface AppCatalogEntry {

@@ -9,6 +9,12 @@ export function categoryLabel(cat: string) {
     productivity: "Productivity",
     database: "Database",
     storage: "Storage",
+    media: "Media",
+    security: "Security",
+    monitoring: "Monitoring",
+    development: "Development",
+    network: "Network",
+    dashboard: "Dashboard",
   };
   return map[cat] ?? cat;
 }
