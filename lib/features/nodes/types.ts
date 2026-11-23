@@ -174,6 +174,17 @@ export interface DockerContainer {
   mem?: string;
   /** Memory usage percentage — only present for running containers */
   memPerc?: string;
+  /** Ports published on the host; missing from older agents (see containerPorts) */
+  ports?: ContainerPort[];
+}
+
+export interface ContainerPort {
+  /** Port on the host */
+  public: number;
+  /** Port inside the container */
+  private: number;
+  /** "tcp" | "udp" | "sctp" */
+  protocol: string;
 }
 
 export type ContainerAction = "start" | "stop" | "restart" | "remove" | "stats";

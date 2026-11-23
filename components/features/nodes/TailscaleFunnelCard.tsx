@@ -31,6 +31,7 @@ import { fetchWithAuth } from "@/lib/api/fetch-client";
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
 import type { DockerContainer } from "@/lib/features/nodes/types";
+import { firstPublicPort } from "@/lib/features/nodes/containers/ports";
 
 export interface TailscaleFunnelRoute {
   id: string;
@@ -55,11 +56,8 @@ interface TailscaleFunnelStatus {
 }
 
 function inferContainerPort(c: DockerContainer): number {
-  const bracketMatch = c.status?.match(/\[(\d+):\d+\/(?:tcp|udp)/);
-  if (bracketMatch?.[1]) {
-    const parsed = parseInt(bracketMatch[1], 10);
-    if (parsed > 0 && parsed <= 65535) return parsed;
-  }
+  const published = firstPublicPort(c);
+  if (published) return published;
   const combined = `${c.name} ${c.image}`.toLowerCase();
   const knownPorts: Array<[string, number]> = [
     ["jellyfin", 8096],

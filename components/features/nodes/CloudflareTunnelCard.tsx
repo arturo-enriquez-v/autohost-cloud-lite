@@ -34,6 +34,7 @@ import { fetchWithAuth } from "@/lib/api/fetch-client";
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
 import type { DockerContainer } from "@/lib/features/nodes/types";
+import { firstPublicPort } from "@/lib/features/nodes/containers/ports";
 
 export interface CloudflareTunnelRoute {
   domain: string;
@@ -71,14 +72,10 @@ export interface CloudflareTunnelStatus {
   recent_logs?: string[];
 }
 
-// Extract published host port from container status string (e.g. "Up 2 hours [8096:8096/tcp]")
-// or infer from common self-hosted container images.
+// Use the published host port, or infer it from common self-hosted container images.
 function inferContainerPort(c: DockerContainer): number {
-  const bracketMatch = c.status?.match(/\[(\d+):\d+\/(?:tcp|udp)/);
-  if (bracketMatch?.[1]) {
-    const parsed = parseInt(bracketMatch[1], 10);
-    if (parsed > 0 && parsed <= 65535) return parsed;
-  }
+  const published = firstPublicPort(c);
+  if (published) return published;
 
   const combined = `${c.name} ${c.image}`.toLowerCase();
   const knownPorts: Array<[string, number]> = [

@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { DockerContainer } from "@/lib/types"
+import { containerPorts, statusWithoutPorts } from "@/lib/features/nodes/containers/ports"
 import type { ContainerAction } from "@/lib/features/nodes/containers/hooks/useContainers"
 import { useRouter } from "next/navigation"
 import { fetchContainerSettings, saveContainerSettings } from "@/lib/features/nodes/api"
@@ -114,6 +115,7 @@ function SortableRow({
   const anyActing = actionState !== null
   const isRunning = ctr.state === "running"
   const isExited = ctr.state === "exited" || ctr.state === "stopped"
+  const ports = containerPorts(ctr)
 
   return (
     <TableRow ref={setNodeRef} style={style}>
@@ -139,9 +141,27 @@ function SortableRow({
         <div className="flex flex-col gap-0.5">
           <ContainerStateBadge state={ctr.state} />
           {ctr.status && (
-            <span className="text-[10px] text-muted-foreground/60 font-mono">{ctr.status}</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono">{statusWithoutPorts(ctr.status)}</span>
           )}
         </div>
+      </TableCell>
+      <TableCell className="hidden sm:table-cell">
+        {ports.length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {ports.map((p) => (
+              <span
+                key={`${p.public}/${p.protocol}`}
+                title={`Host ${p.public} → container ${p.private}/${p.protocol}`}
+                className="rounded border border-border bg-muted/40 px-1.5 py-0.5 font-mono text-[11px] text-foreground"
+              >
+                {p.public}
+                {p.protocol !== "tcp" && <span className="text-muted-foreground">/{p.protocol}</span>}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs font-mono text-muted-foreground">—</span>
+        )}
       </TableCell>
       <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
         {ctr.cpu ?? "—"}
@@ -432,6 +452,7 @@ export function SortableContainersTable({ nodeId, containers, actionState, onLog
                   <TableHead className="w-8 px-2" />
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Ports</TableHead>
                   <TableHead className="hidden sm:table-cell">CPU</TableHead>
                   <TableHead className="hidden sm:table-cell">Memory</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
