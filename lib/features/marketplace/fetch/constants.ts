@@ -10,6 +10,6 @@ export const CLIENT_API_MARKETPLACE_ENDPOINTS = {
   MARKETPLACE: {
     APPS: "/api/marketplace/apps",
     DEPLOY: "/api/marketplace/apps/deploy",
-    BY_NODE: (nodeId: string) => `/api/marketplace/apps/node/${nodeId}`,
+    BY_NODE: (nodeId: string) => `/api/marketplace/node/${nodeId}`,
   }
 };
