@@ -12,6 +12,7 @@ import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
 import { useReportSettings } from "@/lib/features/report-settings/hooks/useReportSettings"
 import { TelegramBotsCard } from "@/components/features/settings/TelegramBotsCard"
 import { HeadscaleCard } from "@/components/features/settings/HeadscaleCard"
+import { ApiTokensCard } from "@/components/features/settings/ApiTokensCard"
 
 const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -138,6 +139,7 @@ export default function SettingsPage() {
 
         <HeadscaleCard />
         <TelegramBotsCard />
+        <ApiTokensCard />
         <Card>
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
