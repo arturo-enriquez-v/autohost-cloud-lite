@@ -1,5 +1,7 @@
 import { API_MONITOR_ENDPOINTS } from "./constants";
 import type {
+  AutoHealEvent,
+  AutoHealEventBackendResponse,
   MonitorIncident,
   MonitorIncidentBackendResponse,
   MonitorStats,
@@ -107,6 +109,19 @@ export function mapIncidentFromBackend(r: MonitorIncidentBackendResponse): Monit
   };
 }
 
+export function mapAutoHealEventFromBackend(r: AutoHealEventBackendResponse): AutoHealEvent {
+  return {
+    id: r.id,
+    action: r.action,
+    attempt: r.attempt,
+    maxAttempts: r.max_attempts,
+    error: r.error ?? "",
+    checkMessage: r.check_message ?? "",
+    downtimeSeconds: r.downtime_seconds,
+    createdAt: r.created_at,
+  };
+}
+
 export function mapUptimeFromBackend(r: UptimePointBackendResponse): UptimePoint {
   return { bucket: r.bucket, status: r.status, up: r.up ?? null, down: r.down ?? null };
 }
@@ -179,6 +194,14 @@ export async function getMonitorStatsBackend(monitorId: string, range: MetricRan
 export async function getMonitorIncidentsBackend(monitorId: string, range: MetricRange, accessToken: string) {
   return backendFetch(
     `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.INCIDENTS(monitorId)}?range=${range}`,
+    { method: "GET" },
+    accessToken
+  );
+}
+
+export async function getAutoHealEventsBackend(monitorId: string, range: MetricRange, accessToken: string) {
+  return backendFetch(
+    `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.AUTOHEAL_EVENTS(monitorId)}?range=${range}`,
     { method: "GET" },
     accessToken
   );

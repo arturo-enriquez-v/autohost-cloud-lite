@@ -13,6 +13,8 @@ export const CLIENT_API_MONITOR_ENDPOINTS = {
       `/api/nodes/${nodeId}/service-monitors/${monitorId}/stats`,
     INCIDENTS: (nodeId: string, monitorId: string) =>
       `/api/nodes/${nodeId}/service-monitors/${monitorId}/incidents`,
+    AUTOHEAL_EVENTS: (nodeId: string, monitorId: string) =>
+      `/api/nodes/${nodeId}/service-monitors/${monitorId}/autoheal-events`,
   },
 } as const;
 
@@ -27,5 +29,6 @@ export const API_MONITOR_ENDPOINTS = {
     CHECK: (id: string) => `/v1/service-monitors/${id}/check`,
     STATS: (id: string) => `/v1/service-monitors/${id}/stats`,
     INCIDENTS: (id: string) => `/v1/service-monitors/${id}/incidents`,
+    AUTOHEAL_EVENTS: (id: string) => `/v1/service-monitors/${id}/autoheal-events`,
   },
 } as const;

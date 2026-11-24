@@ -1,4 +1,9 @@
-import type { ServiceMonitor, UptimePoint } from "./interfaces/service-monitor";
+import type {
+  AutoHealEvent,
+  MonitorIncident,
+  ServiceMonitor,
+  UptimePoint,
+} from "./interfaces/service-monitor";
 
 /** How a monitor's state reads at a glance: green, amber, red or grey. */
 export type MonitorTone = "ok" | "warn" | "bad" | "muted";
@@ -106,4 +111,73 @@ export function bucketTone(p: UptimePoint): MonitorTone {
     return p.up === 0 ? "bad" : "warn";
   }
   return p.status === "up" ? "ok" : "bad";
+}
+
+// ─── Auto-heal history ────────────────────────────────────────────────────────
+
+/** "45 s", "3 min 20 s", "2 h 5 min". */
+export function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${Math.max(0, Math.round(seconds))} s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    const s = Math.round(seconds % 60);
+    return s ? `${minutes} min ${s} s` : `${minutes} min`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${hours} h ${m} min` : `${hours} h`;
+}
+
+/** How an auto-heal event reads in the timeline. */
+export function describeAutoHealEvent(e: AutoHealEvent): { title: string; tone: MonitorTone } {
+  const attempt = e.maxAttempts > 0 ? ` (${e.attempt}/${e.maxAttempts})` : "";
+  switch (e.action) {
+    case "restart":
+      return e.error
+        ? { title: `Restart failed${attempt}`, tone: "bad" }
+        : { title: `Restarted the container${attempt}`, tone: "warn" };
+    case "recreate":
+      return e.error
+        ? { title: `Recreate failed${attempt}`, tone: "bad" }
+        : { title: `Recreated with Docker Compose${attempt}`, tone: "warn" };
+    case "gave_up":
+      return { title: "Auto-heal gave up: every step was used and the service is still down", tone: "bad" };
+    case "recovered":
+      return {
+        title:
+          e.downtimeSeconds != null
+            ? `Service recovered after ${formatDuration(e.downtimeSeconds)} down`
+            : "Service recovered",
+        tone: "ok",
+      };
+  }
+}
+
+/** Auto-heal events that belong to an incident: from its start until a minute after it ended (or now). */
+export function eventsForIncident(incident: MonitorIncident, events: AutoHealEvent[]): AutoHealEvent[] {
+  const start = new Date(incident.startedAt).getTime();
+  const end = (incident.resolvedAt ? new Date(incident.resolvedAt).getTime() : Date.now()) + 60_000;
+  return events.filter((e) => {
+    const t = new Date(e.createdAt).getTime();
+    return t >= start && t <= end;
+  });
+}
+
+/** One line for an incident's auto-heal column, e.g. "Restarted 1× → recovered", or null if it did nothing. */
+export function summarizeIncidentAutoHeal(events: AutoHealEvent[]): { text: string; tone: MonitorTone } | null {
+  if (!events.length) return null;
+  const restarts = events.filter((e) => e.action === "restart");
+  const recreates = events.filter((e) => e.action === "recreate");
+  const failed = [...restarts, ...recreates].filter((e) => e.error).length;
+  const steps: string[] = [];
+  if (restarts.length) steps.push(`restarted ${restarts.length}×`);
+  if (recreates.length) steps.push(`recreated ${recreates.length}×`);
+  if (failed) steps.push(`${failed} failed`);
+
+  let outcome: { text: string; tone: MonitorTone } = { text: "", tone: "warn" };
+  if (events.some((e) => e.action === "recovered")) outcome = { text: "recovered", tone: "ok" };
+  else if (events.some((e) => e.action === "gave_up")) outcome = { text: "gave up", tone: "bad" };
+
+  const text = [steps.join(", "), outcome.text].filter(Boolean).join(" → ");
+  return { text: text.charAt(0).toUpperCase() + text.slice(1), tone: outcome.text ? outcome.tone : "warn" };
 }

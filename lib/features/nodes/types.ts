@@ -435,6 +435,36 @@ export interface MonitorStats {
   }[];
 }
 
+export type AutoHealAction = "restart" | "recreate" | "gave_up" | "recovered";
+
+export interface AutoHealEventBackendResponse {
+  id: string;
+  monitor_id: string;
+  node_id: string;
+  action: AutoHealAction;
+  attempt: number;
+  max_attempts: number;
+  error: string;
+  check_message: string;
+  downtime_seconds: number | null;
+  created_at: string;
+}
+
+/** Something auto-heal did (restart, recreate, gave up) or its outcome (recovered). */
+export interface AutoHealEvent {
+  id: string;
+  action: AutoHealAction;
+  /** restart/recreate: which attempt, out of maxAttempts. */
+  attempt: number;
+  maxAttempts: number;
+  /** restart/recreate: why the command failed; "" when it worked. */
+  error: string;
+  checkMessage: string;
+  /** recovered: from the first failed check to recovery. */
+  downtimeSeconds: number | null;
+  createdAt: string;
+}
+
 /** A time the monitor was down: failed checks in a row reaching its threshold. */
 export interface MonitorIncident {
   startedAt: string;

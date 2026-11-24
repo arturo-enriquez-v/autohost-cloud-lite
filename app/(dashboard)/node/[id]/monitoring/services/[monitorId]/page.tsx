@@ -10,17 +10,24 @@ import { Badge } from "@/components/ui/badge"
 import type { MetricRange } from "@/lib/features/nodes/types"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import {
+  useAutoHealEvents,
   useMonitorIncidents,
   useMonitorStats,
   useServiceMonitors,
 } from "@/lib/features/nodes/monitoring/hooks/useServiceMonitors"
 import { useContainerMetrics } from "@/lib/features/nodes/containers/hooks/useContainerMetrics"
-import { describeTarget, monitorState, type MonitorTone } from "@/lib/features/nodes/monitoring/monitor-status"
+import {
+  autoHealActivity,
+  describeTarget,
+  monitorState,
+  type MonitorTone,
+} from "@/lib/features/nodes/monitoring/monitor-status"
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { MetricChart } from "@/components/features/nodes/MetricChartsGrid"
 import { RangeSelector } from "@/components/features/nodes/monitors/RangeSelector"
 import {
+  AutoHealTimeline,
   CheckLog,
   FailedChecksChart,
   IncidentsTable,
@@ -51,7 +58,7 @@ function ContainerCharts({ nodeId, container, range }: { nodeId: string; contain
     memory_usage_percent: Number(p.memory_usage_percent.toFixed(1)),
   }))
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
       <MetricChart
         title="Container CPU"
         description={`CPU used by ${container}`}
@@ -88,6 +95,7 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
   const { can } = useNodePermissions(nodeId)
   const { stats, isLoading: statsLoading, error: statsError } = useMonitorStats(nodeId, monitorId, range)
   const { incidents, isLoading: incidentsLoading } = useMonitorIncidents(nodeId, monitorId, range)
+  const { events: autoHealEvents, isLoading: autoHealLoading } = useAutoHealEvents(nodeId, monitorId, range)
 
   const back = () => router.push(`/node/${nodeId}/monitoring`)
 
@@ -105,6 +113,8 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
   }
 
   const state = monitorState(monitor)
+  const activity = autoHealActivity(monitor)
+  const autoHealOn = Boolean(monitor.autoHealConfig?.enabled)
   const showLatency = monitor.checkType !== "process"
   // The container behind the service: the checked one, or the one auto-heal acts on.
   const container = monitor.checkType === "process" ? monitor.serviceName : monitor.autoHealConfig?.container || ""
@@ -123,8 +133,8 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-4">
+    <div className="min-w-0 space-y-6">
+      <div className="flex flex-wrap items-start gap-4">
         <Button variant="ghost" size="icon" onClick={back} aria-label="Back to monitoring">
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -140,6 +150,11 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
               </Badge>
             )}
             <span className={`text-sm font-medium ${TEXT[state.tone]}`}>{state.label}</span>
+            {activity && (
+              <Badge variant="outline" className={`text-xs ${TEXT[activity.tone]}`}>
+                {activity.label}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-1 break-all">
             {describeTarget(monitor)} · every {monitor.intervalSeconds}s · down after {monitor.failureThreshold}{" "}
@@ -183,11 +198,15 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
         />
       )}
 
-      <FailedChecksChart stats={stats} range={range} isLoading={statsLoading} />
+      <FailedChecksChart stats={stats} range={range} isLoading={statsLoading} autoHealEvents={autoHealEvents} />
+
+      {(autoHealOn || autoHealEvents.length > 0) && (
+        <AutoHealTimeline events={autoHealEvents} isLoading={autoHealLoading} enabled={autoHealOn} />
+      )}
 
       {container && <ContainerCharts nodeId={nodeId} container={container} range={range} />}
 
-      <IncidentsTable incidents={incidents} isLoading={incidentsLoading} />
+      <IncidentsTable incidents={incidents} isLoading={incidentsLoading} autoHealEvents={autoHealEvents} />
 
       <CheckLog nodeId={nodeId} monitorId={monitor.id} />
     </div>

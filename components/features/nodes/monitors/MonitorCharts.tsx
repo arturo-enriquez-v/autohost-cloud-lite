@@ -9,24 +9,55 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+import { CheckCircle2, OctagonX, RefreshCw, Wrench } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { MetricRange } from "@/lib/features/nodes/types";
-import type { MonitorIncident, MonitorStats } from "@/lib/features/nodes/monitoring/interfaces/service-monitor";
+import type {
+  AutoHealEvent,
+  MonitorIncident,
+  MonitorStats,
+} from "@/lib/features/nodes/monitoring/interfaces/service-monitor";
 import { useEventHistory } from "@/lib/features/nodes/monitoring/hooks/useServiceMonitors";
-import { formatPercent } from "@/lib/features/nodes/monitoring/monitor-status";
+import {
+  describeAutoHealEvent,
+  eventsForIncident,
+  formatPercent,
+  summarizeIncidentAutoHeal,
+  type MonitorTone,
+} from "@/lib/features/nodes/monitoring/monitor-status";
 
 // Series colours, validated for the dark chart surface (dataviz validate_palette.js): categorical slots 1-2
 // for the two latency series, and the status "critical" red for failed checks.
 export const SERIES_AVG = "#3987e5";
 export const SERIES_P95 = "#d95926";
 export const STATUS_FAILED = "#d03b3b";
+// Auto-heal action markers on the failed checks chart (categorical violet, checked against the red bars).
+export const ACTION_MARK = "#9085e9";
+
+const TONE_TEXT: Record<MonitorTone, string> = {
+  ok: "text-green-600 dark:text-green-400",
+  warn: "text-yellow-600 dark:text-yellow-400",
+  bad: "text-red-600 dark:text-red-400",
+  muted: "text-muted-foreground",
+};
+
+/** The bucket (by its start, as the API sent it) that contains a time, or null if none does. */
+function bucketFor(time: string, buckets: { bucket: string }[], bucketSeconds: number): string | null {
+  const t = new Date(time).getTime();
+  for (const b of buckets) {
+    const start = new Date(b.bucket).getTime();
+    if (t >= start && t < start + bucketSeconds * 1000) return b.bucket;
+  }
+  return null;
+}
 
 const TOOLTIP_STYLE = {
   backgroundColor: "hsl(var(--popover))",
@@ -187,10 +218,12 @@ export function FailedChecksChart({
   stats,
   range,
   isLoading,
+  autoHealEvents = [],
 }: {
   stats: MonitorStats | null;
   range: MetricRange;
   isLoading: boolean;
+  autoHealEvents?: AutoHealEvent[];
 }) {
   const data = (stats?.buckets ?? []).map((b) => ({
     bucket: b.bucket,
@@ -198,6 +231,15 @@ export function FailedChecksChart({
     total: b.passed + b.failed,
   }));
   const failed = stats?.summary.failed ?? 0;
+  // One dashed line per bucket in which auto-heal restarted, recreated or gave up.
+  const markers = Array.from(
+    new Set(
+      autoHealEvents
+        .filter((e) => e.action !== "recovered")
+        .map((e) => (stats ? bucketFor(e.createdAt, stats.buckets, stats.bucketSeconds) : null))
+        .filter((b): b is string => b !== null)
+    )
+  );
 
   return (
     <Card>
@@ -236,8 +278,25 @@ export function FailedChecksChart({
                 contentStyle={TOOLTIP_STYLE}
               />
               <Bar dataKey="failed" name="Failed" fill={STATUS_FAILED} radius={[4, 4, 0, 0]} />
+              {markers.map((b) => (
+                <ReferenceLine key={b} x={b} stroke={ACTION_MARK} strokeWidth={2} strokeDasharray="4 3" />
+              ))}
             </BarChart>
           </ResponsiveContainer>
+        )}
+        {stats && failed > 0 && (
+          <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: STATUS_FAILED }} />
+              Failed checks
+            </span>
+            {markers.length > 0 && (
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: ACTION_MARK }} />
+                Auto-heal action
+              </span>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -246,7 +305,15 @@ export function FailedChecksChart({
 
 // ─── Incidents ────────────────────────────────────────────────────────────────
 
-export function IncidentsTable({ incidents, isLoading }: { incidents: MonitorIncident[]; isLoading: boolean }) {
+export function IncidentsTable({
+  incidents,
+  isLoading,
+  autoHealEvents = [],
+}: {
+  incidents: MonitorIncident[];
+  isLoading: boolean;
+  autoHealEvents?: AutoHealEvent[];
+}) {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -260,12 +327,13 @@ export function IncidentsTable({ incidents, isLoading }: { incidents: MonitorInc
           <p className="text-sm text-muted-foreground">No incidents in this period.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[40rem] table-fixed text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">Started</th>
-                  <th className="py-2 pr-4 font-medium">Duration</th>
-                  <th className="py-2 pr-4 font-medium text-right">Failed checks</th>
+                  <th className="w-36 py-2 pr-4 font-medium">Started</th>
+                  <th className="w-28 py-2 pr-4 font-medium">Duration</th>
+                  <th className="w-20 py-2 pr-4 font-medium text-right">Failed</th>
+                  <th className="w-56 py-2 pr-4 font-medium">Auto-heal</th>
                   <th className="py-2 font-medium">First error</th>
                 </tr>
               </thead>
@@ -285,7 +353,19 @@ export function IncidentsTable({ incidents, isLoading }: { incidents: MonitorInc
                       )}
                     </td>
                     <td className="py-2 pr-4 text-right tabular-nums">{i.failedChecks}</td>
-                    <td className="py-2 max-w-[28rem] truncate" title={i.message}>
+                    <td className="py-2 pr-4 truncate">
+                      {(() => {
+                        const summary = summarizeIncidentAutoHeal(eventsForIncident(i, autoHealEvents));
+                        return summary ? (
+                          <span className={TONE_TEXT[summary.tone]} title={summary.text}>
+                            {summary.text}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        );
+                      })()}
+                    </td>
+                    <td className="py-2 truncate" title={i.message}>
                       {i.message || "—"}
                     </td>
                   </tr>
@@ -332,13 +412,13 @@ export function CheckLog({ nodeId, monitorId }: { nodeId: string; monitorId: str
             {failedOnly ? "No failed checks among the last 100." : "No checks yet."}
           </p>
         ) : (
-          <div className="max-h-96 overflow-y-auto">
-            <table className="w-full text-sm">
+          <div className="max-h-96 overflow-auto">
+            <table className="w-full min-w-[36rem] table-fixed text-sm">
               <thead className="sticky top-0 bg-card">
                 <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-4 font-medium">Time</th>
-                  <th className="py-2 pr-4 font-medium">Result</th>
-                  <th className="py-2 pr-4 font-medium text-right">Duration</th>
+                  <th className="w-36 py-2 pr-4 font-medium">Time</th>
+                  <th className="w-24 py-2 pr-4 font-medium">Result</th>
+                  <th className="w-24 py-2 pr-4 font-medium text-right">Duration</th>
                   <th className="py-2 font-medium">Detail</th>
                 </tr>
               </thead>
@@ -360,7 +440,7 @@ export function CheckLog({ nodeId, monitorId }: { nodeId: string; monitorId: str
                       </span>
                     </td>
                     <td className="py-1.5 pr-4 text-right tabular-nums">{formatMs(e.latencyMs)}</td>
-                    <td className="py-1.5 max-w-[28rem] truncate" title={e.message}>
+                    <td className="py-1.5 truncate" title={e.message}>
                       {e.message || "—"}
                     </td>
                   </tr>
@@ -368,6 +448,70 @@ export function CheckLog({ nodeId, monitorId }: { nodeId: string; monitorId: str
               </tbody>
             </table>
           </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Auto-heal timeline ───────────────────────────────────────────────────────
+
+const ACTION_ICON = {
+  restart: RefreshCw,
+  recreate: Wrench,
+  gave_up: OctagonX,
+  recovered: CheckCircle2,
+} as const;
+
+/** What auto-heal did over the range, newest first, with the error of failed commands. */
+export function AutoHealTimeline({
+  events,
+  isLoading,
+  enabled,
+}: {
+  events: AutoHealEvent[];
+  isLoading: boolean;
+  enabled: boolean;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Auto-heal</CardTitle>
+        <CardDescription>
+          {enabled
+            ? "What auto-heal did when the service went down, and whether it came back"
+            : "Auto-heal is off for this check; earlier actions are listed here"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading && !events.length ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : !events.length ? (
+          <p className="text-sm text-muted-foreground">No auto-heal actions in this period.</p>
+        ) : (
+          <ol className="space-y-3">
+            {events.map((e) => {
+              const { title, tone } = describeAutoHealEvent(e);
+              const Icon = ACTION_ICON[e.action] ?? RefreshCw;
+              return (
+                <li key={e.id} className="flex gap-3 min-w-0">
+                  <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${TONE_TEXT[tone]}`} aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-2">
+                      <span className={`text-sm font-medium ${TONE_TEXT[tone]}`}>{title}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {format(new Date(e.createdAt), "MMM d, HH:mm:ss")}
+                      </span>
+                    </div>
+                    {e.error && <p className="text-xs text-red-600 dark:text-red-400 break-words">{e.error}</p>}
+                    {!e.error && e.checkMessage && e.action !== "recovered" && (
+                      <p className="text-xs text-muted-foreground break-words">Check: {e.checkMessage}</p>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         )}
       </CardContent>
     </Card>

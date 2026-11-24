@@ -12,4 +12,6 @@ export type {
   MonitorStatsBackendResponse,
   MonitorIncident,
   MonitorIncidentBackendResponse,
+  AutoHealEvent,
+  AutoHealEventBackendResponse,
 } from "@/lib/features/nodes/types";

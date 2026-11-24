@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { MetricRange } from "@/lib/features/nodes/types";
 import type {
+  AutoHealEvent,
   MonitorIncident,
   MonitorStats,
   ServiceHealthEvent,
@@ -213,4 +214,14 @@ export function useMonitorIncidents(nodeId: string, monitorId: string, range: Me
   );
   const { data, isLoading, error } = usePolledResource<MonitorIncident[]>(load, [], enabled);
   return { incidents: data, isLoading, error };
+}
+
+/** What auto-heal did for a monitor over a range, newest first, refreshed every minute. */
+export function useAutoHealEvents(nodeId: string, monitorId: string, range: MetricRange, enabled = true) {
+  const load = useCallback(
+    () => ServiceMonitorService.getAutoHealEvents(nodeId, monitorId, range),
+    [nodeId, monitorId, range]
+  );
+  const { data, isLoading, error } = usePolledResource<AutoHealEvent[]>(load, [], enabled);
+  return { events: data, isLoading, error };
 }

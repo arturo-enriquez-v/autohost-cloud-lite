@@ -8,9 +8,11 @@ import {
   fetchCheckServiceMonitorNow,
   fetchMonitorStats,
   fetchMonitorIncidents,
+  fetchAutoHealEvents,
 } from "../fetch/service-monitors.client";
 import type { MetricRange } from "@/lib/features/nodes/types";
 import type {
+  AutoHealEvent,
   MonitorIncident,
   MonitorStats,
   ServiceHealthEvent,
@@ -86,6 +88,13 @@ export const ServiceMonitorService = {
     const res = await fetchMonitorIncidents(nodeId, monitorId, range);
     if (!res.ok) throw new Error("Failed to fetch incidents");
     const data: MonitorIncident[] = await res.json();
+    return data ?? [];
+  },
+
+  async getAutoHealEvents(nodeId: string, monitorId: string, range: MetricRange): Promise<AutoHealEvent[]> {
+    const res = await fetchAutoHealEvents(nodeId, monitorId, range);
+    if (!res.ok) throw new Error("Failed to fetch auto-heal history");
+    const data: AutoHealEvent[] = await res.json();
     return data ?? [];
   },
 
