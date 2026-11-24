@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { CheckType, ServiceMonitor, UpsertServiceMonitorPayload, AutoHealConfig } from "@/lib/types";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
-import { ShieldCheck, RefreshCw, Layers, ChevronDown, ChevronUp, Shield, Wrench } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronUp, Shield, Wrench } from "lucide-react";
 
 interface Props {
   nodeId: string;
@@ -48,51 +48,39 @@ const DEFAULT_AUTO_HEAL: AutoHealConfig = {
   },
 };
 
+const positive = (v: unknown, fallback: number) => (typeof v === "number" && v > 0 ? v : fallback);
+
+/**
+ * Fills in missing auto-heal settings. The recreate overrides stay empty unless set: the agent then reads the
+ * compose project and service from the container's labels. Older versions of this form filled the service
+ * name with the monitor's name; without a compose file that is the same as leaving it empty.
+ */
 export function normalizeAutoHealConfig(
   raw?: Partial<AutoHealConfig> | null,
-  fallbackServiceName = ""
+  monitorName = ""
 ): AutoHealConfig {
+  const composeFile = typeof raw?.recreate?.compose_file_path === "string" ? raw.recreate.compose_file_path : "";
+  let serviceName = typeof raw?.recreate?.service_name === "string" ? raw.recreate.service_name.trim() : "";
+  if (!composeFile && serviceName === monitorName) serviceName = "";
+
   return {
     enabled: Boolean(raw?.enabled),
-    consecutive_failures_threshold:
-      typeof raw?.consecutive_failures_threshold === "number" && raw.consecutive_failures_threshold > 0
-        ? raw.consecutive_failures_threshold
-        : DEFAULT_AUTO_HEAL.consecutive_failures_threshold,
-    grace_period_seconds:
-      typeof raw?.grace_period_seconds === "number" && raw.grace_period_seconds > 0
-        ? raw.grace_period_seconds
-        : DEFAULT_AUTO_HEAL.grace_period_seconds,
+    consecutive_failures_threshold: positive(
+      raw?.consecutive_failures_threshold,
+      DEFAULT_AUTO_HEAL.consecutive_failures_threshold
+    ),
+    grace_period_seconds: positive(raw?.grace_period_seconds, DEFAULT_AUTO_HEAL.grace_period_seconds),
     restart: {
-      enabled:
-        typeof raw?.restart?.enabled === "boolean"
-          ? raw.restart.enabled
-          : DEFAULT_AUTO_HEAL.restart.enabled,
-      max_attempts:
-        typeof raw?.restart?.max_attempts === "number" && raw.restart.max_attempts > 0
-          ? raw.restart.max_attempts
-          : DEFAULT_AUTO_HEAL.restart.max_attempts,
-      window_seconds:
-        typeof raw?.restart?.window_seconds === "number" && raw.restart.window_seconds > 0
-          ? raw.restart.window_seconds
-          : DEFAULT_AUTO_HEAL.restart.window_seconds,
+      enabled: typeof raw?.restart?.enabled === "boolean" ? raw.restart.enabled : DEFAULT_AUTO_HEAL.restart.enabled,
+      max_attempts: positive(raw?.restart?.max_attempts, DEFAULT_AUTO_HEAL.restart.max_attempts),
+      window_seconds: positive(raw?.restart?.window_seconds, DEFAULT_AUTO_HEAL.restart.window_seconds),
     },
     recreate: {
       enabled:
-        typeof raw?.recreate?.enabled === "boolean"
-          ? raw.recreate.enabled
-          : DEFAULT_AUTO_HEAL.recreate.enabled,
-      compose_file_path:
-        typeof raw?.recreate?.compose_file_path === "string"
-          ? raw.recreate.compose_file_path
-          : DEFAULT_AUTO_HEAL.recreate.compose_file_path,
-      service_name:
-        typeof raw?.recreate?.service_name === "string" && raw.recreate.service_name.trim() !== ""
-          ? raw.recreate.service_name
-          : fallbackServiceName || DEFAULT_AUTO_HEAL.recreate.service_name,
-      max_attempts:
-        typeof raw?.recreate?.max_attempts === "number" && raw.recreate.max_attempts > 0
-          ? raw.recreate.max_attempts
-          : DEFAULT_AUTO_HEAL.recreate.max_attempts,
+        typeof raw?.recreate?.enabled === "boolean" ? raw.recreate.enabled : DEFAULT_AUTO_HEAL.recreate.enabled,
+      compose_file_path: composeFile,
+      service_name: serviceName,
+      max_attempts: positive(raw?.recreate?.max_attempts, DEFAULT_AUTO_HEAL.recreate.max_attempts),
     },
   };
 }
@@ -112,11 +100,18 @@ const DEFAULT_FORM: UpsertServiceMonitorPayload = {
   autoHealConfig: DEFAULT_AUTO_HEAL,
 };
 
+const NAME_LABEL: Record<CheckType, string> = {
+  process: "Container",
+  http: "Name",
+  tcp: "Name",
+};
+
 export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }: Props) {
   const [form, setForm] = useState<UpsertServiceMonitorPayload>({ ...DEFAULT_FORM, nodeId });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAutoHealSection, setShowAutoHealSection] = useState(false);
+  const [showRecreateOverrides, setShowRecreateOverrides] = useState(false);
 
   // Autocomplete state
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -157,7 +152,8 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
         enabled: monitor.enabled ?? true,
         autoHealConfig: autoHeal,
       });
-      setShowAutoHealSection(Boolean(autoHeal.enabled));
+      setShowAutoHealSection(autoHeal.enabled);
+      setShowRecreateOverrides(Boolean(autoHeal.recreate.compose_file_path || autoHeal.recreate.service_name));
     } else {
       setForm({
         ...DEFAULT_FORM,
@@ -165,6 +161,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
         autoHealConfig: normalizeAutoHealConfig(null),
       });
       setShowAutoHealSection(false);
+      setShowRecreateOverrides(false);
     }
     setError(null);
   }, [monitor, open, nodeId]);
@@ -175,24 +172,27 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   ) => setForm((f) => ({ ...f, [key]: value }));
 
   const setAutoHeal = (updater: (prev: AutoHealConfig) => AutoHealConfig) => {
-    setForm((f) => {
-      const current = normalizeAutoHealConfig(f.autoHealConfig, f.serviceName);
-      return {
-        ...f,
-        autoHealConfig: updater(current),
-      };
-    });
+    setForm((f) => ({
+      ...f,
+      autoHealConfig: updater(normalizeAutoHealConfig(f.autoHealConfig)),
+    }));
   };
 
   const handleSubmit = async () => {
     setError(null);
     if (!form.serviceName.trim()) {
-      setError("Service name is required.");
+      setError(form.checkType === "process" ? "Container is required." : "Name is required.");
       return;
     }
     setSaving(true);
     try {
-      await onSave(form);
+      const autoHealConfig = normalizeAutoHealConfig(form.autoHealConfig);
+      await onSave({
+        ...form,
+        serviceName: form.serviceName.trim(),
+        // Auto-heal acts when the monitor is down: one threshold for both.
+        autoHealConfig: { ...autoHealConfig, consecutive_failures_threshold: form.failureThreshold },
+      });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -201,38 +201,47 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
     }
   };
 
-  const autoHeal = normalizeAutoHealConfig(form.autoHealConfig, form.serviceName);
-
-  // Keeps the compose service name in step with the monitored name until the user sets a different one.
-  const syncRecreateServiceName = (previousName: string, nextName: string) =>
-    setAutoHeal((ah) =>
-      ah.recreate.service_name === "" || ah.recreate.service_name === previousName
-        ? { ...ah, recreate: { ...ah.recreate, service_name: nextName } }
-        : ah
-    );
+  const autoHeal = normalizeAutoHealConfig(form.autoHealConfig);
+  const windowMinutes = Math.max(1, Math.round(autoHeal.restart.window_seconds / 60));
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{monitor ? "Edit Monitor & Auto-Healing" : "Add Health Check & Auto-Healing"}</DialogTitle>
+          <DialogTitle>{monitor ? "Edit health check" : "Add health check"}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Service name with autocomplete */}
+          {/* Check type */}
           <div className="space-y-1">
-            <Label htmlFor="sm-service-name">Service / Container name</Label>
+            <Label>What to check</Label>
+            <Select
+              value={form.checkType}
+              onValueChange={(v) => set("checkType", v as CheckType)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="process">Container — is it running?</SelectItem>
+                <SelectItem value="http">HTTP — does the URL answer with the expected status?</SelectItem>
+                <SelectItem value="tcp">TCP — does the port accept connections?</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Container / name with autocomplete */}
+          <div className="space-y-1">
+            <Label htmlFor="sm-service-name">{NAME_LABEL[form.checkType]}</Label>
             <div className="relative">
               <Input
                 ref={serviceInputRef}
                 id="sm-service-name"
-                placeholder="e.g. web-api, postgres"
+                placeholder={form.checkType === "process" ? "e.g. postgres" : "e.g. web-api"}
                 autoComplete="off"
                 value={form.serviceName}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  syncRecreateServiceName(form.serviceName, val);
-                  set("serviceName", val);
+                  set("serviceName", e.target.value);
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
@@ -255,7 +264,6 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          syncRecreateServiceName(form.serviceName, c.name);
                           set("serviceName", c.name);
                           setShowSuggestions(false);
                         }}
@@ -275,24 +283,11 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                 );
               })()}
             </div>
-          </div>
-
-          {/* Check type */}
-          <div className="space-y-1">
-            <Label>Check type</Label>
-            <Select
-              value={form.checkType}
-              onValueChange={(v) => set("checkType", v as CheckType)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="process">Process — Is the container running?</SelectItem>
-                <SelectItem value="tcp">TCP — Does the port respond?</SelectItem>
-                <SelectItem value="http">HTTP — Does the endpoint return 200?</SelectItem>
-              </SelectContent>
-            </Select>
+            {form.checkType !== "process" && (
+              <p className="text-xs text-muted-foreground">
+                Shown in the panel. To use auto-heal, use the name of the container that serves it.
+              </p>
+            )}
           </div>
 
           {/* HTTP options */}
@@ -306,6 +301,9 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   value={form.httpUrl}
                   onChange={(e) => set("httpUrl", e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Requested from the node, so <code>localhost</code> and VPN addresses work.
+                </p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="sm-http-status">Expected status code</Label>
@@ -350,7 +348,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
           {/* Interval & threshold */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="sm-interval">Interval (seconds)</Label>
+              <Label htmlFor="sm-interval">Check every (seconds)</Label>
               <Input
                 id="sm-interval"
                 type="number"
@@ -361,7 +359,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="sm-threshold">Failure threshold</Label>
+              <Label htmlFor="sm-threshold">Mark down after (failed checks)</Label>
               <Input
                 id="sm-threshold"
                 type="number"
@@ -378,7 +376,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-[#70AEFF]" />
-                <span className="font-semibold text-sm text-foreground">Auto-Healing & Remediation</span>
+                <span className="font-semibold text-sm text-foreground">Auto-heal</span>
               </div>
               <div className="flex items-center gap-2">
                 <Switch
@@ -387,75 +385,64 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                     setAutoHeal((ah) => ({ ...ah, enabled: v }));
                     if (v) setShowAutoHealSection(true);
                   }}
+                  aria-label="Enable auto-heal"
                 />
                 <button
                   type="button"
                   onClick={() => setShowAutoHealSection((prev) => !prev)}
                   className="text-xs text-muted-foreground hover:text-foreground p-1"
+                  aria-label={showAutoHealSection ? "Hide auto-heal settings" : "Show auto-heal settings"}
                 >
                   {showAutoHealSection ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              When the service is down ({form.failureThreshold} failed{" "}
+              {form.failureThreshold === 1 ? "check" : "checks"}), the agent tries these steps in order.
+            </p>
 
             {showAutoHealSection && (
               <div className="space-y-4 pt-2 border-t border-border">
-                {/* General Thresholds */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Consecutive failures before action</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={autoHeal.consecutive_failures_threshold}
-                      onChange={(e) =>
-                        setAutoHeal((ah) => ({
-                          ...ah,
-                          consecutive_failures_threshold: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Grace period (seconds)</Label>
-                    <Input
-                      type="number"
-                      min={5}
-                      max={600}
-                      value={autoHeal.grace_period_seconds}
-                      onChange={(e) =>
-                        setAutoHeal((ah) => ({
-                          ...ah,
-                          grace_period_seconds: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Wait after each step (seconds)</Label>
+                  <Input
+                    type="number"
+                    min={5}
+                    max={600}
+                    value={autoHeal.grace_period_seconds}
+                    onChange={(e) =>
+                      setAutoHeal((ah) => ({ ...ah, grace_period_seconds: Number(e.target.value) }))
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Time the service gets to start before the next check counts again.
+                  </p>
                 </div>
 
-                {/* Strategy 1: Container Restart */}
+                {/* Step 1: Container Restart */}
                 <div className="p-3 bg-background/60 rounded-lg border space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <RefreshCw className="h-3.5 w-3.5 text-[#70AEFF]" />
-                      Strategy 1: Restart Container (`docker restart`)
+                      1. Restart the container
                     </span>
                     <Switch
                       checked={autoHeal.restart.enabled}
                       onCheckedChange={(v) =>
-                        setAutoHeal((ah) => ({
-                          ...ah,
-                          restart: { ...ah.restart, enabled: v },
-                        }))
+                        setAutoHeal((ah) => ({ ...ah, restart: { ...ah.restart, enabled: v } }))
                       }
+                      aria-label="Restart the container"
                     />
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Runs <code>docker restart {form.serviceName || "<container>"}</code>.
+                  </p>
 
                   {autoHeal.restart.enabled && (
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Max Attempts</Label>
+                        <Label className="text-[11px] text-muted-foreground">At most (restarts)</Label>
                         <Input
                           type="number"
                           min={1}
@@ -470,16 +457,16 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Time Window (sec)</Label>
+                        <Label className="text-[11px] text-muted-foreground">Within (minutes)</Label>
                         <Input
                           type="number"
-                          min={60}
-                          max={86400}
-                          value={autoHeal.restart.window_seconds}
+                          min={1}
+                          max={1440}
+                          value={windowMinutes}
                           onChange={(e) =>
                             setAutoHeal((ah) => ({
                               ...ah,
-                              restart: { ...ah.restart, window_seconds: Number(e.target.value) },
+                              restart: { ...ah.restart, window_seconds: Number(e.target.value) * 60 },
                             }))
                           }
                         />
@@ -488,73 +475,95 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                   )}
                 </div>
 
-                {/* Strategy 2: Docker Compose Recreate */}
+                {/* Step 2: Docker Compose Recreate */}
                 <div className="p-3 bg-background/60 rounded-lg border space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <Wrench className="h-3.5 w-3.5 text-[#70AEFF]" />
-                      Strategy 2: Compose Recreate (`docker compose up`)
+                      2. Recreate with Docker Compose
                     </span>
                     <Switch
                       checked={autoHeal.recreate.enabled}
                       onCheckedChange={(v) =>
-                        setAutoHeal((ah) => ({
-                          ...ah,
-                          recreate: { ...ah.recreate, enabled: v },
-                        }))
+                        setAutoHeal((ah) => ({ ...ah, recreate: { ...ah.recreate, enabled: v } }))
                       }
+                      aria-label="Recreate with Docker Compose"
                     />
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    If restarting is not enough, runs <code>docker compose up -d --force-recreate</code> for the
+                    container&apos;s service. The project is found from the container&apos;s Compose labels.
+                    Requires terminal access on the node.
+                  </p>
 
                   {autoHeal.recreate.enabled && (
                     <div className="space-y-2 pt-1">
                       <div className="space-y-1">
-                        <Label className="text-[11px] text-muted-foreground">Path to docker-compose.yml</Label>
+                        <Label className="text-[11px] text-muted-foreground">At most (per incident)</Label>
                         <Input
-                          placeholder="/opt/apps/my-app/docker-compose.yml"
-                          value={autoHeal.recreate.compose_file_path}
+                          type="number"
+                          min={1}
+                          max={5}
+                          value={autoHeal.recreate.max_attempts}
                           onChange={(e) =>
                             setAutoHeal((ah) => ({
                               ...ah,
-                              recreate: { ...ah.recreate, compose_file_path: e.target.value },
+                              recreate: { ...ah.recreate, max_attempts: Number(e.target.value) },
                             }))
                           }
                         />
                       </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">YAML Service Name</Label>
-                          <Input
-                            placeholder="e.g. web"
-                            value={autoHeal.recreate.service_name}
-                            onChange={(e) =>
-                              setAutoHeal((ah) => ({
-                                ...ah,
-                                recreate: { ...ah.recreate, service_name: e.target.value },
-                              }))
-                            }
-                          />
+                      <button
+                        type="button"
+                        onClick={() => setShowRecreateOverrides((v) => !v)}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                        aria-expanded={showRecreateOverrides}
+                      >
+                        {showRecreateOverrides ? (
+                          <ChevronUp className="h-3 w-3" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3" />
+                        )}
+                        Use a different compose file or service
+                      </button>
+                      {showRecreateOverrides && (
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <Label className="text-[11px] text-muted-foreground">Compose file</Label>
+                            <Input
+                              placeholder="Detected from the container"
+                              value={autoHeal.recreate.compose_file_path}
+                              onChange={(e) =>
+                                setAutoHeal((ah) => ({
+                                  ...ah,
+                                  recreate: { ...ah.recreate, compose_file_path: e.target.value },
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px] text-muted-foreground">Compose service</Label>
+                            <Input
+                              placeholder="Detected from the container"
+                              value={autoHeal.recreate.service_name}
+                              onChange={(e) =>
+                                setAutoHeal((ah) => ({
+                                  ...ah,
+                                  recreate: { ...ah.recreate, service_name: e.target.value },
+                                }))
+                              }
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px] text-muted-foreground">Max Attempts per Incident</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            max={5}
-                            value={autoHeal.recreate.max_attempts}
-                            onChange={(e) =>
-                              setAutoHeal((ah) => ({
-                                ...ah,
-                                recreate: { ...ah.recreate, max_attempts: Number(e.target.value) },
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  If every step fails, the monitor shows &quot;Auto-heal gave up&quot;. Each step and the outcome
+                  are emailed to the node owner.
+                </p>
               </div>
             )}
           </div>
@@ -564,12 +573,13 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             <div>
               <p className="text-sm font-medium">Telegram alert</p>
               <p className="text-xs text-muted-foreground">
-                Send a message when the service goes down or enters critical state
+                One message when the service goes down, through the node&apos;s alert bot.
               </p>
             </div>
             <Switch
               checked={form.notifyTelegram}
               onCheckedChange={(v) => set("notifyTelegram", v)}
+              aria-label="Telegram alert"
             />
           </div>
 
@@ -579,6 +589,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             <Switch
               checked={form.enabled}
               onCheckedChange={(v) => set("enabled", v)}
+              aria-label="Enable monitoring"
             />
           </div>
 
@@ -590,7 +601,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? "Saving…" : "Save Changes"}
+            {saving ? "Saving…" : monitor ? "Save changes" : "Add health check"}
           </Button>
         </DialogFooter>
       </DialogContent>
