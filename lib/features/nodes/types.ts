@@ -305,6 +305,9 @@ export interface ServiceMonitorBackendResponse {
   consecutive_failures: number;
   /** Enabled but without recent results (node offline); `status` is out of date. Missing on older APIs. */
   stale?: boolean;
+  /** Latest check result; missing on older APIs. */
+  last_message?: string;
+  last_latency_ms?: number;
   last_checked_at: string | null;
   created_at: string;
   updated_at: string;
@@ -326,6 +329,9 @@ export interface ServiceHealthEventBackendResponse {
 export interface UptimePointBackendResponse {
   bucket: string;
   status: UptimeBucket;
+  /** Checks that passed / failed in the bucket; missing on older APIs. */
+  up?: number;
+  down?: number;
 }
 
 export interface ServiceMonitor {
@@ -346,6 +352,9 @@ export interface ServiceMonitor {
   consecutiveFailures: number;
   /** Enabled but without recent results (node offline); `status` is out of date. */
   stale: boolean;
+  /** Detail of the latest check ("HTTP 200", "container state: exited"); "" if unknown. */
+  lastMessage: string;
+  lastLatencyMs: number;
   lastCheckedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -366,6 +375,9 @@ export interface ServiceHealthEvent {
 export interface UptimePoint {
   bucket: string;
   status: UptimeBucket;
+  /** Checks that passed / failed in the bucket, or null when the API does not report them. */
+  up: number | null;
+  down: number | null;
 }
 
 export type UpsertServiceMonitorPayload = Omit<
@@ -375,6 +387,8 @@ export type UpsertServiceMonitorPayload = Omit<
   | "status"
   | "consecutiveFailures"
   | "stale"
+  | "lastMessage"
+  | "lastLatencyMs"
   | "lastCheckedAt"
   | "createdAt"
   | "updatedAt"

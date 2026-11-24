@@ -44,6 +44,8 @@ export function mapMonitorFromBackend(r: ServiceMonitorBackendResponse): Service
     status: r.status ?? "unknown",
     consecutiveFailures: r.consecutive_failures ?? 0,
     stale: r.stale ?? false,
+    lastMessage: r.last_message ?? "",
+    lastLatencyMs: r.last_latency_ms ?? 0,
     lastCheckedAt: r.last_checked_at ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -65,7 +67,7 @@ export function mapEventFromBackend(r: ServiceHealthEventBackendResponse): Servi
 }
 
 export function mapUptimeFromBackend(r: UptimePointBackendResponse): UptimePoint {
-  return { bucket: r.bucket, status: r.status };
+  return { bucket: r.bucket, status: r.status, up: r.up ?? null, down: r.down ?? null };
 }
 
 // ─── API calls ────────────────────────────────────────────────────────────────
@@ -113,6 +115,22 @@ export async function deleteServiceMonitorBackend(id: string, accessToken: strin
   return backendFetch(
     API_MONITOR_ENDPOINTS.SERVICE_MONITORS.DELETE(id),
     { method: "DELETE" },
+    accessToken
+  );
+}
+
+export async function getEventHistoryBackend(monitorId: string, limit: number, accessToken: string) {
+  return backendFetch(
+    `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.HISTORY(monitorId)}?limit=${limit}`,
+    { method: "GET" },
+    accessToken
+  );
+}
+
+export async function checkServiceMonitorNowBackend(monitorId: string, accessToken: string) {
+  return backendFetch(
+    API_MONITOR_ENDPOINTS.SERVICE_MONITORS.CHECK(monitorId),
+    { method: "POST" },
     accessToken
   );
 }

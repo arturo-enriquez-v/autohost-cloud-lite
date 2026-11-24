@@ -4,8 +4,11 @@ import {
   fetchUpdateServiceMonitor,
   fetchDeleteServiceMonitor,
   fetchUptimeHistory,
+  fetchEventHistory,
+  fetchCheckServiceMonitorNow,
 } from "../fetch/service-monitors.client";
 import type {
+  ServiceHealthEvent,
   ServiceMonitor,
   UptimePoint,
   UpsertServiceMonitorPayload,
@@ -49,6 +52,22 @@ export const ServiceMonitorService = {
     if (!res.ok && res.status !== 204) {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as { error?: string }).error ?? "Failed to delete monitor");
+    }
+  },
+
+  async getEventHistory(nodeId: string, monitorId: string, limit = 20): Promise<ServiceHealthEvent[]> {
+    const res = await fetchEventHistory(nodeId, monitorId, limit);
+    if (!res.ok) throw new Error("Failed to fetch check history");
+    const data: ServiceHealthEvent[] = await res.json();
+    return data ?? [];
+  },
+
+  /** Asks the agent to run the check now. Throws with the API's reason (paused, node offline). */
+  async checkNow(nodeId: string, monitorId: string): Promise<void> {
+    const res = await fetchCheckServiceMonitorNow(nodeId, monitorId);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error ?? "Failed to run the check");
     }
   },
 

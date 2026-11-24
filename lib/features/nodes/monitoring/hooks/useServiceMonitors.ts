@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { ServiceMonitor, UpsertServiceMonitorPayload, UptimePoint } from "../interfaces/service-monitor";
+import type {
+  ServiceHealthEvent,
+  ServiceMonitor,
+  UpsertServiceMonitorPayload,
+  UptimePoint,
+} from "../interfaces/service-monitor";
 import { ServiceMonitorService } from "../services/service-monitor.service";
+
+// The agent checks a monitor as soon as it gets its configuration; refresh once its result is likely in.
+const RESULT_DELAY_MS = 3000;
 
 export function useServiceMonitors(nodeId: string) {
   const [monitors, setMonitors] = useState<ServiceMonitor[]>([]);
@@ -23,6 +31,10 @@ export function useServiceMonitors(nodeId: string) {
     }
   }, [nodeId]);
 
+  const refreshSoon = useCallback(() => {
+    setTimeout(() => refresh(true), RESULT_DELAY_MS);
+  }, [refresh]);
+
   useEffect(() => {
     initialLoadDone.current = false;
     refresh(false).then(() => {
@@ -38,18 +50,33 @@ export function useServiceMonitors(nodeId: string) {
     async (payload: UpsertServiceMonitorPayload): Promise<ServiceMonitor> => {
       const created = await ServiceMonitorService.createMonitor(nodeId, payload);
       setMonitors((prev) => [...prev, created]);
+      refreshSoon();
       return created;
     },
-    [nodeId]
+    [nodeId, refreshSoon]
   );
 
   const update = useCallback(
     async (monitorId: string, payload: UpsertServiceMonitorPayload): Promise<ServiceMonitor> => {
       const updated = await ServiceMonitorService.updateMonitor(nodeId, monitorId, payload);
-      setMonitors((prev) => prev.map((m) => (m.id === monitorId ? updated : m)));
+      // The update response has no latest-result fields; keep the ones from the list until the refresh.
+      setMonitors((prev) =>
+        prev.map((m) =>
+          m.id === monitorId ? { ...updated, lastMessage: m.lastMessage, lastLatencyMs: m.lastLatencyMs } : m
+        )
+      );
+      refreshSoon();
       return updated;
     },
-    [nodeId]
+    [nodeId, refreshSoon]
+  );
+
+  const checkNow = useCallback(
+    async (monitorId: string): Promise<void> => {
+      await ServiceMonitorService.checkNow(nodeId, monitorId);
+      refreshSoon();
+    },
+    [nodeId, refreshSoon]
   );
 
   const remove = useCallback(
@@ -60,7 +87,7 @@ export function useServiceMonitors(nodeId: string) {
     [nodeId]
   );
 
-  return { monitors, isLoading, error, refresh, create, update, remove };
+  return { monitors, isLoading, error, refresh, create, update, remove, checkNow };
 }
 
 export function useUptimeHistory(nodeId: string, monitorId: string | null) {
@@ -86,4 +113,42 @@ export function useUptimeHistory(nodeId: string, monitorId: string | null) {
   }, [fetchPoints]);
 
   return { points, isLoading };
+}
+
+/** The latest check results of a monitor, loaded while `enabled` (e.g. the history is expanded). */
+export function useEventHistory(nodeId: string, monitorId: string, enabled: boolean, limit = 20) {
+  const [events, setEvents] = useState<ServiceHealthEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    const load = (showLoading: boolean) => {
+      if (showLoading) setIsLoading(true);
+      ServiceMonitorService.getEventHistory(nodeId, monitorId, limit)
+        .then((data) => {
+          if (!cancelled) {
+            setEvents(data);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
+        })
+        .finally(() => {
+          if (!cancelled && showLoading) setIsLoading(false);
+        });
+    };
+    load(true);
+    const interval = setInterval(() => {
+      if (!document.hidden) load(false);
+    }, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [nodeId, monitorId, enabled, limit]);
+
+  return { events, isLoading, error };
 }

@@ -44,6 +44,23 @@ export async function fetchDeleteServiceMonitor(
   );
 }
 
+export async function fetchEventHistory(
+  nodeId: string,
+  monitorId: string,
+  limit: number
+): Promise<Response> {
+  return fetchWithAuth(
+    `${CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.HISTORY(nodeId, monitorId)}?limit=${limit}`,
+    { method: "GET" }
+  );
+}
+
+export async function fetchCheckServiceMonitorNow(nodeId: string, monitorId: string): Promise<Response> {
+  return fetchWithAuth(CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.CHECK(nodeId, monitorId), {
+    method: "POST",
+  });
+}
+
 export async function fetchUptimeHistory(nodeId: string, monitorId: string): Promise<Response> {
   return fetchWithAuth(
     CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.UPTIME(nodeId, monitorId),
