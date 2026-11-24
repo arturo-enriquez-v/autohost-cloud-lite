@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { ArrowLeft, Wifi, WifiOff, Server, Network, Shield, Activity, Settings, ScrollText, Cpu, Terminal, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -14,13 +14,22 @@ interface NodeHeaderProps {
 
 export function NodeHeader({ nodeId }: NodeHeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  // Up one level: from the node page to the node list, from its subpages (files, terminal) to the node.
+  const parentHref = pathname === `/node/${nodeId}` ? "/nodes" : `/node/${nodeId}`
   const { node, isLoading } = useNodes(nodeId)
   const { can, isAdmin } = useNodePermissions(nodeId)
 
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
       <div className="flex items-start gap-3 min-w-0 flex-1">
-        <Button variant="ghost" size="icon" onClick={() => router.back()} className="shrink-0 mt-0.5 sm:mt-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push(parentHref)}
+          className="shrink-0 mt-0.5 sm:mt-0"
+          aria-label="Back"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
 

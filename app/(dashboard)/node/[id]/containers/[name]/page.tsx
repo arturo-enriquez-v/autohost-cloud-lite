@@ -104,7 +104,7 @@ export default function ContainerMetricsPage({
     <div className="space-y-6">
       {/* Header Bar */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/node/${nodeId}`)} aria-label="Back to node">
           <ArrowLeft className="h-5 w-5" />
         </Button>
 
