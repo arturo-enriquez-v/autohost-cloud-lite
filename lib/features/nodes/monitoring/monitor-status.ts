@@ -59,12 +59,20 @@ export function describeTarget(m: ServiceMonitor): string {
   }
 }
 
-/** The auto-heal steps that are on, e.g. "restart, then recreate", or null when auto-heal is off. */
+/** The container auto-heal acts on: the one configured, or the monitor's name. */
+export function autoHealContainer(m: ServiceMonitor): string {
+  return m.autoHealConfig?.container || m.serviceName;
+}
+
+/** The auto-heal steps that are on, e.g. "restart, then recreate web-1", or null when auto-heal is off. */
 export function describeAutoHeal(m: ServiceMonitor): string | null {
   const cfg = m.autoHealConfig;
   if (!cfg?.enabled) return null;
   const steps = [cfg.restart?.enabled && "restart", cfg.recreate?.enabled && "recreate"].filter(Boolean);
-  return steps.length ? steps.join(", then ") : "no action enabled";
+  if (!steps.length) return "no action enabled";
+  // Container checks act on the container shown as the monitor's name; say which one otherwise.
+  const target = m.checkType === "process" ? "" : ` ${autoHealContainer(m)}`;
+  return steps.join(", then ") + target;
 }
 
 /** Share of passed checks over the points, or null without data. Uses per-bucket counts when available. */

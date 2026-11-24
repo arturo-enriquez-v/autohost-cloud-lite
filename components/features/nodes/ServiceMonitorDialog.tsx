@@ -65,6 +65,7 @@ export function normalizeAutoHealConfig(
 
   return {
     enabled: Boolean(raw?.enabled),
+    container: typeof raw?.container === "string" ? raw.container.trim() : "",
     consecutive_failures_threshold: positive(
       raw?.consecutive_failures_threshold,
       DEFAULT_AUTO_HEAL.consecutive_failures_threshold
@@ -106,6 +107,9 @@ const CHECK_TYPE_HELP: Record<CheckType, string> = {
   tcp: "The node opens a connection to the host and port; passes when it is accepted.",
 };
 
+// Docker container names; the API rejects anything else as an auto-heal target.
+const CONTAINER_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/;
+
 const NAME_LABEL: Record<CheckType, string> = {
   process: "Container",
   http: "Name",
@@ -144,6 +148,16 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   useEffect(() => {
     if (monitor) {
       const autoHeal = normalizeAutoHealConfig(monitor.autoHealConfig, monitor.serviceName);
+      // HTTP/TCP monitors saved before the auto-heal container existed acted on the container named like
+      // the monitor: show it as the chosen container.
+      if (
+        monitor.checkType !== "process" &&
+        autoHeal.enabled &&
+        !autoHeal.container &&
+        CONTAINER_NAME_RE.test(monitor.serviceName)
+      ) {
+        autoHeal.container = monitor.serviceName;
+      }
       setForm({
         nodeId,
         serviceName: monitor.serviceName ?? "",
@@ -190,14 +204,26 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
       setError(form.checkType === "process" ? "Container is required." : "Name is required.");
       return;
     }
+    const autoHealConfig = normalizeAutoHealConfig(form.autoHealConfig);
+    const healsSomething =
+      autoHealConfig.enabled && (autoHealConfig.restart.enabled || autoHealConfig.recreate.enabled);
+    if (form.checkType !== "process" && healsSomething && !autoHealConfig.container) {
+      setError("Choose the container auto-heal should restart, or turn auto-heal off.");
+      setShowAutoHealSection(true);
+      return;
+    }
     setSaving(true);
     try {
-      const autoHealConfig = normalizeAutoHealConfig(form.autoHealConfig);
       await onSave({
         ...form,
         serviceName: form.serviceName.trim(),
-        // Auto-heal acts when the monitor is down: one threshold for both.
-        autoHealConfig: { ...autoHealConfig, consecutive_failures_threshold: form.failureThreshold },
+        autoHealConfig: {
+          ...autoHealConfig,
+          // Container checks heal the container they check.
+          container: form.checkType === "process" ? "" : autoHealConfig.container,
+          // Auto-heal acts when the monitor is down: one threshold for both.
+          consecutive_failures_threshold: form.failureThreshold,
+        },
       });
       onClose();
     } catch (err) {
@@ -208,11 +234,16 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
   };
 
   const autoHeal = normalizeAutoHealConfig(form.autoHealConfig);
+  const healTarget = form.checkType === "process" ? form.serviceName.trim() : autoHeal.container ?? "";
+  // The saved container may not be in the live list (stopped, removed, or the node is offline).
+  const containerOptions = Array.from(
+    new Set([...containers.map((c) => c.name), ...(autoHeal.container ? [autoHeal.container] : [])])
+  ).sort();
   const windowMinutes = Math.max(1, Math.round(autoHeal.restart.window_seconds / 60));
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden pb-0">
         <DialogHeader>
           <DialogTitle>{monitor ? "Edit health check" : "Add health check"}</DialogTitle>
         </DialogHeader>
@@ -291,9 +322,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
               })()}
             </div>
             {form.checkType !== "process" && (
-              <p className="text-xs text-muted-foreground">
-                Shown in the panel. To use auto-heal, use the name of the container that serves it.
-              </p>
+              <p className="text-xs text-muted-foreground">Shown in the panel.</p>
             )}
           </div>
 
@@ -406,11 +435,45 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
             </div>
             <p className="text-xs text-muted-foreground">
               When the service is down ({form.failureThreshold} failed{" "}
-              {form.failureThreshold === 1 ? "check" : "checks"}), the agent tries these steps in order.
+              {form.failureThreshold === 1 ? "check" : "checks"}), the agent tries these steps in order
+              {form.checkType === "process" ? " on this container." : " on a container of this node."}
             </p>
 
             {showAutoHealSection && (
               <div className="space-y-4 pt-2 border-t border-border">
+                {form.checkType !== "process" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Container that serves it</Label>
+                    {containerOptions.length > 0 ? (
+                      <Select
+                        value={autoHeal.container || undefined}
+                        onValueChange={(v) => setAutoHeal((ah) => ({ ...ah, container: v }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Choose a container" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {containerOptions.map((name) => (
+                            <SelectItem key={name} value={name}>
+                              {name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        placeholder="Container name"
+                        value={autoHeal.container ?? ""}
+                        onChange={(e) => setAutoHeal((ah) => ({ ...ah, container: e.target.value }))}
+                      />
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Auto-heal only works when the service runs in a Docker container on this node. For an
+                      external URL or a service outside Docker, leave auto-heal off.
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <Label className="text-xs">Wait after each step (seconds)</Label>
                   <Input
@@ -443,7 +506,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                     />
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Runs <code>docker restart {form.serviceName || "<container>"}</code>.
+                    Runs <code>docker restart {healTarget || "<container>"}</code>.
                   </p>
 
                   {autoHeal.restart.enabled && (
@@ -603,7 +666,8 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        <DialogFooter>
+        {/* Stays visible while the form scrolls. */}
+        <DialogFooter className="sticky bottom-0 -mx-6 border-t bg-background px-6 py-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

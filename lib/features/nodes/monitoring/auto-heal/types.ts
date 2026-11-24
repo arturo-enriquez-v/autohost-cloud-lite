@@ -5,6 +5,8 @@ export interface AutoHealConfig {
   consecutive_failures_threshold: number;
   /** Seconds to wait after an action before acting again. */
   grace_period_seconds: number;
+  /** Container restarted and recreated. Empty: the monitor's name (container checks). */
+  container?: string;
   restart: {
     enabled: boolean;
     /** Restarts allowed within window_seconds. */
