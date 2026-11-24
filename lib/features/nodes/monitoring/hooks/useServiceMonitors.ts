@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { MetricRange } from "@/lib/features/nodes/types";
 import type {
+  MonitorIncident,
+  MonitorStats,
   ServiceHealthEvent,
   ServiceMonitor,
   UpsertServiceMonitorPayload,
@@ -151,4 +154,63 @@ export function useEventHistory(nodeId: string, monitorId: string, enabled: bool
   }, [nodeId, monitorId, enabled, limit]);
 
   return { events, isLoading, error };
+}
+
+const STATS_REFRESH_MS = 60_000;
+
+/** Polls a loader while the tab is visible; keeps the last data while reloading. */
+function usePolledResource<T>(load: () => Promise<T>, initial: T, enabled: boolean) {
+  const [data, setData] = useState<T>(initial);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    const run = () =>
+      load()
+        .then((d) => {
+          if (!cancelled) {
+            setData(d);
+            setError(null);
+          }
+        })
+        .catch((err) => {
+          if (!cancelled) setError(err instanceof Error ? err.message : "Unknown error");
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoading(false);
+        });
+    setIsLoading(true);
+    run();
+    const interval = setInterval(() => {
+      if (!document.hidden) run();
+    }, STATS_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [load, enabled]);
+
+  return { data, isLoading, error };
+}
+
+/** A monitor's checks aggregated over a range (summary and buckets), refreshed every minute. */
+export function useMonitorStats(nodeId: string, monitorId: string, range: MetricRange, enabled = true) {
+  const load = useCallback(
+    () => ServiceMonitorService.getStats(nodeId, monitorId, range),
+    [nodeId, monitorId, range]
+  );
+  const { data, isLoading, error } = usePolledResource<MonitorStats | null>(load, null, enabled);
+  return { stats: data, isLoading, error };
+}
+
+/** A monitor's incidents over a range, newest first, refreshed every minute. */
+export function useMonitorIncidents(nodeId: string, monitorId: string, range: MetricRange, enabled = true) {
+  const load = useCallback(
+    () => ServiceMonitorService.getIncidents(nodeId, monitorId, range),
+    [nodeId, monitorId, range]
+  );
+  const { data, isLoading, error } = usePolledResource<MonitorIncident[]>(load, [], enabled);
+  return { incidents: data, isLoading, error };
 }

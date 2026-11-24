@@ -6,8 +6,13 @@ import {
   fetchUptimeHistory,
   fetchEventHistory,
   fetchCheckServiceMonitorNow,
+  fetchMonitorStats,
+  fetchMonitorIncidents,
 } from "../fetch/service-monitors.client";
+import type { MetricRange } from "@/lib/features/nodes/types";
 import type {
+  MonitorIncident,
+  MonitorStats,
   ServiceHealthEvent,
   ServiceMonitor,
   UptimePoint,
@@ -69,6 +74,19 @@ export const ServiceMonitorService = {
       const err = await res.json().catch(() => ({}));
       throw new Error((err as { error?: string }).error ?? "Failed to run the check");
     }
+  },
+
+  async getStats(nodeId: string, monitorId: string, range: MetricRange): Promise<MonitorStats> {
+    const res = await fetchMonitorStats(nodeId, monitorId, range);
+    if (!res.ok) throw new Error("Failed to fetch monitor stats");
+    return res.json();
+  },
+
+  async getIncidents(nodeId: string, monitorId: string, range: MetricRange): Promise<MonitorIncident[]> {
+    const res = await fetchMonitorIncidents(nodeId, monitorId, range);
+    if (!res.ok) throw new Error("Failed to fetch incidents");
+    const data: MonitorIncident[] = await res.json();
+    return data ?? [];
   },
 
   async getUptimeHistory(nodeId: string, monitorId: string): Promise<UptimePoint[]> {

@@ -380,6 +380,71 @@ export interface UptimePoint {
   down: number | null;
 }
 
+export interface MonitorStatsBucketBackendResponse {
+  bucket: string;
+  passed: number;
+  failed: number;
+  avg_latency_ms: number | null;
+  p95_latency_ms: number | null;
+}
+
+export interface MonitorStatsBackendResponse {
+  range: MetricRange;
+  from: string;
+  bucket_seconds: number;
+  summary: {
+    checks: number;
+    passed: number;
+    failed: number;
+    uptime_percent: number | null;
+    avg_latency_ms: number | null;
+    p95_latency_ms: number | null;
+    incidents: number;
+  };
+  buckets: MonitorStatsBucketBackendResponse[];
+}
+
+export interface MonitorIncidentBackendResponse {
+  started_at: string;
+  last_failed_at: string;
+  resolved_at: string | null;
+  failed_checks: number;
+  message: string;
+}
+
+/** A monitor's checks over a range. Latencies count passed checks only; null when none passed. */
+export interface MonitorStats {
+  range: MetricRange;
+  from: string;
+  bucketSeconds: number;
+  summary: {
+    checks: number;
+    passed: number;
+    failed: number;
+    uptimePercent: number | null;
+    avgLatencyMs: number | null;
+    p95LatencyMs: number | null;
+    incidents: number;
+  };
+  buckets: {
+    bucket: string;
+    passed: number;
+    failed: number;
+    avgLatencyMs: number | null;
+    p95LatencyMs: number | null;
+  }[];
+}
+
+/** A time the monitor was down: failed checks in a row reaching its threshold. */
+export interface MonitorIncident {
+  startedAt: string;
+  lastFailedAt: string;
+  /** First passed check after it; null while ongoing. */
+  resolvedAt: string | null;
+  failedChecks: number;
+  message: string;
+}
+
 export type UpsertServiceMonitorPayload = Omit<
   ServiceMonitor,
   | "id"

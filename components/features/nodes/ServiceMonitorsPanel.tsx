@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,7 @@ import {
   type MonitorTone,
 } from "@/lib/features/nodes/monitoring/monitor-status";
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions";
+import { monitorDetailHref } from "./monitors/ServiceMonitorsOverview";
 import { PERMS } from "@/lib/features/users/permissions";
 
 const DOT: Record<MonitorTone, string> = {
@@ -194,7 +196,13 @@ function MonitorRow({
             className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${DOT[state.tone]} ring-2 ring-white`}
             aria-hidden
           />
-          <span className="font-medium text-sm truncate">{monitor.serviceName}</span>
+          <Link
+            href={monitorDetailHref(nodeId, monitor.id)}
+            className="font-medium text-sm truncate hover:underline underline-offset-2"
+            title="Charts, incidents and checks"
+          >
+            {monitor.serviceName}
+          </Link>
           <Badge variant="outline" className="text-xs shrink-0">
             {CHECK_TYPE_LABEL[monitor.checkType] ?? monitor.checkType}
           </Badge>

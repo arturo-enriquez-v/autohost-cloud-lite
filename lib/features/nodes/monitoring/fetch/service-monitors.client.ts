@@ -61,6 +61,19 @@ export async function fetchCheckServiceMonitorNow(nodeId: string, monitorId: str
   });
 }
 
+export async function fetchMonitorStats(nodeId: string, monitorId: string, range: string): Promise<Response> {
+  return fetchWithAuth(`${CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.STATS(nodeId, monitorId)}?range=${range}`, {
+    method: "GET",
+  });
+}
+
+export async function fetchMonitorIncidents(nodeId: string, monitorId: string, range: string): Promise<Response> {
+  return fetchWithAuth(
+    `${CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.INCIDENTS(nodeId, monitorId)}?range=${range}`,
+    { method: "GET" }
+  );
+}
+
 export async function fetchUptimeHistory(nodeId: string, monitorId: string): Promise<Response> {
   return fetchWithAuth(
     CLIENT_API_MONITOR_ENDPOINTS.SERVICE_MONITORS.UPTIME(nodeId, monitorId),

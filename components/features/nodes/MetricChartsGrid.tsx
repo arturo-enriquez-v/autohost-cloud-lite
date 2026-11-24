@@ -51,7 +51,7 @@ interface MetricChartProps {
   isLoading: boolean
 }
 
-function MetricChart({ title, description, dataKey, color, unit = "%", icon, data, range, isLoading }: MetricChartProps) {
+export function MetricChart({ title, description, dataKey, color, unit = "%", icon, data, range, isLoading }: MetricChartProps) {
   return (
     <Card>
       <CardHeader className="pb-2">

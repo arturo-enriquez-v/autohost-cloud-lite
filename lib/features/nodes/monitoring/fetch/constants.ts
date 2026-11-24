@@ -9,6 +9,10 @@ export const CLIENT_API_MONITOR_ENDPOINTS = {
       `/api/nodes/${nodeId}/service-monitors/${monitorId}/history`,
     CHECK: (nodeId: string, monitorId: string) =>
       `/api/nodes/${nodeId}/service-monitors/${monitorId}/check`,
+    STATS: (nodeId: string, monitorId: string) =>
+      `/api/nodes/${nodeId}/service-monitors/${monitorId}/stats`,
+    INCIDENTS: (nodeId: string, monitorId: string) =>
+      `/api/nodes/${nodeId}/service-monitors/${monitorId}/incidents`,
   },
 } as const;
 
@@ -21,5 +25,7 @@ export const API_MONITOR_ENDPOINTS = {
     UPTIME: (id: string) => `/v1/service-monitors/${id}/uptime`,
     HISTORY: (id: string) => `/v1/service-monitors/${id}/history`,
     CHECK: (id: string) => `/v1/service-monitors/${id}/check`,
+    STATS: (id: string) => `/v1/service-monitors/${id}/stats`,
+    INCIDENTS: (id: string) => `/v1/service-monitors/${id}/incidents`,
   },
 } as const;

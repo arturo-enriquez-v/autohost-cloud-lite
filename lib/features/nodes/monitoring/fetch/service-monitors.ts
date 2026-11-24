@@ -1,5 +1,12 @@
 import { API_MONITOR_ENDPOINTS } from "./constants";
 import type {
+  MonitorIncident,
+  MonitorIncidentBackendResponse,
+  MonitorStats,
+  MonitorStatsBackendResponse,
+  MetricRange,
+} from "@/lib/features/nodes/types";
+import type {
   ServiceMonitor,
   ServiceMonitorBackendResponse,
   ServiceHealthEventBackendResponse,
@@ -66,6 +73,40 @@ export function mapEventFromBackend(r: ServiceHealthEventBackendResponse): Servi
   };
 }
 
+export function mapStatsFromBackend(r: MonitorStatsBackendResponse): MonitorStats {
+  return {
+    range: r.range,
+    from: r.from,
+    bucketSeconds: r.bucket_seconds,
+    summary: {
+      checks: r.summary.checks,
+      passed: r.summary.passed,
+      failed: r.summary.failed,
+      uptimePercent: r.summary.uptime_percent,
+      avgLatencyMs: r.summary.avg_latency_ms,
+      p95LatencyMs: r.summary.p95_latency_ms,
+      incidents: r.summary.incidents,
+    },
+    buckets: (r.buckets ?? []).map((b) => ({
+      bucket: b.bucket,
+      passed: b.passed,
+      failed: b.failed,
+      avgLatencyMs: b.avg_latency_ms,
+      p95LatencyMs: b.p95_latency_ms,
+    })),
+  };
+}
+
+export function mapIncidentFromBackend(r: MonitorIncidentBackendResponse): MonitorIncident {
+  return {
+    startedAt: r.started_at,
+    lastFailedAt: r.last_failed_at,
+    resolvedAt: r.resolved_at,
+    failedChecks: r.failed_checks,
+    message: r.message,
+  };
+}
+
 export function mapUptimeFromBackend(r: UptimePointBackendResponse): UptimePoint {
   return { bucket: r.bucket, status: r.status, up: r.up ?? null, down: r.down ?? null };
 }
@@ -122,6 +163,22 @@ export async function deleteServiceMonitorBackend(id: string, accessToken: strin
 export async function getEventHistoryBackend(monitorId: string, limit: number, accessToken: string) {
   return backendFetch(
     `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.HISTORY(monitorId)}?limit=${limit}`,
+    { method: "GET" },
+    accessToken
+  );
+}
+
+export async function getMonitorStatsBackend(monitorId: string, range: MetricRange, accessToken: string) {
+  return backendFetch(
+    `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.STATS(monitorId)}?range=${range}`,
+    { method: "GET" },
+    accessToken
+  );
+}
+
+export async function getMonitorIncidentsBackend(monitorId: string, range: MetricRange, accessToken: string) {
+  return backendFetch(
+    `${API_MONITOR_ENDPOINTS.SERVICE_MONITORS.INCIDENTS(monitorId)}?range=${range}`,
     { method: "GET" },
     accessToken
   );

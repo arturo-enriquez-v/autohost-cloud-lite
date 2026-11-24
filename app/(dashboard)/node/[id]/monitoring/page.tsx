@@ -11,12 +11,10 @@ import type { MetricRange } from "@/lib/features/nodes/types"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useNodeMetrics } from "@/lib/features/nodes/monitoring/hooks/useNodeMetrics"
 import { LiveMetricsCard, MetricChartsGrid } from "@/components/features/nodes"
-
-const RANGES: { value: MetricRange; label: string }[] = [
-  { value: "1d", label: "24h" },
-  { value: "7d", label: "7 days" },
-  { value: "30d", label: "30 days" },
-]
+import { RangeSelector } from "@/components/features/nodes/monitors/RangeSelector"
+import { ServiceMonitorsOverview } from "@/components/features/nodes/monitors/ServiceMonitorsOverview"
+import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
+import { PERMS } from "@/lib/features/users/permissions"
 
 export default function MonitoringPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: nodeId } = use(params)
@@ -25,6 +23,7 @@ export default function MonitoringPage({ params }: { params: Promise<{ id: strin
 
   const { node, isLoading: nodeLoading } = useNodes(nodeId)
   const { points, isLoading, error, lastUpdated, refresh } = useNodeMetrics(nodeId, range)
+  const { can } = useNodePermissions(nodeId)
 
   const chartData = points.map((p) => ({
     bucket: p.bucket,
@@ -56,21 +55,7 @@ export default function MonitoringPage({ params }: { params: Promise<{ id: strin
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center rounded-md border bg-background text-sm">
-            {RANGES.map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setRange(value)}
-                className={`px-3 py-1.5 transition-colors first:rounded-l-md last:rounded-r-md ${
-                  range === value
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <RangeSelector value={range} onChange={setRange} />
           <Button variant="outline" size="icon" onClick={refresh} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
@@ -84,6 +69,7 @@ export default function MonitoringPage({ params }: { params: Promise<{ id: strin
       )}
 
       <LiveMetricsCard nodeId={nodeId} />
+      {can(PERMS.MONITORS_READ) && <ServiceMonitorsOverview nodeId={nodeId} range={range} />}
       <MetricChartsGrid data={chartData} range={range} isLoading={isLoading} />
     </div>
   )
