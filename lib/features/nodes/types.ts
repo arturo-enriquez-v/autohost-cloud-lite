@@ -303,6 +303,8 @@ export interface ServiceMonitorBackendResponse {
   enabled: boolean;
   status: MonitorStatus;
   consecutive_failures: number;
+  /** Enabled but without recent results (node offline); `status` is out of date. Missing on older APIs. */
+  stale?: boolean;
   last_checked_at: string | null;
   created_at: string;
   updated_at: string;
@@ -342,6 +344,8 @@ export interface ServiceMonitor {
   enabled: boolean;
   status: MonitorStatus;
   consecutiveFailures: number;
+  /** Enabled but without recent results (node offline); `status` is out of date. */
+  stale: boolean;
   lastCheckedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -370,6 +374,7 @@ export type UpsertServiceMonitorPayload = Omit<
   | "userId"
   | "status"
   | "consecutiveFailures"
+  | "stale"
   | "lastCheckedAt"
   | "createdAt"
   | "updatedAt"

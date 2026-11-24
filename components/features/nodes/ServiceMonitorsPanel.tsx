@@ -17,19 +17,49 @@ import { PERMS } from "@/lib/features/users/permissions";
 
 // ─── Status indicator ─────────────────────────────────────────────────────────
 
-function StatusDot({ status }: { status: MonitorStatus }) {
+function StatusDot({ monitor }: { monitor: ServiceMonitor }) {
   const map: Record<MonitorStatus, string> = {
     healthy: "bg-green-500",
     degraded: "bg-yellow-500",
     down: "bg-red-500",
     unknown: "bg-gray-400",
   };
+  // A paused or stale monitor's status is out of date: don't show it as current.
+  const outdated = !monitor.enabled || monitor.stale;
+  const color = outdated ? "bg-gray-400" : (map[monitor.status] ?? "bg-gray-400");
+  const label = !monitor.enabled ? "paused" : monitor.stale ? "no recent data" : monitor.status;
   return (
     <span
-      className={`inline-block h-2.5 w-2.5 rounded-full ${map[status]} ring-2 ring-white`}
-      aria-label={status}
+      className={`inline-block h-2.5 w-2.5 rounded-full ${color} ring-2 ring-white`}
+      aria-label={label}
+      title={label}
     />
   );
+}
+
+function FreshnessBadge({ monitor }: { monitor: ServiceMonitor }) {
+  if (!monitor.enabled) {
+    return (
+      <Badge variant="outline" className="text-[10px] text-muted-foreground">
+        PAUSED
+      </Badge>
+    );
+  }
+  if (monitor.stale) {
+    const since = monitor.lastCheckedAt
+      ? `Last result ${new Date(monitor.lastCheckedAt).toLocaleString()}`
+      : "No result received yet";
+    return (
+      <Badge
+        variant="outline"
+        className="text-[10px] text-muted-foreground"
+        title={`${since}. The node may be offline; the status shown may be out of date.`}
+      >
+        NO RECENT DATA
+      </Badge>
+    );
+  }
+  return null;
 }
 
 function AutoHealBadge({ state, config }: { state?: ServiceHealthState; config?: AutoHealConfig }) {
@@ -106,12 +136,15 @@ function MonitorRow({
     <div className="rounded-lg border p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
-          <StatusDot status={monitor.status} />
+          <StatusDot monitor={monitor} />
           <span className="font-medium text-sm truncate">{monitor.serviceName}</span>
           <Badge variant="outline" className="text-xs shrink-0">
             {checkTypeLabel[monitor.checkType] ?? monitor.checkType}
           </Badge>
-          <AutoHealBadge config={monitor.autoHealConfig} state={monitor.autoHealState} />
+          <FreshnessBadge monitor={monitor} />
+          {monitor.enabled && !monitor.stale && (
+            <AutoHealBadge config={monitor.autoHealConfig} state={monitor.autoHealState} />
+          )}
         </div>
         {canManage && (
           <div className="flex items-center gap-1 shrink-0">

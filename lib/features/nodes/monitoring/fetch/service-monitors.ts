@@ -43,6 +43,7 @@ export function mapMonitorFromBackend(r: ServiceMonitorBackendResponse): Service
     enabled: r.enabled ?? true,
     status: r.status ?? "unknown",
     consecutiveFailures: r.consecutive_failures ?? 0,
+    stale: r.stale ?? false,
     lastCheckedAt: r.last_checked_at ?? null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
