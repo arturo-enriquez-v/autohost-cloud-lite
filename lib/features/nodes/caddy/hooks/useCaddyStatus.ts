@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { LiveCaddyRoute } from "../interfaces/caddy";
 import type { Job } from "../../jobs/interfaces/job";
 import { JobService } from "../../jobs/services/job.service";
+import { pollJob } from "../../jobs/pollJob";
 
 export type CaddyStatusState = "idle" | "checking" | "running" | "stopped" | "unknown";
 
@@ -39,47 +40,49 @@ function parseJobOutput(job: Job): ParseResult {
 export function useCaddyStatus(nodeId: string) {
   const [status, setStatus] = useState<CaddyStatusState>("idle");
   const [liveRoutes, setLiveRoutes] = useState<LiveCaddyRoute[]>([]);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Each check gets a number; a newer check or unmounting invalidates the older one, including a
+  // dispatch that has not answered yet.
+  const runRef = useRef(0);
+  const cancelPollRef = useRef<(() => void) | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
+    cancelPollRef.current?.();
+    cancelPollRef.current = null;
   }, []);
 
+  useEffect(() => {
+    return () => {
+      runRef.current++;
+      stopPolling();
+    };
+  }, [stopPolling]);
+
   const check = useCallback(async () => {
+    const run = ++runRef.current;
     stopPolling();
     setStatus("checking");
     setLiveRoutes([]);
 
     try {
       const job = await JobService.dispatchJob(nodeId, "caddy.status", "default");
+      if (run !== runRef.current) return;
 
-      let attempts = 0;
-      const MAX_ATTEMPTS = 15;
-
-      pollingRef.current = setInterval(async () => {
-        attempts++;
-        try {
-          const updated = await JobService.getJob(job.id);
+      cancelPollRef.current = pollJob(job.id, {
+        onUpdate: (updated) => {
           const result = parseJobOutput(updated);
-          if (result.status !== "checking") {
-            stopPolling();
+          if (result.status === "checking") return false;
+          if (run === runRef.current) {
             setStatus(result.status);
             setLiveRoutes(result.routes);
-            return;
           }
-        } catch {
-          // ignore transient errors
-        }
-        if (attempts >= MAX_ATTEMPTS) {
-          stopPolling();
-          setStatus("unknown");
-        }
-      }, 2000);
+          return true;
+        },
+        onTimeout: () => {
+          if (run === runRef.current) setStatus("unknown");
+        },
+      });
     } catch {
-      setStatus("unknown");
+      if (run === runRef.current) setStatus("unknown");
     }
   }, [nodeId, stopPolling]);
 

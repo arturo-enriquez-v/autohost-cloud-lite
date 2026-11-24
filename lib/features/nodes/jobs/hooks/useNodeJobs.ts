@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Job, JobCommandType } from "../interfaces/job";
 import { JobService } from "../services/job.service";
+import { pollJob } from "../pollJob";
 
 export function useNodeJobs(nodeId: string) {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -36,44 +37,35 @@ export function useNodeJobs(nodeId: string) {
 export function useJobDispatch() {
   const [isDispatching, setIsDispatching] = useState(false);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // A newer dispatch or unmounting invalidates the older one, including a dispatch still in flight.
+  const runRef = useRef(0);
+  const cancelPollRef = useRef<(() => void) | null>(null);
 
   const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
+    cancelPollRef.current?.();
+    cancelPollRef.current = null;
   }, []);
 
   const dispatch = useCallback(
     async (nodeId: string, commandName: string, commandType: JobCommandType = "custom") => {
+      const run = ++runRef.current;
       setIsDispatching(true);
       setActiveJob(null);
       stopPolling();
 
       try {
         const job = await JobService.dispatchJob(nodeId, commandName, commandType);
+        if (run !== runRef.current) return;
         setActiveJob(job);
 
-        let attempts = 0;
-        const MAX_ATTEMPTS = 15;
-
-        pollingRef.current = setInterval(async () => {
-          attempts++;
-          try {
-            const updated = await JobService.getJob(job.id);
+        cancelPollRef.current = pollJob(job.id, {
+          onUpdate: (updated) => {
+            if (run !== runRef.current) return true;
             setActiveJob(updated);
-
-            if (updated.status === "completed" || updated.status === "failed") {
-              stopPolling();
-              return;
-            }
-          } catch {
-            // ignore polling errors
-          }
-
-          if (attempts >= MAX_ATTEMPTS) {
-            stopPolling();
+            return updated.status === "completed" || updated.status === "failed";
+          },
+          onTimeout: () => {
+            if (run !== runRef.current) return;
             setActiveJob((prev) =>
               prev
                 ? {
@@ -84,19 +76,20 @@ export function useJobDispatch() {
                   }
                 : prev
             );
-          }
-        }, 2000);
-      } catch (err) {
-        throw err;
+          },
+        });
       } finally {
-        setIsDispatching(false);
+        if (run === runRef.current) setIsDispatching(false);
       }
     },
     [stopPolling]
   );
 
   useEffect(() => {
-    return () => stopPolling();
+    return () => {
+      runRef.current++;
+      stopPolling();
+    };
   }, [stopPolling]);
 
   return { dispatch, isDispatching, activeJob, stopPolling };
