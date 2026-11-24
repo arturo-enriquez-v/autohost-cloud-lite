@@ -9,6 +9,7 @@ import {
   Legend,
   Line,
   LineChart,
+  Rectangle,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -39,6 +40,9 @@ import {
 export const SERIES_AVG = "#3987e5";
 export const SERIES_P95 = "#d95926";
 export const STATUS_FAILED = "#d03b3b";
+// Passed checks recede in neutral grey so failures stand out (not green: red/green is the hardest pair to
+// tell apart with colour blindness).
+export const STATUS_PASSED = "#6b7280";
 // Auto-heal action markers on the failed checks chart (categorical violet, checked against the red bars).
 export const ACTION_MARK = "#9085e9";
 
@@ -214,7 +218,18 @@ export function ResponseTimeChart({
 
 // ─── Failed checks ────────────────────────────────────────────────────────────
 
-export function FailedChecksChart({
+type ChecksPoint = { bucket: string; passed: number; failed: number };
+
+/** Rounds only the top of each stack: the failed segment, or the passed one when nothing failed. */
+function stackTop(segment: "passed" | "failed") {
+  return function StackSegment(props: unknown) {
+    const p = props as { payload?: ChecksPoint } & Record<string, unknown>;
+    const isTop = segment === "failed" || (p.payload?.failed ?? 0) === 0;
+    return <Rectangle {...p} radius={isTop ? [4, 4, 0, 0] : 0} />;
+  };
+}
+
+export function ChecksChart({
   stats,
   range,
   isLoading,
@@ -225,12 +240,11 @@ export function FailedChecksChart({
   isLoading: boolean;
   autoHealEvents?: AutoHealEvent[];
 }) {
-  const data = (stats?.buckets ?? []).map((b) => ({
+  const data: ChecksPoint[] = (stats?.buckets ?? []).map((b) => ({
     bucket: b.bucket,
+    passed: b.passed,
     failed: b.failed,
-    total: b.passed + b.failed,
   }));
-  const failed = stats?.summary.failed ?? 0;
   // One dashed line per bucket in which auto-heal restarted, recreated or gave up.
   const markers = Array.from(
     new Set(
@@ -244,59 +258,58 @@ export function FailedChecksChart({
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Failed checks</CardTitle>
-        <CardDescription>When checks failed, per interval</CardDescription>
+        <CardTitle className="text-base">Checks</CardTitle>
+        <CardDescription>Passed and failed checks per interval</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading && !stats ? (
           <ChartMessage>Loading…</ChartMessage>
         ) : !stats || stats.summary.checks === 0 ? (
           <ChartMessage>No checks in this period</ChartMessage>
-        ) : failed === 0 ? (
-          <ChartMessage>No failed checks in this period</ChartMessage>
         ) : (
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap={1}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-              <XAxis
-                dataKey="bucket"
-                tickFormatter={(v) => formatTick(v, range)}
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
-                interval="preserveStartEnd"
-                minTickGap={24}
-              />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={56} />
-              <Tooltip
-                cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
-                labelFormatter={(v) => formatBucketLabel(String(v), stats.bucketSeconds)}
-                formatter={(value: number, _name: string, item: { payload?: { total: number } }) => [
-                  `${value} of ${item.payload?.total ?? 0} checks`,
-                  "Failed",
-                ]}
-                contentStyle={TOOLTIP_STYLE}
-              />
-              <Bar dataKey="failed" name="Failed" fill={STATUS_FAILED} radius={[4, 4, 0, 0]} />
-              {markers.map((b) => (
-                <ReferenceLine key={b} x={b} stroke={ACTION_MARK} strokeWidth={2} strokeDasharray="4 3" />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        {stats && failed > 0 && (
-          <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: STATUS_FAILED }} />
-              Failed checks
-            </span>
-            {markers.length > 0 && (
+          <>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barCategoryGap={1}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
+                <XAxis
+                  dataKey="bucket"
+                  tickFormatter={(v) => formatTick(v, range)}
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval="preserveStartEnd"
+                  minTickGap={24}
+                />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={56} />
+                <Tooltip
+                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                  labelFormatter={(v) => formatBucketLabel(String(v), stats.bucketSeconds)}
+                  contentStyle={TOOLTIP_STYLE}
+                />
+                <Bar dataKey="passed" name="Passed" stackId="checks" fill={STATUS_PASSED} shape={stackTop("passed")} />
+                <Bar dataKey="failed" name="Failed" stackId="checks" fill={STATUS_FAILED} shape={stackTop("failed")} />
+                {markers.map((b) => (
+                  <ReferenceLine key={b} x={b} stroke={ACTION_MARK} strokeWidth={2} strokeDasharray="4 3" />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: ACTION_MARK }} />
-                Auto-heal action
+                <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: STATUS_PASSED }} />
+                Passed
               </span>
-            )}
-          </div>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: STATUS_FAILED }} />
+                Failed
+              </span>
+              {markers.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-3 border-l-2 border-dashed" style={{ borderColor: ACTION_MARK }} />
+                  Auto-heal action
+                </span>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

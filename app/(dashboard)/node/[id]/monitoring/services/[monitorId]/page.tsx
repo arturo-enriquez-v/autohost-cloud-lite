@@ -29,7 +29,7 @@ import { RangeSelector } from "@/components/features/nodes/monitors/RangeSelecto
 import {
   AutoHealTimeline,
   CheckLog,
-  FailedChecksChart,
+  ChecksChart,
   IncidentsTable,
   MonitorStatTiles,
   ResponseTimeChart,
@@ -198,7 +198,7 @@ export default function ServiceMonitorPage({ params }: { params: Promise<{ id: s
         />
       )}
 
-      <FailedChecksChart stats={stats} range={range} isLoading={statsLoading} autoHealEvents={autoHealEvents} />
+      <ChecksChart stats={stats} range={range} isLoading={statsLoading} autoHealEvents={autoHealEvents} />
 
       {(autoHealOn || autoHealEvents.length > 0) && (
         <AutoHealTimeline events={autoHealEvents} isLoading={autoHealLoading} enabled={autoHealOn} />
