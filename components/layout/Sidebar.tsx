@@ -19,6 +19,7 @@ import {
   FileText,
   Network,
   Share2,
+  Globe,
   CreditCard,
   Activity,
   Zap,
@@ -82,7 +83,7 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
   const { isAdmin } = useCurrentUser()
   const settingsItems = isAdmin ? [...platformAdminMenuItems, ...adminMenuItems] : []
   const [projectsOpen, setProjectsOpen] = useState(true)
-  const [networkingOpen, setNetworkingOpen] = useState(false)
+  const [networkingOpen, setNetworkingOpen] = useState(() => pathname?.startsWith("/networking") ?? false)
   const [billingOpen, setBillingOpen] = useState(true)
   const [createOpen, setCreateOpen] = useState(false)
   const [nameInput, setNameInput] = useState("")
@@ -245,6 +246,18 @@ export function Sidebar({ isCollapsed, isMobileOpen, onToggle, onClose }: Sideba
             >
               <Share2 className="h-4 w-4 shrink-0 opacity-70" />
               <span>Topology</span>
+            </button>
+            <button
+              onClick={() => navigate("/networking/proxy")}
+              className={cn(
+                "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/networking/proxy"
+                  ? "bg-[#70AEFF]/20 text-[#70AEFF] font-semibold"
+                  : "text-sidebar-foreground/80 hover:bg-[#70AEFF]/15 hover:text-[#70AEFF]"
+              )}
+            >
+              <Globe className="h-4 w-4 shrink-0 opacity-70" />
+              <span>Proxy</span>
             </button>
           </div>
         )}
