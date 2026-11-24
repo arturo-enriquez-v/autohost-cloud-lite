@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ServiceMonitorDialog } from "./ServiceMonitorDialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 
 import type { ServiceMonitor, MonitorStatus, UptimeBucket, ServiceHealthState, AutoHealConfig } from "@/lib/types";
 import { Activity, Plus, Pencil, Trash2, ShieldCheck, RefreshCw } from "lucide-react";
@@ -211,21 +212,24 @@ export function ServiceMonitorsPanel({ nodeId }: Props) {
   };
 
   const handleToggle = async (m: ServiceMonitor, enabled: boolean) => {
-    await update(m.id, {
-      nodeId,
-      serviceName: m.serviceName,
-      checkType: m.checkType,
-      httpUrl: m.httpUrl,
-      httpExpectedStatus: m.httpExpectedStatus,
-      tcpHost: m.tcpHost,
-      tcpPort: m.tcpPort,
-      intervalSeconds: m.intervalSeconds,
-      failureThreshold: m.failureThreshold,
-      notifyTelegram: m.notifyTelegram,
-      enabled,
-      autoHealConfig: m.autoHealConfig,
-      autoHealState: m.autoHealState,
-    });
+    try {
+      await update(m.id, {
+        nodeId,
+        serviceName: m.serviceName,
+        checkType: m.checkType,
+        httpUrl: m.httpUrl,
+        httpExpectedStatus: m.httpExpectedStatus,
+        tcpHost: m.tcpHost,
+        tcpPort: m.tcpPort,
+        intervalSeconds: m.intervalSeconds,
+        failureThreshold: m.failureThreshold,
+        notifyTelegram: m.notifyTelegram,
+        enabled,
+        autoHealConfig: m.autoHealConfig,
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not update the monitor");
+    }
   };
 
   return (

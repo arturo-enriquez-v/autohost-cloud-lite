@@ -203,6 +203,14 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
 
   const autoHeal = normalizeAutoHealConfig(form.autoHealConfig, form.serviceName);
 
+  // Keeps the compose service name in step with the monitored name until the user sets a different one.
+  const syncRecreateServiceName = (previousName: string, nextName: string) =>
+    setAutoHeal((ah) =>
+      ah.recreate.service_name === "" || ah.recreate.service_name === previousName
+        ? { ...ah, recreate: { ...ah.recreate, service_name: nextName } }
+        : ah
+    );
+
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -223,14 +231,9 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                 value={form.serviceName}
                 onChange={(e) => {
                   const val = e.target.value;
+                  syncRecreateServiceName(form.serviceName, val);
                   set("serviceName", val);
                   setShowSuggestions(true);
-                  if (!autoHeal.recreate.service_name) {
-                    setAutoHeal((ah) => ({
-                      ...ah,
-                      recreate: { ...ah.recreate, service_name: val },
-                    }));
-                  }
                 }}
                 onFocus={() => setShowSuggestions(true)}
               />
@@ -252,11 +255,8 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
                         onMouseDown={(e) => {
                           e.preventDefault();
+                          syncRecreateServiceName(form.serviceName, c.name);
                           set("serviceName", c.name);
-                          setAutoHeal((ah) => ({
-                            ...ah,
-                            recreate: { ...ah.recreate, service_name: c.name },
-                          }));
                           setShowSuggestions(false);
                         }}
                       >

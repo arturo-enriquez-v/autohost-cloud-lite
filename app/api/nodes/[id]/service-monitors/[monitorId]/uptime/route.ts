@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getUptimeHistory24hBackend, mapUptimeFromBackend } from "@/lib/features/nodes/monitoring/fetch/service-monitors";
+import {
+  getUptimeHistory24hBackend,
+  mapUptimeFromBackend,
+  readBackendError,
+} from "@/lib/features/nodes/monitoring/fetch/service-monitors";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { UptimePointBackendResponse } from "@/lib/types";
 
@@ -17,7 +21,7 @@ export async function GET(
   try {
     const res = await getUptimeHistory24hBackend(monitorId, accessToken);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      const err = await readBackendError(res, "Request failed");
       return NextResponse.json(err, { status: res.status });
     }
     const data: UptimePointBackendResponse[] = await res.json();

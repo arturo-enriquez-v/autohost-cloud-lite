@@ -366,7 +366,15 @@ export interface UptimePoint {
 
 export type UpsertServiceMonitorPayload = Omit<
   ServiceMonitor,
-  "id" | "userId" | "status" | "consecutiveFailures" | "lastCheckedAt" | "createdAt" | "updatedAt"
+  | "id"
+  | "userId"
+  | "status"
+  | "consecutiveFailures"
+  | "lastCheckedAt"
+  | "createdAt"
+  | "updatedAt"
+  // Only the agent writes the auto-heal state; the API ignores it in requests.
+  | "autoHealState"
 >;
 
 // ─── Log entries (SSE feed) ───────────────────────────────────────────────────

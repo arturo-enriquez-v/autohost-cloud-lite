@@ -3,6 +3,7 @@ import {
   updateServiceMonitorBackend,
   deleteServiceMonitorBackend,
   mapMonitorFromBackend,
+  readBackendError,
 } from "@/lib/features/nodes/monitoring/fetch/service-monitors";
 import { getAccessTokenFromCookie } from "@/lib/cookies";
 import type { ServiceMonitorBackendResponse } from "@/lib/types";
@@ -22,7 +23,7 @@ export async function PUT(
     const body = await req.json();
     const res = await updateServiceMonitorBackend(monitorId, { ...body, nodeId }, accessToken);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      const err = await readBackendError(res, "Request failed");
       return NextResponse.json(err, { status: res.status });
     }
     const data: ServiceMonitorBackendResponse = await res.json();
@@ -46,7 +47,7 @@ export async function DELETE(
   try {
     const res = await deleteServiceMonitorBackend(monitorId, accessToken);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      const err = await readBackendError(res, "Request failed");
       return NextResponse.json(err, { status: res.status });
     }
     return new NextResponse(null, { status: 204 });

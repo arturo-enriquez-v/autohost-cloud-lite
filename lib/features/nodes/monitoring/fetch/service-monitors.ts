@@ -10,6 +10,20 @@ import type {
 } from "@/lib/types";
 import { backendFetch } from "@/lib/api";
 
+// ─── Errors ───────────────────────────────────────────────────────────────────
+
+/** Reads an API error, which may be JSON (`{"error": ...}`) or plain text, as `{ error }`. */
+export async function readBackendError(res: Response, fallback: string): Promise<{ error: string }> {
+  const text = await res.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed?.error === "string" && parsed.error) return { error: parsed.error };
+  } catch {
+    // Plain-text error.
+  }
+  return { error: text.trim() || fallback };
+}
+
 // ─── Mappers ──────────────────────────────────────────────────────────────────
 
 export function mapMonitorFromBackend(r: ServiceMonitorBackendResponse): ServiceMonitor {
@@ -126,6 +140,5 @@ function toBackendPayload(p: UpsertServiceMonitorPayload) {
     notify_telegram: p.notifyTelegram,
     enabled: p.enabled,
     auto_heal_config: p.autoHealConfig,
-    auto_heal_state: p.autoHealState,
   };
 }
