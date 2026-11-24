@@ -100,6 +100,12 @@ const DEFAULT_FORM: UpsertServiceMonitorPayload = {
   autoHealConfig: DEFAULT_AUTO_HEAL,
 };
 
+const CHECK_TYPE_HELP: Record<CheckType, string> = {
+  process: "Passes while the Docker container is running.",
+  http: "The node requests the URL; passes when it answers with the expected status code.",
+  tcp: "The node opens a connection to the host and port; passes when it is accepted.",
+};
+
 const NAME_LABEL: Record<CheckType, string> = {
   process: "Container",
   http: "Name",
@@ -206,7 +212,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{monitor ? "Edit health check" : "Add health check"}</DialogTitle>
         </DialogHeader>
@@ -219,15 +225,16 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
               value={form.checkType}
               onValueChange={(v) => set("checkType", v as CheckType)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="process">Container — is it running?</SelectItem>
-                <SelectItem value="http">HTTP — does the URL answer with the expected status?</SelectItem>
-                <SelectItem value="tcp">TCP — does the port accept connections?</SelectItem>
+                <SelectItem value="process">Container running</SelectItem>
+                <SelectItem value="http">HTTP endpoint</SelectItem>
+                <SelectItem value="tcp">TCP port</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">{CHECK_TYPE_HELP[form.checkType]}</p>
           </div>
 
           {/* Container / name with autocomplete */}
@@ -348,7 +355,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
           {/* Interval & threshold */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="sm-interval">Check every (seconds)</Label>
+              <Label htmlFor="sm-interval">Interval (seconds)</Label>
               <Input
                 id="sm-interval"
                 type="number"
@@ -359,7 +366,7 @@ export function ServiceMonitorDialog({ nodeId, open, monitor, onClose, onSave }:
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="sm-threshold">Mark down after (failed checks)</Label>
+              <Label htmlFor="sm-threshold">Failures before down</Label>
               <Input
                 id="sm-threshold"
                 type="number"
