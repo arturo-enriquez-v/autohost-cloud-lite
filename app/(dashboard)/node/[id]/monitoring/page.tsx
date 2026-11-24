@@ -35,7 +35,8 @@ export default function MonitoringPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        {/* Up to the node, like the other node pages; router.back() bounced with the service view. */}
+        <Button variant="ghost" size="icon" onClick={() => router.push(`/node/${nodeId}`)} aria-label="Back to node">
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1 min-w-0">
