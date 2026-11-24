@@ -1,55 +1,42 @@
+/** Auto-heal settings of a service monitor. The agent applies them; field names match the API. */
 export interface AutoHealConfig {
   enabled: boolean;
-  consecutive_failures_threshold: number; // Ej: 3 fallos seguidos antes de actuar
-  grace_period_seconds: number;           // Ej: 30s de espera tras una acción antes de evaluar de nuevo
+  /** Failed checks before acting. The web client sets it to the monitor's failure threshold. */
+  consecutive_failures_threshold: number;
+  /** Seconds to wait after an action before acting again. */
+  grace_period_seconds: number;
   restart: {
     enabled: boolean;
-    max_attempts: number;          // Ej: 3 intentos
-    window_seconds: number;        // Ej: Dentro de una ventana de 900s (15 min)
+    /** Restarts allowed within window_seconds. */
+    max_attempts: number;
+    window_seconds: number;
   };
   recreate: {
     enabled: boolean;
-    compose_file_path: string;     // Ruta al docker-compose.yml
-    service_name: string;          // Nombre del servicio en el YAML
-    max_attempts: number;          // Recomendado: 1 por incidente
+    /** Empty: the agent reads the project from the container's Docker Compose labels. */
+    compose_file_path: string;
+    /** Empty: the compose service from the container's labels. */
+    service_name: string;
+    /** Recreations per incident. */
+    max_attempts: number;
   };
 }
 
 export type ServiceStatus =
-  | 'HEALTHY'
-  | 'DEGRADED'
-  | 'RESTARTING'
-  | 'RECREATING'
-  | 'CRITICAL_FAILED'
-  | 'COOLING_DOWN';
+  | "HEALTHY"
+  | "DEGRADED"
+  | "RESTARTING"
+  | "RECREATING"
+  | "CRITICAL_FAILED"
+  | "COOLING_DOWN";
 
+/** Auto-heal state reported by the agent (read-only). Timestamps are UNIX seconds. */
 export interface ServiceHealthState {
   status: ServiceStatus;
-  consecutiveFailures: number;
-  restartTimestamps: number[];      // Timestamps UNIX en segundos para la ventana
-  recreateAttempts: number;         // Intentos de recreación en el incidente actual
-  lastActionTimestamp: number | null; // UNIX timestamp en segundos de la última acción
-}
-
-export interface CommandExecutionResult {
-  stdout: string;
-  stderr: string;
-}
-
-export interface CommandExecutor {
-  exec(command: string): Promise<CommandExecutionResult>;
-}
-
-export interface AutoHealCallbacks {
-  onStatusChange?: (
-    serviceName: string,
-    previousStatus: ServiceStatus,
-    newStatus: ServiceStatus
-  ) => void;
-  onCriticalFailure?: (
-    serviceName: string,
-    state: ServiceHealthState,
-    error?: string
-  ) => void;
-  onLog?: (message: string, level: 'info' | 'warn' | 'error') => void;
+  consecutive_failures: number;
+  restart_timestamps: number[];
+  recreate_attempts: number;
+  last_action_timestamp: number | null;
+  failure_started_at?: number | null;
+  recovered_at?: number | null;
 }

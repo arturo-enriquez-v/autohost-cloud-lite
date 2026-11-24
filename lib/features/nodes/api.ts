@@ -16,9 +16,6 @@ import type {
   MetricRange,
   ContainerAction,
   CaddyRoute,
-  ServiceMonitor,
-  UpsertServiceMonitorPayload,
-  UptimePoint,
   HypervisorResponse,
   VirtualMachine,
   CreateVMRequest,
@@ -239,65 +236,6 @@ export async function deleteCaddyRoute(nodeId: string, domain: string): Promise<
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error || "Failed to delete Caddy route");
   }
-}
-
-// ── Service Monitors ──────────────────────────────────────────────────────────
-
-export async function fetchServiceMonitors(nodeId: string): Promise<ServiceMonitor[]> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors`);
-  if (!res.ok) throw new Error("Failed to fetch service monitors");
-  const data: ServiceMonitor[] = await res.json();
-  return data ?? [];
-}
-
-export async function createServiceMonitor(
-  nodeId: string,
-  payload: UpsertServiceMonitorPayload
-): Promise<ServiceMonitor> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || "Failed to create monitor");
-  }
-  return res.json();
-}
-
-export async function updateServiceMonitor(
-  nodeId: string,
-  monitorId: string,
-  payload: UpsertServiceMonitorPayload
-): Promise<ServiceMonitor> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || "Failed to update monitor");
-  }
-  return res.json();
-}
-
-export async function deleteServiceMonitor(nodeId: string, monitorId: string): Promise<void> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}`, {
-    method: "DELETE",
-  });
-  if (!res.ok && res.status !== 204) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || "Failed to delete monitor");
-  }
-}
-
-export async function fetchUptimeHistory(nodeId: string, monitorId: string): Promise<UptimePoint[]> {
-  const res = await fetchWithAuth(`/api/nodes/${nodeId}/service-monitors/${monitorId}/uptime`);
-  if (!res.ok) return [];
-  const data: UptimePoint[] = await res.json();
-  return data ?? [];
 }
 
 // ── Network stats (topology map drawer) ──────────────────────────────────────
