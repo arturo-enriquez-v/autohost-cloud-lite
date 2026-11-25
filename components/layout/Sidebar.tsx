@@ -26,6 +26,7 @@ import {
   Receipt,
   FolderOpen,
   Users,
+  Plug,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useRouter, usePathname } from "next/navigation"
@@ -62,6 +63,7 @@ const operationsMenuItems = [
   { id: "external-logs", label: "External Logs", icon: FileText, path: "/logs" },
   { id: "reports", label: "Reports", icon: Mail, path: "/reports" },
   { id: "schedules", label: "Schedules", icon: Calendar, path: "/schedules" },
+  { id: "connectors", label: "Connectors", icon: Plug, path: "/connectors" },
 ]
 
 const adminMenuItems = [

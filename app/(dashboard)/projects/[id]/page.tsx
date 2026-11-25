@@ -34,6 +34,7 @@ import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useCurrentUser } from "@/lib/context/current-user-context"
 import { ProjectMembersCard } from "@/components/features/projects/ProjectMembersCard"
+import { ConnectorsPanel } from "@/components/features/connectors/ConnectorsPanel"
 import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import type { Node } from "@/lib/types"
 
@@ -241,6 +242,8 @@ export default function ProjectDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <ConnectorsPanel projectId={id} embedded />
 
       {isAdmin && (
         <ProjectMembersCard
