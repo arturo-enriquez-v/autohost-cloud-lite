@@ -32,6 +32,10 @@ export const PERMS = {
   VMS_MANAGE: "vms:manage",
   ALERTS_READ: "alerts:read",
   ALERTS_MANAGE: "alerts:manage",
+  // Project-level: taken from the project membership, not from per-node grants.
+  CONNECTORS_READ: "connectors:read",
+  CONNECTORS_RUN: "connectors:run",
+  CONNECTORS_MANAGE: "connectors:manage",
 } as const;
 
 export type Permission = (typeof PERMS)[keyof typeof PERMS];
@@ -41,10 +45,12 @@ export type Permission = (typeof PERMS)[keyof typeof PERMS];
  *  - "*" grants everything
  *  - any permission of a module implies "<module>:read"
  *  - any permission at all implies "node:read"
+ *  - "connectors:manage" also implies "connectors:run"
  */
 export function hasPermission(perms: string[] | undefined | null, required: string): boolean {
   if (!perms || perms.length === 0) return false;
   if (perms.includes("*") || perms.includes(required)) return true;
+  if (required === PERMS.CONNECTORS_RUN && perms.includes(PERMS.CONNECTORS_MANAGE)) return true;
 
   const [module, action] = required.split(":");
   if (action === "read") {
@@ -58,6 +64,7 @@ export function hasPermission(perms: string[] | undefined | null, required: stri
 export function withImpliedReads(perms: string[]): string[] {
   const out = new Set(perms);
   if (out.size > 0) out.add(PERMS.NODE_READ);
+  if (out.has(PERMS.CONNECTORS_MANAGE)) out.add(PERMS.CONNECTORS_RUN);
   for (const p of perms) {
     const [module] = p.split(":");
     if (module && module !== "*") out.add(`${module}:read`);
