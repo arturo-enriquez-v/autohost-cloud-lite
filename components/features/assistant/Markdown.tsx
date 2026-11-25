@@ -130,7 +130,9 @@ export function Markdown({ text }: { text: string }) {
       i++
       continue
     }
-    const para: string[] = []
+    // A paragraph always takes the current line, so the loop advances even on lines no other block
+    // accepted (e.g. a table row whose separator has not streamed in yet).
+    const para: string[] = [lines[i++]]
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
