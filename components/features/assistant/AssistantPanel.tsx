@@ -96,7 +96,15 @@ function ApprovalCard({ calls, onDecide, busy }: { calls: AssistantCallInfo[]; o
                 className="mt-0.5"
               />
             )}
-            <span className="min-w-0 flex-1 break-all font-mono text-xs">{c.summary}</span>
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <span className="block break-all font-mono text-xs">{c.summary}</span>
+              {c.target && <span className="block text-xs font-medium">On {c.target}</span>}
+              {c.target_warning && (
+                <span className="block text-xs font-medium text-destructive">
+                  Check this: {c.target_warning}. The assistant may be using a wrong ID.
+                </span>
+              )}
+            </div>
             <EffectBadge effect={c.effect} />
           </li>
         ))}

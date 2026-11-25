@@ -26,6 +26,10 @@ export interface AssistantCallInfo {
   arguments: Record<string, unknown>;
   effect: AssistantEffect;
   summary: string;
+  /** Node the call acts on, looked up by the API (approval cards only). */
+  target?: string;
+  /** Set when the model's node reference matches no node, or several. */
+  target_warning?: string;
 }
 
 export interface AssistantToolResult {
