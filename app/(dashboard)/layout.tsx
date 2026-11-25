@@ -7,6 +7,7 @@ import { NodesProvider } from "@/lib/context/nodes-context"
 import { NotificationsProvider } from "@/lib/context/notifications-context"
 import { CurrentUserProvider } from "@/lib/context/current-user-context"
 import { useTokenRefresh } from "@/lib/hooks/useTokenRefresh"
+import { AssistantPanel } from "@/components/features/assistant/AssistantPanel"
 
 export default function DashboardLayout({
   children,
@@ -46,6 +47,7 @@ export default function DashboardLayout({
                 © AutoHost Cloud 2026 - Secure Server Management
               </footer>
             </div>
+            <AssistantPanel />
           </div>
         </NotificationsProvider>
       </NodesProvider>

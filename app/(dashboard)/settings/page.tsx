@@ -13,6 +13,8 @@ import { useReportSettings } from "@/lib/features/report-settings/hooks/useRepor
 import { TelegramBotsCard } from "@/components/features/settings/TelegramBotsCard"
 import { HeadscaleCard } from "@/components/features/settings/HeadscaleCard"
 import { ApiTokensCard } from "@/components/features/settings/ApiTokensCard"
+import { AssistantSettingsCard } from "@/components/features/settings/AssistantSettingsCard"
+import { useCurrentUser } from "@/lib/context/current-user-context"
 
 const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -23,6 +25,7 @@ function formatHour(h: number) {
 }
 
 export default function SettingsPage() {
+  const { isAdmin } = useCurrentUser()
   const { generateToken, isLoading, error } = useEnrollments()
   const [apiKey, setApiKey] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -140,6 +143,7 @@ export default function SettingsPage() {
         <HeadscaleCard />
         <TelegramBotsCard />
         <ApiTokensCard />
+        {isAdmin && <AssistantSettingsCard />}
         <Card>
           <CardHeader>
             <CardTitle>API Configuration</CardTitle>
