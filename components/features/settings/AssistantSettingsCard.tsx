@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { AssistantService } from "@/lib/features/assistant/services/assistant.service"
+import { ASSISTANT_SETTINGS_CHANGED } from "@/lib/features/assistant/hooks/useAssistantStatus"
 import type { AssistantSettings, AssistantSettingsInput } from "@/lib/features/assistant/interfaces/assistant"
 
 type KeyMode = "keep" | "replace" | "clear"
@@ -90,6 +91,7 @@ export function AssistantSettingsCard() {
       setApiKey("")
       setKeyMode(saved.has_api_key ? "keep" : "replace")
       toast.success("Assistant settings saved")
+      window.dispatchEvent(new Event(ASSISTANT_SETTINGS_CHANGED))
       loadModels()
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save")
