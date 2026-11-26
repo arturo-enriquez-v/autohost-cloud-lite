@@ -11,11 +11,13 @@ import {
   Info,
   Server,
   ChevronRight,
+  Sparkles,
 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useNotifications } from "@/lib/context/notifications-context"
+import { useOptionalAssistantUI } from "@/lib/context/assistant-context"
 import { cn } from "@/lib/utils"
 
 function formatTimeAgo(dateStr: string): string {
@@ -54,6 +56,20 @@ export function NotificationBell() {
     markLogsAsRead,
     markAllAsRead,
   } = useNotifications()
+  // The assistant's answer (or a change waiting for approval) that arrived while its panel was closed.
+  const assistant = useOptionalAssistantUI()
+  const assistantNotice = assistant?.notice ?? null
+  const badgeCount = totalUnread + (assistantNotice ? 1 : 0)
+
+  const openAssistant = () => {
+    setOpen(false)
+    assistant?.openPanel()
+  }
+
+  const markEverythingRead = () => {
+    assistant?.setNotice(null)
+    markAllAsRead()
+  }
 
   // Merge and sort recent items
   const items = useMemo(() => {
@@ -126,9 +142,9 @@ export function NotificationBell() {
           suppressHydrationWarning
         >
           <Bell className="h-5 w-5" />
-          {totalUnread > 0 && (
+          {badgeCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-card animate-in zoom-in-50">
-              {totalUnread > 99 ? "99+" : totalUnread}
+              {badgeCount > 99 ? "99+" : badgeCount}
             </span>
           )}
         </Button>
@@ -138,15 +154,15 @@ export function NotificationBell() {
         <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/30">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm text-foreground">Notifications</span>
-            {totalUnread > 0 && (
+            {badgeCount > 0 && (
               <Badge variant="secondary" className="bg-rose-500/15 text-rose-500 border border-rose-500/30 text-[10px] py-0 px-1.5 font-medium">
-                {totalUnread} new
+                {badgeCount} new
               </Badge>
             )}
           </div>
-          {totalUnread > 0 && (
+          {badgeCount > 0 && (
             <button
-              onClick={markAllAsRead}
+              onClick={markEverythingRead}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               title="Mark all as read"
             >
@@ -205,7 +221,47 @@ export function NotificationBell() {
 
         {/* Content list */}
         <div className="max-h-80 overflow-y-auto divide-y divide-border/60">
-          {filteredItems.length === 0 ? (
+          {assistantNotice && tab === "all" && (
+            <button
+              onClick={openAssistant}
+              className="w-full text-left px-4 py-3 flex items-start gap-3 bg-[#70AEFF]/5 hover:bg-accent/40 transition-colors group"
+            >
+              <div className="mt-0.5 shrink-0">
+                <div
+                  className={cn(
+                    "p-1.5 rounded-lg",
+                    assistantNotice.kind === "approval"
+                      ? "bg-amber-500/15 text-amber-500"
+                      : assistantNotice.kind === "error"
+                        ? "bg-rose-500/15 text-rose-500"
+                        : "bg-[#70AEFF]/15 text-[#70AEFF]"
+                  )}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 rounded border bg-[#70AEFF]/10 text-[#70AEFF] border-[#70AEFF]/20">
+                    Assistant
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/60 ml-auto">{formatTimeAgo(assistantNotice.at)}</span>
+                </div>
+                <p className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
+                  {assistantNotice.kind === "approval"
+                    ? "A change is waiting for your approval"
+                    : assistantNotice.kind === "error"
+                      ? "The assistant ran into a problem"
+                      : "The assistant answered"}
+                </p>
+                {assistantNotice.preview && (
+                  <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{assistantNotice.preview}</p>
+                )}
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground shrink-0 mt-1" />
+            </button>
+          )}
+          {filteredItems.length === 0 && !(assistantNotice && tab === "all") ? (
             <div className="flex flex-col items-center justify-center py-8 text-center px-4">
               <Bell className="h-8 w-8 text-muted-foreground/30 mb-2" />
               <p className="text-xs text-muted-foreground">No recent notifications</p>

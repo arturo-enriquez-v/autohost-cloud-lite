@@ -8,6 +8,7 @@ import { NotificationsProvider } from "@/lib/context/notifications-context"
 import { CurrentUserProvider } from "@/lib/context/current-user-context"
 import { useTokenRefresh } from "@/lib/hooks/useTokenRefresh"
 import { AssistantPanel } from "@/components/features/assistant/AssistantPanel"
+import { AssistantUIProvider } from "@/lib/context/assistant-context"
 
 export default function DashboardLayout({
   children,
@@ -24,6 +25,7 @@ export default function DashboardLayout({
     <ProjectProvider>
       <NodesProvider>
         <NotificationsProvider>
+          <AssistantUIProvider>
           <div className="flex h-screen overflow-hidden bg-background">
             {/* Mobile backdrop */}
             {mobileOpen && (
@@ -49,6 +51,7 @@ export default function DashboardLayout({
             </div>
             <AssistantPanel />
           </div>
+          </AssistantUIProvider>
         </NotificationsProvider>
       </NodesProvider>
     </ProjectProvider>

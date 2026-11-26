@@ -3,13 +3,15 @@
 
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import {
   Bot,
   Check,
   ChevronRight,
   Eye,
   Loader2,
+  Maximize2,
+  Minimize2,
   RotateCcw,
   Send,
   ShieldAlert,
@@ -23,12 +25,46 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
+import { useAssistantUI, type AssistantNotice } from "@/lib/context/assistant-context"
 import { useAssistantStatus } from "@/lib/features/assistant/hooks/useAssistantStatus"
 import { useAssistantChat, type ChatItem } from "@/lib/features/assistant/hooks/useAssistantChat"
 import type { AssistantCallInfo, AssistantEffect } from "@/lib/features/assistant/interfaces/assistant"
 import { Markdown } from "./Markdown"
 
 const PREFS_KEY = "autohost.assistant.prefs"
+const SIZE_KEY = "autohost.assistant.size"
+const MIN_W = 360
+const MIN_H = 380
+const DEFAULT_SIZE = { w: 440, h: 640 }
+
+type Size = { w: number; h: number }
+
+function clampSize(s: Size): Size {
+  if (typeof window === "undefined") return s
+  return {
+    w: Math.round(Math.min(Math.max(s.w, MIN_W), window.innerWidth - 40)),
+    h: Math.round(Math.min(Math.max(s.h, MIN_H), window.innerHeight - 40)),
+  }
+}
+
+/** True on screens where the panel floats (sm and up); on phones it fills the width. */
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 640px)")
+    const update = () => setDesktop(mq.matches)
+    update()
+    mq.addEventListener("change", update)
+    return () => mq.removeEventListener("change", update)
+  }, [])
+  return desktop
+}
+
+/** Plain-text extract of an answer for the notification. */
+function previewOf(text: string): string {
+  const plain = text.replace(/[*`#|>_-]+/g, " ").replace(/\s+/g, " ").trim()
+  return plain.length > 140 ? plain.slice(0, 140) + "…" : plain
+}
 
 function EffectBadge({ effect }: { effect: AssistantEffect }) {
   if (effect === "read") return null
@@ -133,18 +169,24 @@ function ApprovalCard({ calls, onDecide, busy }: { calls: AssistantCallInfo[]; o
  */
 export function AssistantPanel() {
   const { status } = useAssistantStatus()
-  const [open, setOpen] = useState(false)
+  const { open, setOpen, notice, setNotice } = useAssistantUI()
   const [model, setModel] = useState<string | undefined>(undefined)
   const [readOnly, setReadOnly] = useState(false)
   const [input, setInput] = useState("")
   const { items, pending, busy, send, decide, stop, reset } = useAssistantChat({ model, readOnly })
   const bottomRef = useRef<HTMLDivElement>(null)
+  const desktop = useIsDesktop()
+  const [size, setSize] = useState<Size>(DEFAULT_SIZE)
+  const [maximized, setMaximized] = useState(false)
 
   useEffect(() => {
     try {
       const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") as { model?: string; readOnly?: boolean }
       if (p.model) setModel(p.model)
       if (p.readOnly) setReadOnly(true)
+      const sz = JSON.parse(localStorage.getItem(SIZE_KEY) || "null") as (Size & { maximized?: boolean }) | null
+      if (sz?.w && sz?.h) setSize(clampSize(sz))
+      if (sz?.maximized) setMaximized(true)
     } catch {
       // ignore
     }
@@ -155,8 +197,57 @@ export function AssistantPanel() {
   }, [model, readOnly])
 
   useEffect(() => {
+    localStorage.setItem(SIZE_KEY, JSON.stringify({ ...size, maximized }))
+  }, [size, maximized])
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" })
   }, [items, pending, open])
+
+  // When a turn ends with the panel closed, leave a notice for the floating button and the bell.
+  const wasBusy = useRef(false)
+  useEffect(() => {
+    if (wasBusy.current && !busy && !open) {
+      const last = items[items.length - 1]
+      let n: AssistantNotice
+      if (pending.length > 0) {
+        n = { kind: "approval", preview: pending.map((p) => p.summary).join(" · "), at: new Date().toISOString() }
+      } else if (last?.kind === "error") {
+        n = { kind: "error", preview: last.text, at: new Date().toISOString() }
+      } else {
+        const answer = [...items].reverse().find((i) => i.kind === "assistant" && i.text)
+        n = { kind: "answer", preview: answer && answer.kind === "assistant" ? previewOf(answer.text) : "", at: new Date().toISOString() }
+      }
+      setNotice(n)
+    }
+    wasBusy.current = busy
+  }, [busy, open, items, pending, setNotice])
+
+  // Resizing from the left edge, the top edge or the top-left corner (the panel is anchored bottom-right).
+  const startResize = useCallback(
+    (e: ReactPointerEvent, dirX: boolean, dirY: boolean) => {
+      e.preventDefault()
+      const start = { x: e.clientX, y: e.clientY, ...size }
+      setMaximized(false)
+      const move = (ev: PointerEvent) => {
+        setSize(
+          clampSize({
+            w: dirX ? start.w + (start.x - ev.clientX) : start.w,
+            h: dirY ? start.h + (start.y - ev.clientY) : start.h,
+          })
+        )
+      }
+      const up = () => {
+        window.removeEventListener("pointermove", move)
+        window.removeEventListener("pointerup", up)
+        document.body.style.userSelect = ""
+      }
+      document.body.style.userSelect = "none"
+      window.addEventListener("pointermove", move)
+      window.addEventListener("pointerup", up)
+    },
+    [size]
+  )
 
   if (!status?.enabled) return null
   const models = status.models
@@ -170,20 +261,63 @@ export function AssistantPanel() {
   }
 
   if (!open) {
+    const title = busy
+      ? "Assistant: working on your request"
+      : notice?.kind === "approval"
+        ? "Assistant: waiting for your approval"
+        : notice
+          ? "Assistant: answer ready"
+          : "Assistant"
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        title="Assistant"
+        title={title}
+        aria-label={title}
         className="fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[#70AEFF] text-black shadow-lg transition-transform hover:scale-105"
       >
         <Sparkles className="h-5 w-5" />
+        {/* Working: a ring spins around the button. */}
+        {busy && (
+          <span className="pointer-events-none absolute -inset-1 animate-spin rounded-full border-2 border-[#70AEFF] border-t-transparent" />
+        )}
+        {/* Done while closed: a dot, green for an answer, amber when a change waits for approval. */}
+        {!busy && notice && (
+          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
+            <span
+              className={cn(
+                "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
+                notice.kind === "approval" ? "bg-amber-400" : notice.kind === "error" ? "bg-rose-400" : "bg-emerald-400"
+              )}
+            />
+            <span
+              className={cn(
+                "relative inline-flex h-3.5 w-3.5 rounded-full ring-2 ring-background",
+                notice.kind === "approval" ? "bg-amber-500" : notice.kind === "error" ? "bg-rose-500" : "bg-emerald-500"
+              )}
+            />
+          </span>
+        )}
       </button>
     )
   }
 
+  const panelSize = maximized
+    ? clampSize({ w: 1100, h: typeof window === "undefined" ? 900 : window.innerHeight })
+    : size
+
   return (
-    <div className="fixed inset-x-2 bottom-2 z-40 flex h-[85vh] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-[440px]">
+    <div
+      className="fixed inset-x-2 bottom-2 z-40 flex h-[85vh] flex-col overflow-hidden rounded-xl border bg-background shadow-2xl sm:inset-x-auto sm:right-5 sm:bottom-5"
+      style={desktop ? { width: panelSize.w, height: panelSize.h } : undefined}
+    >
+      {desktop && (
+        <>
+          <div className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-ew-resize hover:bg-[#70AEFF]/30" onPointerDown={(e) => startResize(e, true, false)} />
+          <div className="absolute inset-x-0 top-0 z-10 h-1.5 cursor-ns-resize hover:bg-[#70AEFF]/30" onPointerDown={(e) => startResize(e, false, true)} />
+          <div className="absolute left-0 top-0 z-20 h-3 w-3 cursor-nwse-resize" onPointerDown={(e) => startResize(e, true, true)} />
+        </>
+      )}
       <div className="flex items-center gap-2 border-b px-3 py-2">
         <Bot className="h-4 w-4 text-[#70AEFF]" />
         <span className="text-sm font-semibold">Assistant</span>
@@ -210,6 +344,17 @@ export function AssistantPanel() {
         <Button size="icon" variant="ghost" className="h-7 w-7" title="New conversation" onClick={reset}>
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
+        {desktop && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            title={maximized ? "Restore size" : "Enlarge"}
+            onClick={() => setMaximized((m) => !m)}
+          >
+            {maximized ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </Button>
+        )}
         <Button size="icon" variant="ghost" className="h-7 w-7" title="Close" onClick={() => setOpen(false)}>
           <X className="h-4 w-4" />
         </Button>
