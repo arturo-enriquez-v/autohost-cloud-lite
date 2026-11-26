@@ -199,7 +199,7 @@ export function NodeAlertsCard({ nodeId }: NodeAlertsCardProps) {
                     New Bot
                   </Button>
                   <Link
-                    href="/settings"
+                    href="/profile?tab=notifications"
                     className="text-xs text-primary hover:underline flex items-center gap-1"
                   >
                     Manage Bots <ExternalLink className="h-3 w-3" />

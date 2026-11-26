@@ -1,206 +1,38 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Arturo (AutoHost)
+
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { Copy, Check, Send, ExternalLink, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react"
-import { useEnrollments } from "@/lib/features/enrollments/hooks/useEnrollments"
-import { useReportSettings } from "@/lib/features/report-settings/hooks/useReportSettings"
-import { TelegramBotsCard } from "@/components/features/settings/TelegramBotsCard"
-import { ApiTokensCard } from "@/components/features/settings/ApiTokensCard"
+import Link from "next/link"
+import { Loader2 } from "lucide-react"
 import { AssistantSettingsCard } from "@/components/features/settings/AssistantSettingsCard"
 import { useCurrentUser } from "@/lib/context/current-user-context"
 
-const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
-
-function formatHour(h: number) {
-  const period = h < 12 ? "AM" : "PM"
-  const display = h % 12 === 0 ? 12 : h % 12
-  return `${String(display).padStart(2, "0")}:00 ${period} (UTC)`
-}
-
+/**
+ * Platform settings (admins). What belongs to each user (notifications, API tokens) is in My account.
+ */
 export default function SettingsPage() {
-  const { isAdmin } = useCurrentUser()
-  const { generateToken, isLoading, error } = useEnrollments()
-  const [apiKey, setApiKey] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-
-  const { settings, isLoading: reportLoading, isSaving, error: reportError, save } = useReportSettings()
-  const [saved, setSaved] = useState(false)
-
-  const handleToggle = async (enabled: boolean) => {
-    await save({ ...settings, enabled })
-  }
-
-  const handleHourChange = (value: string) => {
-    save({ ...settings, hour_utc: Number(value) })
-  }
-
-  const generateApiKey = async () => {
-    const result = await generateToken()
-    if (result.success && result.data) {
-      setApiKey(result.data.token)
-    }
-  }
-
-  const copyToClipboard = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(apiKey)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
+  const { isAdmin, isLoading } = useCurrentUser()
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-foreground">Settings</h2>
-        <p className="text-sm text-muted-foreground">Configure your dashboard preferences</p>
+        <p className="text-sm text-muted-foreground">
+          Platform settings for administrators. Your notifications and API tokens are in{" "}
+          <Link href="/profile?tab=notifications" className="text-[#70AEFF] underline">
+            My account
+          </Link>
+          .
+        </p>
       </div>
-
-      <div className="grid gap-6">
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Mail className="h-5 w-5" />
-                  Email Reports
-                </CardTitle>
-                <CardDescription>
-                  Receive a daily node status report by email with metrics, alerts and uptime summary.
-                </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => window.location.href = "/reports"}>
-                Configure & Groups <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {reportError && (
-              <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                {reportError}
-              </div>
-            )}
-
-            {/* Enable toggle */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="report-toggle" className="text-sm font-medium">
-                  Enable daily report
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Sends a summary to your account email once a day
-                </p>
-              </div>
-              {reportLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-              ) : (
-                <Switch
-                  id="report-toggle"
-                  checked={settings.enabled}
-                  onCheckedChange={handleToggle}
-                  disabled={isSaving}
-                />
-              )}
-            </div>
-
-            {/* Hour selector */}
-            <div className={`space-y-2 transition-opacity ${settings.enabled ? "opacity-100" : "opacity-40 pointer-events-none"}`}>
-              <Label htmlFor="report-hour" className="text-sm font-medium">
-                Delivery time
-              </Label>
-              <Select
-                value={String(settings.hour_utc)}
-                onValueChange={handleHourChange}
-                disabled={!settings.enabled || isSaving || reportLoading}
-              >
-                <SelectTrigger id="report-hour" className="w-56">
-                  <SelectValue placeholder="Select hour" />
-                </SelectTrigger>
-                <SelectContent>
-                  {UTC_HOURS.map((h) => (
-                    <SelectItem key={h} value={String(h)}>
-                      {formatHour(h)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                All times are in UTC. Your local time may differ.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <TelegramBotsCard />
-        <ApiTokensCard />
-        {isAdmin && <AssistantSettingsCard />}
-        <Card>
-          <CardHeader>
-            <CardTitle>API Configuration</CardTitle>
-            <CardDescription>Manage your API keys and authentication</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="text-sm text-red-500">
-                {error}
-              </div>
-            )}
-            {apiKey ? (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="api-key">API Key</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="api-key"
-                      type="text"
-                      value={apiKey}
-                      readOnly
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={copyToClipboard}
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Copy this token now. It won't be shown again after you reload the page.
-                  </p>
-                </div>
-                <Button onClick={generateApiKey} disabled={isLoading}>
-                  {isLoading ? "Generating..." : "Regenerate API Key"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  Generate a new API key to enroll nodes with the AutoHost-CLI
-                </p>
-                <Button onClick={generateApiKey} disabled={isLoading}>
-                  {isLoading ? "Generating..." : "Generate API Key"}
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-
-        <div className="flex justify-end gap-3">
-          <Button variant="outline">Reset to Defaults</Button>
-          <Button>Save Changes</Button>
-        </div>
-      </div>
+      {isLoading ? (
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      ) : isAdmin ? (
+        <AssistantSettingsCard />
+      ) : (
+        <p className="text-sm text-muted-foreground">Only administrators can change platform settings.</p>
+      )}
     </div>
   )
 }

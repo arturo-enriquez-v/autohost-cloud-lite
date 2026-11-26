@@ -92,7 +92,7 @@ export function Header({ onMobileMenu }: HeaderProps) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push("/profile")}>
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>My account</span>
           </DropdownMenuItem>
           {user?.is_admin && (
             <DropdownMenuItem onClick={() => router.push("/settings")}>

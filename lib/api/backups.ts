@@ -1,17 +1,5 @@
 import { backendFetch } from "@/lib/api";
 
-export interface StorageCredential {
-  id: string;
-  name: string;
-  provider: string;
-  endpoint: string;
-  bucket: string;
-  region: string;
-  access_key_id: string;
-  is_default: boolean;
-  created_at: string;
-}
-
 export interface BackupConfig {
   id?: string;
   node_id?: string;
@@ -47,25 +35,6 @@ export interface BackupRecord {
   user_email?: string;
   started_at: string;
   completed_at?: string;
-}
-
-export async function fetchStorageCredentials(accessToken: string): Promise<StorageCredential[]> {
-  const res = await backendFetch("/v1/backups/credentials", {}, accessToken);
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function createStorageCredentialBackend(data: any, accessToken: string) {
-  return backendFetch("/v1/backups/credentials", {
-    method: "POST",
-    body: JSON.stringify(data),
-  }, accessToken);
-}
-
-export async function deleteStorageCredentialBackend(id: string, accessToken: string) {
-  return backendFetch(`/v1/backups/credentials/${id}`, {
-    method: "DELETE",
-  }, accessToken);
 }
 
 export async function fetchBackupConfig(nodeId: string, containerName: string, accessToken: string): Promise<BackupConfig | null> {
