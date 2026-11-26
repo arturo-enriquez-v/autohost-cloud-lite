@@ -16,7 +16,8 @@ export async function GET(
     {
       node_id: nodeId,
       token: accessToken,
-      api_url: process.env.NEXT_PUBLIC_API_URL || process.env.PUBLIC_API_URL || "",
+      // PUBLIC_API_URL first: it is read when the server starts, while NEXT_PUBLIC_* is fixed at build time.
+      api_url: process.env.PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL || "",
     },
     { status: 200 }
   );

@@ -19,6 +19,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { terminalWebSocketBase } from "@/lib/utils/terminal-ws"
+
+// The terminal is the one part of the panel the browser opens straight to the API.
+const TERMINAL_HELP =
+  "If you open the panel through a domain, the API needs its own public HTTPS URL (PUBLIC_API_URL in the panel) " +
+  "and must accept the panel's origin (FRONTEND_URL in the API). On a LAN or VPN, port 8080 must be reachable."
 
 interface NodeWebTerminalProps {
   nodeId: string
@@ -208,31 +214,7 @@ export function NodeWebTerminal({ nodeId, nodeName, ipVpn }: NodeWebTerminalProp
       }
       const { token, api_url } = await res.json()
 
-      let wsBase = ""
-      if (typeof window !== "undefined") {
-        const proto = window.location.protocol === "https:" ? "wss:" : "ws:"
-        // Always default to the hostname the browser used to load the dashboard (LAN IP, Tailscale IP, or domain)
-        let host = window.location.hostname
-        let port = window.location.port === "3000" ? "8080" : (window.location.port || (window.location.protocol === "https:" ? "443" : "80"))
-
-        if (api_url) {
-          try {
-            const u = new URL(api_url)
-            // If api_url defines a custom port and web is on port 3000
-            if (u.port && window.location.port === "3000") {
-              port = u.port
-            }
-            // If api_url is a public domain matching the browser's current host
-            if (u.hostname && !u.hostname.includes("api:") && !u.hostname.includes("localhost") && !u.hostname.includes("127.0.0.1") && !u.hostname.startsWith("100.")) {
-              if (window.location.hostname === u.hostname) {
-                host = u.hostname
-              }
-            }
-          } catch {}
-        }
-
-        wsBase = `${proto}//${host}:${port}`
-      }
+      const wsBase = terminalWebSocketBase(window.location, api_url)
 
       const cols = 120
       const rows = 34
@@ -247,7 +229,7 @@ export function NodeWebTerminal({ nodeId, nodeName, ipVpn }: NodeWebTerminalProp
         if (ws.readyState === WebSocket.CONNECTING) {
           ws.close()
           setStatus("error")
-          setErrorMsg(`Tiempo de espera agotado al conectar a ${wsBase}. Verifica que el puerto 8080 esté abierto y accesible desde tu red.`)
+          setErrorMsg(`Timed out connecting to the API at ${wsBase}. ${TERMINAL_HELP}`)
         }
       }, 8000)
 
@@ -283,7 +265,7 @@ export function NodeWebTerminal({ nodeId, nodeName, ipVpn }: NodeWebTerminalProp
       ws.onerror = (err) => {
         clearTimeout(connTimer)
         setStatus("error")
-        setErrorMsg(`Error de conexión WebSocket (${wsBase}). Verifica que el puerto 8080 esté abierto y accesible.`)
+        setErrorMsg(`Could not open the terminal at ${wsBase}. ${TERMINAL_HELP}`)
       }
 
       ws.onclose = () => {
