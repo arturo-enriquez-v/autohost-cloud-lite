@@ -47,6 +47,7 @@ import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { UserDialog } from "@/components/features/users/UserDialog"
 import type { ManagedUser } from "@/lib/features/users/interfaces/user"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 function presetBadgeClass(preset: string) {
   switch (preset) {
@@ -160,29 +161,25 @@ export default function UsersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Users className="h-6 w-6 text-[#70AEFF]" />
-            Users & Permissions
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage accounts, global roles, and granular access by project and node.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {catalog && (
-            <Button variant="outline" onClick={() => setCatalogOpen(true)} className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Permissions Guide
+      <PageHeader
+        icon={Users}
+        title="Users & Permissions"
+        description="Manage accounts, global roles, and granular access by project and node."
+        actions={
+          <>
+            {catalog && (
+              <Button variant="outline" onClick={() => setCatalogOpen(true)} className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Permissions Guide
+              </Button>
+            )}
+            <Button onClick={openCreate} className="gap-2">
+              <UserPlus className="h-4 w-4" />
+              New user
             </Button>
-          )}
-          <Button onClick={openCreate} className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            New user
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-3">

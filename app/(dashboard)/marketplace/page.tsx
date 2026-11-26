@@ -1,9 +1,10 @@
 "use client";
 
-import { Loader2, CheckCircle2, Package } from "lucide-react";
+import { Loader2, CheckCircle2, Package, Store } from "lucide-react";
 import { useMarketplace } from "@/lib/features/marketplace/hooks/useMarketplace";
 import { AppCard } from "@/components/features/marketplace/AppCard";
 import { InstallModal } from "@/components/features/marketplace/InstallModal";
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function MarketplacePage() {
   const {
@@ -30,10 +31,11 @@ export default function MarketplacePage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Marketplace</h2>
-          <p className="text-sm text-muted-foreground">Install self-hosted apps on your nodes</p>
-        </div>
+        <PageHeader
+          icon={Store}
+          title="Marketplace"
+          description="Install self-hosted apps on your nodes"
+        />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/10 dark:text-red-400">
           {error}
         </div>
@@ -43,10 +45,11 @@ export default function MarketplacePage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Marketplace</h2>
-        <p className="text-sm text-muted-foreground">Install self-hosted apps on your nodes</p>
-      </div>
+      <PageHeader
+        icon={Store}
+        title="Marketplace"
+        description="Install self-hosted apps on your nodes"
+      />
 
       {successMsg && (
         <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/10 dark:text-green-400">

@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
 import { currentUptimeSeconds, formatUptime, getTimeSinceLastSeen } from "@/lib/utils/node-status"
-import { FolderKanban, Loader2 } from "lucide-react"
+import { FolderKanban, Loader2, Server } from "lucide-react"
 import { NodeActions } from "@/components/features/nodes/NodeActions"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useCurrentUser } from "@/lib/context/current-user-context"
 import { ConnectNodeModal } from "@/components/features/nodes"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function NodesPage() {
   const router = useRouter()
@@ -50,21 +51,22 @@ export default function NodesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Nodes</h2>
-          <p className="text-sm text-muted-foreground">Manage your server infrastructure</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {selectedProject && (
-            <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
-              <FolderKanban className="h-3.5 w-3.5" />
-              <span>{selectedProject.name}</span>
-            </div>
-          )}
-          {isAdmin && <ConnectNodeModal />}
-        </div>
-      </div>
+      <PageHeader
+        icon={Server}
+        title="Nodes"
+        description="Manage your server infrastructure"
+        actions={
+          <>
+            {selectedProject && (
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
+                <FolderKanban className="h-3.5 w-3.5" />
+                <span>{selectedProject.name}</span>
+              </div>
+            )}
+            {isAdmin && <ConnectNodeModal />}
+          </>
+        }
+      />
 
       <Card>
         <CardHeader>

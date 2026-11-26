@@ -22,13 +22,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Loader2, Plus, Trash2, Clock, ChevronDown, ChevronUp, FolderKanban } from "lucide-react"
+import { Loader2, Plus, Trash2, Clock, ChevronDown, ChevronUp, FolderKanban, Calendar } from "lucide-react"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { useProjectContext } from "@/lib/context/project-context"
 import { useScheduledTasks } from "@/lib/features/schedules/hooks/useScheduledTasks"
 import type { NodeCommand, ScheduledTask, ScheduleType } from "@/lib/types"
 import { fetchWithAuth } from "@/lib/api/fetch-client"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -188,20 +189,21 @@ export default function SchedulesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Scheduled Tasks</h2>
-          <p className="text-sm text-muted-foreground">
-            Run custom commands on your nodes on a recurring schedule
-          </p>
-        </div>
-        {selectedProject && (
-          <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
-            <FolderKanban className="h-3.5 w-3.5" />
-            <span>{selectedProject.name}</span>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        icon={Calendar}
+        title="Schedules"
+        description="Run custom commands on your nodes on a recurring schedule"
+        actions={
+          <>
+            {selectedProject && (
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
+                <FolderKanban className="h-3.5 w-3.5" />
+                <span>{selectedProject.name}</span>
+              </div>
+            )}
+          </>
+        }
+      />
 
       {/* ── New Schedule Form ─────────────────────────────────────────── */}
       <Card>

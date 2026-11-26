@@ -26,6 +26,7 @@ import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
 import { useCurrentUser } from "@/lib/context/current-user-context"
 import type { Project } from "@/lib/types"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function ProjectsPage() {
   const router = useRouter()
@@ -103,20 +104,21 @@ export default function ProjectsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Projects</h2>
-          <p className="text-sm text-muted-foreground">
-            Organise your nodes into projects
-          </p>
-        </div>
-        {isAdmin && (
-          <Button onClick={() => { setNameInput(""); setCreateOpen(true) }}>
-            <Plus className="h-4 w-4 mr-2" />
-            New project
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        icon={FolderKanban}
+        title="Projects"
+        description="Organise your nodes into projects"
+        actions={
+          <>
+            {isAdmin && (
+              <Button onClick={() => { setNameInput(""); setCreateOpen(true) }}>
+                <Plus className="h-4 w-4 mr-2" />
+                New project
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {projects.length === 0 ? (
         <Card>

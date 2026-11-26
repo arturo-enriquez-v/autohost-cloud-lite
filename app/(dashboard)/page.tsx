@@ -3,7 +3,8 @@
 import { ServerCard, ConnectNodeModal } from "@/components/features/nodes"
 import { useProjectContext } from "@/lib/context/project-context"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
-import { FolderKanban } from "lucide-react"
+import { FolderKanban, LayoutDashboard } from "lucide-react"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function DashboardPage() {
   const { nodes, isLoading, isUpdating, error } = useNodes();
@@ -12,13 +13,16 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
-          </div>
-          <ConnectNodeModal />
-        </div>
+        <PageHeader
+          icon={LayoutDashboard}
+          title="Dashboard"
+          description="Monitor your infrastructure"
+          actions={
+            <>
+              <ConnectNodeModal />
+            </>
+          }
+        />
         <div className="flex items-center justify-center py-12">
           <div className="flex items-center gap-2 text-muted-foreground">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -32,13 +36,16 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-            <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
-          </div>
-          <ConnectNodeModal />
-        </div>
+        <PageHeader
+          icon={LayoutDashboard}
+          title="Dashboard"
+          description="Monitor your infrastructure"
+          actions={
+            <>
+              <ConnectNodeModal />
+            </>
+          }
+        />
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-800 dark:bg-red-900/10 dark:text-red-400">
           {error}
         </div>
@@ -48,27 +55,28 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-          <p className="text-sm text-muted-foreground">Monitor your infrastructure</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {selectedProject && (
-            <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
-              <FolderKanban className="h-3.5 w-3.5" />
-              <span>{selectedProject.name}</span>
-            </div>
-          )}
-          {isUpdating && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              <span>Updating...</span>
-            </div>
-          )}
-          <ConnectNodeModal />
-        </div>
-      </div>
+      <PageHeader
+        icon={LayoutDashboard}
+        title="Dashboard"
+        description="Monitor your infrastructure"
+        actions={
+          <>
+            {selectedProject && (
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-accent/40 px-3 py-1 text-xs text-muted-foreground">
+                <FolderKanban className="h-3.5 w-3.5" />
+                <span>{selectedProject.name}</span>
+              </div>
+            )}
+            {isUpdating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                <span>Updating...</span>
+              </div>
+            )}
+            <ConnectNodeModal />
+          </>
+        }
+      />
 
       {nodes.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-12 text-center flex flex-col items-center justify-center space-y-4">

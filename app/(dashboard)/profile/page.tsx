@@ -6,6 +6,7 @@
 import { Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Bell, KeyRound, User } from "lucide-react"
+import { PageHeader } from "@/components/layout/PageHeader"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProfileDetails } from "@/components/features/profile/ProfileDetails"
 import { EmailReportsCard } from "@/components/features/settings/EmailReportsCard"
@@ -52,10 +53,11 @@ function AccountTabs() {
 export default function AccountPage() {
   return (
     <div className="max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">My account</h1>
-        <p className="text-sm text-muted-foreground">Your profile, notifications and API access</p>
-      </div>
+      <PageHeader
+        icon={User}
+        title="My account"
+        description="Your profile, notifications and API access"
+      />
       <Suspense>
         <AccountTabs />
       </Suspense>

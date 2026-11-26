@@ -5,11 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Wifi, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { RefreshCw, Wifi, ChevronLeft, ChevronRight, X, AlertTriangle } from "lucide-react"
 import { useAlertEvents } from "@/lib/hooks"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import { AlertItem } from "@/components/features/alerts/AlertItem"
 import type { AlertFilters } from "@/lib/features/alerts/hooks/useAlertEvents"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function AlertsPage() {
   const {
@@ -52,16 +53,19 @@ export default function AlertsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Alerts</h2>
-          <p className="text-sm text-muted-foreground">Recent system alerts and notifications</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      </div>
+      <PageHeader
+        icon={AlertTriangle}
+        title="Alerts"
+        description="Recent system alerts and notifications"
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={refresh} disabled={isLoading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </>
+        }
+      />
 
       {/* Filters */}
       <Card>

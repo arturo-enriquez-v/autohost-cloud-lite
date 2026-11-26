@@ -12,6 +12,7 @@ import { usePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { CloudflareTunnelCard } from "@/components/features/nodes/CloudflareTunnelCard"
 import { TailscaleFunnelCard } from "@/components/features/nodes/TailscaleFunnelCard"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function ProxyPage() {
   return (
@@ -50,16 +51,11 @@ function ProxyView() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Globe className="h-6 w-6" />
-          Proxy
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Expose services on any node with Cloudflare Tunnel and Tailscale Funnel. Each node&apos;s Caddy routes are
-          in its own Proxy page.
-        </p>
-      </div>
+      <PageHeader
+        icon={Globe}
+        title="Proxy"
+        description="Expose services on any node with Cloudflare Tunnel and Tailscale Funnel. Each node's Caddy routes are in its own Proxy page."
+      />
 
       {!loading && readableNodes.length === 0 ? (
         <Card className="border-border bg-card">

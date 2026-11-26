@@ -37,6 +37,7 @@ import { useReportSettings } from "@/lib/features/report-settings/hooks/useRepor
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
 import type { Node } from "@/lib/features/nodes/types"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 const UTC_HOURS = Array.from({ length: 24 }, (_, i) => i)
 
@@ -235,42 +236,37 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6 pb-12">
       {/* Page Header */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b pb-5">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Mail className="h-6 w-6 text-primary shrink-0" />
-            Email Reports
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Receive automated morning reports of your infrastructure organized by VPS groups.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
-          <Button variant="outline" size="sm" onClick={openCreateGroupModal} className="flex-1 sm:flex-initial">
-            <Plus className="mr-1.5 h-4 w-4" />
-            New Group
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleTriggerReport}
-            disabled={isTriggering || !settings.enabled}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-initial"
-          >
-            {isTriggering ? (
-              <>
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="mr-1.5 h-4 w-4" />
-                Send Report Now
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={Mail}
+        title="Reports"
+        description="Automated morning reports of your infrastructure, organized by VPS groups."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={openCreateGroupModal} className="flex-1 sm:flex-initial">
+              <Plus className="mr-1.5 h-4 w-4" />
+              New Group
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleTriggerReport}
+              disabled={isTriggering || !settings.enabled}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 sm:flex-initial"
+            >
+              {isTriggering ? (
+                <>
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-1.5 h-4 w-4" />
+                  Send Report Now
+                </>
+              )}
+            </Button>
+          </>
+        }
+      />
 
       {triggerMessage && (
         <div

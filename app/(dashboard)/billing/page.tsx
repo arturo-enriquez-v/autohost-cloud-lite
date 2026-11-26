@@ -13,6 +13,7 @@ import {
   FolderGit2,
   Terminal,
 } from "lucide-react"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function UsagePage() {
   const { planUsage, isLoading, error } = usePlans()
@@ -20,17 +21,11 @@ export default function UsagePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/50 pb-5">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Activity className="h-6 w-6 text-[#70AEFF]" />
-            Resource Usage
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Monitor real-time resource consumption across all your connected infrastructure.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Activity}
+        title="Resource Usage"
+        description="Monitor real-time resource consumption across all your connected infrastructure."
+      />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-24 text-muted-foreground gap-2">

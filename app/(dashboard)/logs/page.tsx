@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 interface ExternalLog {
   id: string
@@ -363,43 +364,33 @@ print(response.json())`
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#70AEFF]/10 text-[#70AEFF] border border-[#70AEFF]/20">
-              <FileText className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">External Logs</h1>
-              <p className="text-sm text-muted-foreground">
-                Ingest & visualize logs sent from external APIs, microservices, or custom scripts
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="border-border hover:bg-[#70AEFF]/10 hover:text-[#70AEFF]"
-          >
-            <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
-            Refresh
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setCreateTokenOpen(true)}
-            className="bg-[#70AEFF] text-black font-semibold hover:bg-[#70AEFF]/90 transition-all shadow-md shadow-[#70AEFF]/10"
-          >
-            <Key className="h-4 w-4 mr-2" />
-            New Ingestion Token
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="External Logs"
+        description="Ingest and visualize logs sent from external APIs, microservices or custom scripts"
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="border-border hover:bg-[#70AEFF]/10 hover:text-[#70AEFF]"
+            >
+              <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
+              Refresh
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setCreateTokenOpen(true)}
+              className="bg-[#70AEFF] text-black font-semibold hover:bg-[#70AEFF]/90 transition-all shadow-md shadow-[#70AEFF]/10"
+            >
+              <Key className="h-4 w-4 mr-2" />
+              New Ingestion Token
+            </Button>
+          </>
+        }
+      />
 
       {/* Tabs Bar */}
       <div className="flex items-center gap-2 border-b border-border">

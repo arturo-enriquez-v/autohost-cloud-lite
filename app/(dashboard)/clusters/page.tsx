@@ -6,6 +6,7 @@ import { Layers, Plus, Server, Cpu, RefreshCw, ArrowRight, ShieldCheck, Activity
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/PageHeader"
 
 export default function ClustersPage() {
   const { clusters, loading, error, refresh } = useClusters();
@@ -16,29 +17,25 @@ export default function ClustersPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Layers className="h-7 w-7 text-primary" />
-            Docker Swarm Clusters
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Stateless microservice orchestration over the private VPN with predictive autoscaling.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => refresh()} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
-          <Link href="/clusters/new">
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Cluster
+      <PageHeader
+        icon={Layers}
+        title="Clusters"
+        description="Stateless microservice orchestration over the private VPN with predictive autoscaling."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => refresh()} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
             </Button>
-          </Link>
-        </div>
-      </div>
+            <Link href="/clusters/new">
+              <Button size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create Cluster
+              </Button>
+            </Link>
+          </>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">

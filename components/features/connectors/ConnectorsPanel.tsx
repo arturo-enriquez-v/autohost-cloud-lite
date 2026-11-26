@@ -7,6 +7,7 @@ import { useMemo, useState } from "react"
 import { Loader2, Plug, Plus } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
+import { PageHeader } from "@/components/layout/PageHeader"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useConnectors } from "@/lib/features/connectors/hooks/useConnectors"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
@@ -80,17 +81,25 @@ export function ConnectorsPanel({ projectId, embedded = false }: ConnectorsPanel
             Connectors <span className="font-normal text-muted-foreground">({connectors.length})</span>
           </h3>
         ) : (
-          <div>
-            <h2 className="text-2xl font-bold text-foreground">Connectors</h2>
-            <p className="text-sm text-muted-foreground">
-              Requests to external APIs, shared with your projects: widgets that show data and buttons that trigger actions.
-            </p>
-          </div>
+          <PageHeader
+            className="w-full"
+            icon={Plug}
+            title="Connectors"
+            description="Requests to external APIs, shared with your projects: widgets that show data and buttons that trigger actions."
+            actions={
+              <Button size="sm" onClick={openNew}>
+                <Plus className="mr-2 h-4 w-4" />
+                New connector
+              </Button>
+            }
+          />
         )}
-        <Button size="sm" onClick={openNew}>
-          <Plus className="mr-2 h-4 w-4" />
-          New connector
-        </Button>
+        {embedded && (
+          <Button size="sm" onClick={openNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            New connector
+          </Button>
+        )}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

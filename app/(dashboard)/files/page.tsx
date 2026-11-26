@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { PageHeader } from "@/components/layout/PageHeader"
 
 // Key format: `${nodeId}:${dirPath}` -> list of entries in that directory
 type FolderCacheMap = Record<string, NodeFileEntry[]>
@@ -244,45 +245,40 @@ export default function GlobalFilesExplorerPage() {
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2.5">
-            <FolderOpen className="h-6 w-6 text-[#70AEFF]" />
-            Multi-Node File Explorer
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Browse your nodes as network drives, explore folders, stream video, and transfer files over Tailscale.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {selectedNodeId && (
+      <PageHeader
+        icon={FolderOpen}
+        title="Files"
+        description="Browse your nodes as network drives, explore folders, stream video, and transfer files over Tailscale."
+        actions={
+          <>
+            {selectedNodeId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedNodeId(null)}
+                className="h-8 text-xs gap-1.5"
+              >
+                <Layers className="h-3.5 w-3.5 text-[#70AEFF]" />
+                View All Nodes
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setSelectedNodeId(null)}
+              onClick={() => {
+                refreshNodes()
+                if (selectedNodeId) {
+                  loadDirectoryForTree(selectedNodeId, selectedPath)
+                }
+              }}
               className="h-8 text-xs gap-1.5"
             >
-              <Layers className="h-3.5 w-3.5 text-[#70AEFF]" />
-              View All Nodes
+              <RefreshCw className="h-3.5 w-3.5" />
+              Sync
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              refreshNodes()
-              if (selectedNodeId) {
-                loadDirectoryForTree(selectedNodeId, selectedPath)
-              }
-            }}
-            className="h-8 text-xs gap-1.5"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Sync
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Main Split Explorer Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-start">
