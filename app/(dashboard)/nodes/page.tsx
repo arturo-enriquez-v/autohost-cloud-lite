@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useProjects } from "@/lib/features/projects/hooks/useProjects"
 import { useProjectContext } from "@/lib/context/project-context"
-import { getTimeSinceLastSeen } from "@/lib/utils/node-status"
+import { currentUptimeSeconds, formatUptime, getTimeSinceLastSeen } from "@/lib/utils/node-status"
 import { FolderKanban, Loader2 } from "lucide-react"
 import { NodeActions } from "@/components/features/nodes/NodeActions"
 import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes"
@@ -118,7 +118,10 @@ export default function NodesPage() {
                     className="cursor-pointer"
                     onClick={() => router.push(`/node/${node.id}`)}
                   >
-                    N/A
+                    {(() => {
+                      const up = currentUptimeSeconds(node)
+                      return up == null ? <span className="text-muted-foreground">—</span> : formatUptime(up)
+                    })()}
                   </TableCell>
                   <TableCell
                     className="text-muted-foreground cursor-pointer"

@@ -128,6 +128,8 @@ export function mapNodeWithMetricsFromBackend(node: import("@/lib/types").NodeWi
     ram: node.last_metric?.memory_usage_percent || 0,
     disk: node.last_metric?.disk_usage_percent || 0,
     cpuTempCelsius: node.last_metric?.cpu_temp_celsius || undefined,
+    uptimeSeconds: node.last_metric?.uptime_seconds ?? undefined,
+    metricCollectedAt: node.last_metric?.collected_at,
     isLocal: Boolean(node.is_local),
     isVm: Boolean(node.is_vm),
     vmId: node.vm_id || undefined,

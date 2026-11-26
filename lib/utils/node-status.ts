@@ -67,3 +67,28 @@ export function getTimeSinceLastSeen(lastSeenAt: string | undefined): string {
     return "Unknown";
   }
 }
+
+/** "3d 4h 12m", "5h 2m" or "38m". */
+export function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400)
+  const h = Math.floor((seconds % 86400) / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  if (d > 0) return `${d}d ${h}h ${m}m`
+  if (h > 0) return `${h}h ${m}m`
+  return `${m}m`
+}
+
+/**
+ * Current uptime of an online node: the uptime of its last stored metric plus the time since that
+ * metric. Undefined when the node is offline or the API did not send uptime.
+ */
+export function currentUptimeSeconds(node: {
+  status: string
+  uptimeSeconds?: number
+  metricCollectedAt?: string
+}): number | undefined {
+  if (node.status !== "online" || node.uptimeSeconds == null) return undefined
+  const collected = node.metricCollectedAt ? new Date(node.metricCollectedAt).getTime() : NaN
+  const elapsed = Number.isNaN(collected) ? 0 : Math.max(0, (Date.now() - collected) / 1000)
+  return node.uptimeSeconds + elapsed
+}

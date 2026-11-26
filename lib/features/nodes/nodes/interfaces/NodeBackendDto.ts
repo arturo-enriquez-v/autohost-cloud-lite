@@ -34,5 +34,7 @@ export interface NodeMetricBackendDto {
   cpu_usage_percent: number;
   memory_usage_percent: number;
   disk_usage_percent: number;
+  // TODO: optional while APIs that do not store uptime are deployed (they omit it).
+  uptime_seconds?: number;
   collected_at: string;
 }

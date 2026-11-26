@@ -17,6 +17,9 @@ export interface Node {
   ram: number;
   disk: number;
   cpuTempCelsius?: number;
+  /** Uptime when the last stored metric was taken, and when; see currentUptimeSeconds. */
+  uptimeSeconds?: number;
+  metricCollectedAt?: string;
   isLocal?: boolean;
   isVm?: boolean;
   vmId?: string;
@@ -58,6 +61,8 @@ export interface NodeMetric {
   memory_usage_percent: number;
   disk_usage_percent: number;
   cpu_temp_celsius?: number;
+  // TODO: optional while APIs that do not store uptime are deployed (they omit it).
+  uptime_seconds?: number;
   collected_at: string;
 }
 

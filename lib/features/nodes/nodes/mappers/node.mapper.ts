@@ -29,6 +29,8 @@ export const mapNodeWithMetricsFromBackend: NodeMapper<NodeWithMetricsBackendDto
   cpu: dto.last_metric?.cpu_usage_percent ?? 0,
   ram: dto.last_metric?.memory_usage_percent ?? 0,
   disk: dto.last_metric?.disk_usage_percent ?? 0,
+  uptimeSeconds: dto.last_metric?.uptime_seconds ?? undefined,
+  metricCollectedAt: dto.last_metric?.collected_at,
   containers: [],
   ipLocal: dto.ip_local,
   ipVpn: dto.ip_vpn,
