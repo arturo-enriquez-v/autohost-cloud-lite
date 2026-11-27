@@ -35,12 +35,15 @@ import {
   Edit3,
   ZoomIn,
   ZoomOut,
+  FolderInput,
 } from "lucide-react"
 import { FolderShareDialog } from "./FolderShareDialog"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { Button } from "@/components/ui/button"
+import { MoveEntryDialog } from "./MoveEntryDialog"
+import { canMoveInto, joinPath } from "@/lib/utils/file-paths"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -193,6 +196,10 @@ export function NodeFileManager({
   // Rename file/folder dialog state
   const [renameTarget, setRenameTarget] = useState<NodeFileEntry | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  // Move to another folder: the dialog, and drag and drop onto folders and breadcrumbs.
+  const [moveTarget, setMoveTarget] = useState<NodeFileEntry | null>(null)
+  const dragEntryRef = useRef<NodeFileEntry | null>(null)
+  const [dropHoverPath, setDropHoverPath] = useState<string | null>(null)
   const [renaming, setRenaming] = useState(false)
 
   const openShareDialogForPath = (folderPath: string) => {
@@ -463,6 +470,75 @@ export function NodeFileManager({
       setRenaming(false)
     }
   }
+
+  /** Moves an item into targetDir (same node) and refreshes the listing. */
+  const moveEntry = async (entry: NodeFileEntry, targetDir: string): Promise<boolean> => {
+    if (!canMoveInto(entry, targetDir)) return false
+    setStatusBanner(null)
+    try {
+      const res = await fetch(`/api/nodes/${nodeId}/files/rename`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ path: entry.path, new_path: joinPath(targetDir, entry.name) }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(
+          res.status === 409
+            ? `"${entry.name}" already exists in ${targetDir}`
+            : data.error || "Could not move"
+        )
+      }
+      setStatusBanner({ type: "ok", text: `Moved "${entry.name}" to ${targetDir}.` })
+      await fetchFiles(currentPath)
+      return true
+    } catch (err) {
+      setStatusBanner({ type: "err", text: err instanceof Error ? err.message : "Failed to move" })
+      return false
+    }
+  }
+
+  const dragProps = (entry: NodeFileEntry) =>
+    canWrite
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            dragEntryRef.current = entry
+            e.dataTransfer.effectAllowed = "move"
+            e.dataTransfer.setData("text/plain", entry.path)
+          },
+          onDragEnd: () => {
+            dragEntryRef.current = null
+            setDropHoverPath(null)
+          },
+        }
+      : {}
+
+  /** Makes an element a drop target for moving the dragged item into targetDir. */
+  const dropProps = (targetDir: string) => ({
+    onDragOver: (e: React.DragEvent) => {
+      const dragged = dragEntryRef.current
+      if (!dragged || !canMoveInto(dragged, targetDir)) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = "move"
+      if (dropHoverPath !== targetDir) setDropHoverPath(targetDir)
+    },
+    onDragLeave: () => {
+      if (dropHoverPath === targetDir) setDropHoverPath(null)
+    },
+    onDrop: (e: React.DragEvent) => {
+      const dragged = dragEntryRef.current
+      setDropHoverPath(null)
+      dragEntryRef.current = null
+      if (!dragged || !canMoveInto(dragged, targetDir)) return
+      e.preventDefault()
+      void moveEntry(dragged, targetDir)
+    },
+  })
+
+  const dropHighlight = (targetDir: string) =>
+    dropHoverPath === targetDir ? " ring-2 ring-[#70AEFF] bg-[#70AEFF]/10" : ""
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return
@@ -972,9 +1048,10 @@ export function NodeFileManager({
           <button
             type="button"
             onClick={() => navigateTo("/")}
+            {...dropProps("/")}
             className={`px-2 py-1 rounded hover:bg-muted transition-colors ${
               currentPath === "/" ? "text-[#70AEFF] font-semibold" : "text-muted-foreground"
-            }`}
+            }${dropHighlight("/")}`}
           >
             {nodeName || "shared"}
           </button>
@@ -987,9 +1064,10 @@ export function NodeFileManager({
                 <button
                   type="button"
                   onClick={() => navigateTo(subPath)}
+                  {...dropProps(subPath)}
                   className={`px-2 py-1 rounded hover:bg-muted transition-colors truncate max-w-[180px] ${
                     isLast ? "text-[#70AEFF] font-semibold" : "text-muted-foreground"
-                  }`}
+                  }${dropHighlight(subPath)}`}
                 >
                   {part}
                 </button>
@@ -1091,6 +1169,8 @@ export function NodeFileManager({
             {filteredEntries.map((entry) => (
               <div
                 key={entry.path}
+                {...dragProps(entry)}
+                {...(entry.is_dir ? dropProps(entry.path) : {})}
                 onDoubleClick={() => {
                   if (entry.is_dir) navigateTo(entry.path)
                   else if (isMediaFile(entry.name)) setStreamingEntry(entry)
@@ -1102,7 +1182,7 @@ export function NodeFileManager({
                 }}
                 className={`group relative rounded-xl border border-border/60 bg-background/40 hover:bg-muted/30 hover:border-[#70AEFF]/40 p-3.5 transition-all flex flex-col justify-between gap-3 ${
                   entry.is_dir || isImageFile(entry.name) || isEditableTextFile(entry.name) ? "cursor-pointer" : ""
-                }`}
+                }${entry.is_dir ? dropHighlight(entry.path) : ""}`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="p-2.5 rounded-xl bg-muted/40 border border-border/50 group-hover:scale-105 transition-transform">
@@ -1193,6 +1273,17 @@ export function NodeFileManager({
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     )}
+                    {canWrite && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setMoveTarget(entry)}
+                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                        title="Move to another folder"
+                      >
+                        <FolderInput className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                     {canDelete && (
                       <Button
                         variant="ghost"
@@ -1248,7 +1339,9 @@ export function NodeFileManager({
                 {filteredEntries.map((entry) => (
                   <tr
                     key={entry.path}
-                    className="hover:bg-muted/20 transition-colors group"
+                    {...dragProps(entry)}
+                    {...(entry.is_dir ? dropProps(entry.path) : {})}
+                    className={`hover:bg-muted/20 transition-colors group${entry.is_dir ? dropHighlight(entry.path) : ""}`}
                   >
                     <td className="py-2.5 px-4 font-medium">
                       {entry.is_dir ? (
@@ -1397,6 +1490,17 @@ export function NodeFileManager({
                             title="Rename"
                           >
                             <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {canWrite && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMoveTarget(entry)}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            title="Move to another folder"
+                          >
+                            <FolderInput className="h-3.5 w-3.5" />
                           </Button>
                         )}
                         {canDelete && (
@@ -1854,6 +1958,15 @@ export function NodeFileManager({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Move to another folder */}
+      <MoveEntryDialog
+        nodeId={nodeId}
+        nodeName={nodeName}
+        entry={moveTarget}
+        onClose={() => setMoveTarget(null)}
+        onMove={(targetDir) => (moveTarget ? moveEntry(moveTarget, targetDir) : Promise.resolve(false))}
+      />
 
       {/* Rename File or Folder Dialog */}
       <Dialog
