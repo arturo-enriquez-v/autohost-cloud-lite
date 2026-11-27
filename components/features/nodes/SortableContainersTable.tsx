@@ -45,6 +45,7 @@ import { fetchContainerSettings, saveContainerSettings } from "@/lib/features/no
 import { useNodePermissions } from "@/lib/features/users/hooks/usePermissions"
 import { PERMS } from "@/lib/features/users/permissions"
 import { toast } from "sonner"
+import { memoryNotMeasured, MEMORY_NOT_MEASURED_HINT } from "@/lib/utils/container-memory"
 
 function applyStoredOrder(containers: DockerContainer[], stored: string[]): DockerContainer[] {
   if (!stored || stored.length === 0) return containers
@@ -167,7 +168,11 @@ function SortableRow({
         {ctr.cpu ?? "—"}
       </TableCell>
       <TableCell className="hidden sm:table-cell text-xs font-mono text-muted-foreground">
-        {ctr.mem ? (
+        {memoryNotMeasured(ctr.mem) ? (
+          <span title={MEMORY_NOT_MEASURED_HINT} className="cursor-help underline decoration-dotted">
+            n/a
+          </span>
+        ) : ctr.mem ? (
           <span className="flex flex-col gap-0.5">
             <span>{ctr.mem}</span>
             {ctr.memPerc && (

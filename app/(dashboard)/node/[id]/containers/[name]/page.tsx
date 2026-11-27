@@ -21,6 +21,7 @@ import { useNodes } from "@/lib/features/nodes/nodes/hooks/useNodes";
 import { useContainersLive } from "@/lib/features/nodes/containers/hooks/useContainersLive";
 import { useContainerMetrics } from "@/lib/features/nodes/containers/hooks/useContainerMetrics";
 import { ContainerBackupsTab } from "@/components/backups/ContainerBackupsTab";
+import { memoryNotMeasured, MEMORY_NOT_MEASURED_HINT } from "@/lib/utils/container-memory"
 
 const RANGES: { value: MetricRange; label: string }[] = [
   { value: "1d", label: "24h" },
@@ -205,9 +206,13 @@ export default function ContainerMetricsPage({
             <div>
               <p className="text-xs text-muted-foreground font-medium">Memory Usage</p>
               <p className="text-xl font-bold font-mono">
-                {liveContainer?.memPerc ?? (latestPoint ? `${latestPoint.memory_usage_percent}%` : "—")}
+                {memoryNotMeasured(liveContainer?.mem)
+                  ? "n/a"
+                  : liveContainer?.memPerc ?? (latestPoint ? `${latestPoint.memory_usage_percent}%` : "—")}
               </p>
-              {liveContainer?.mem && (
+              {memoryNotMeasured(liveContainer?.mem) ? (
+                <p className="max-w-56 text-[10px] text-muted-foreground">{MEMORY_NOT_MEASURED_HINT}</p>
+              ) : liveContainer?.mem && (
                 <p className="text-[10px] text-muted-foreground font-mono">{liveContainer.mem}</p>
               )}
             </div>

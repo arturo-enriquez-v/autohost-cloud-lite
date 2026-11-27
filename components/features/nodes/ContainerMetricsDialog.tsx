@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DockerContainer, MetricRange } from "@/lib/features/nodes/types";
 import { useContainerMetrics } from "@/lib/features/nodes/containers/hooks/useContainerMetrics";
+import { memoryNotMeasured, MEMORY_NOT_MEASURED_HINT } from "@/lib/utils/container-memory"
 
 const RANGES: { value: MetricRange; label: string }[] = [
   { value: "1d", label: "24h" },
@@ -185,9 +186,13 @@ export function ContainerMetricsDialog({
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Memory Usage</p>
                 <p className="text-xl font-bold font-mono">
-                  {container?.memPerc ?? (latestPoint ? `${latestPoint.memory_usage_percent}%` : "—")}
+                  {memoryNotMeasured(container?.mem)
+                    ? "n/a"
+                    : container?.memPerc ?? (latestPoint ? `${latestPoint.memory_usage_percent}%` : "—")}
                 </p>
-                {container?.mem && (
+                {memoryNotMeasured(container?.mem) ? (
+                  <p className="max-w-56 text-[10px] text-muted-foreground">{MEMORY_NOT_MEASURED_HINT}</p>
+                ) : container?.mem && (
                   <p className="text-[10px] text-muted-foreground font-mono">{container.mem}</p>
                 )}
               </div>
